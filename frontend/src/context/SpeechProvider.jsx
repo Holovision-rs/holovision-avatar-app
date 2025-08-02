@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { SpeechContext } from "./SpeechContext";
 
-const backendUrl = "http://localhost:3000";
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 export const SpeechProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
