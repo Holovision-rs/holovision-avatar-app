@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({extended: true, limit: '50mb'}));
 app.use(cors());
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.get("/voices", async (req, res) => {
   res.send(await voice.getVoices(elevenLabsApiKey));
