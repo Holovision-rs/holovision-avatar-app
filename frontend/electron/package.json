@@ -1,0 +1,39 @@
+{
+  "name": "talking-avatar-electron",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Desktop avatar powered by Electron and Vite",
+  "author": "Holovision Team",
+  "main": "main.js",
+  "build": {
+    "appId": "rs.holovision.avatar",
+    "productName": "Holovision Avatar",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "app_icon.ico"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "app_icon_256.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": true
+    }
+
+  },
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.6.0"
+  }
+
+}
