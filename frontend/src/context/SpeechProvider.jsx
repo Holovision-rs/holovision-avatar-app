@@ -19,17 +19,14 @@ export const SpeechProvider = ({ children }) => {
   const updateMicState = (enabled) => {
     setMicEnabled(enabled);
     micEnabledRef.current = enabled;
-    console.log(`[Mic State] micEnabled: ${enabled}, micEnabledRef.current: ${micEnabledRef.current}`);
   };
 
   const initiateRecording = () => {
     audioChunksRef.current = [];
-    console.log("🔄 Audio chunks reset.");
   };
 
   const onDataAvailable = (e) => {
     audioChunksRef.current.push(e.data);
-    console.log(`[DataAvailable] Received chunk size: ${e.data.size}`);
   };
 
   const sendAudioData = async (audioBlob) => {
@@ -46,7 +43,6 @@ export const SpeechProvider = ({ children }) => {
         });
         const data = await response.json();
         setMessages((prev) => [...prev, ...data.messages]);
-        console.log(`[Audio Sent] Length: ${base64Audio.length}, Messages received: ${data.messages.length}`);
       } catch (error) {
         console.error("❌ Audio send error:", error);
       } finally {
@@ -63,7 +59,6 @@ export const SpeechProvider = ({ children }) => {
         recorder.ondataavailable = onDataAvailable;
         recorder.onstop = () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-          console.log(`[Recorder] Stop called. Blob size: ${audioBlob.size}`);
           sendAudioData(audioBlob);
         };
         mediaRecorderRef.current = recorder;
@@ -138,6 +133,30 @@ export const SpeechProvider = ({ children }) => {
     micEnabledRef.current = micEnabled;
   }, [micEnabled]);
 
+  useEffect(() => {
+    if (messages.length > 0) setMessage(messages[0]);
+    else setMessage(null);
+  }, [messages]);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const context = new AudioContext();
+      const buffer = context.createBuffer(1, 1, 22050);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      if (source.start) source.start(0);
+      else if (source.noteOn) source.noteOn(0);
+      document.removeEventListener("touchstart", unlockAudio, false);
+      document.removeEventListener("click", unlockAudio, false);
+      console.log("🔓 Audio context unlocked");
+    };
+
+    document.addEventListener("touchstart", unlockAudio, false);
+    document.addEventListener("click", unlockAudio, false);
+  }, []);
+
   const tts = async (message) => {
     setLoading(true);
     updateMicState(false); // 🔇 disable mic
@@ -162,11 +181,7 @@ export const SpeechProvider = ({ children }) => {
     updateMicState(true); // ✅ re-enable mic
     console.log("🎤 Mic re-enabled after avatar speech.");
   };
-
-  useEffect(() => {
-    if (messages.length > 0) setMessage(messages[0]);
-    else setMessage(null);
-  }, [messages]);
+  
 
   return (
     <SpeechContext.Provider
