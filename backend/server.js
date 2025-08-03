@@ -7,15 +7,10 @@ import { sendDefaultMessages, defaultResponse } from "./modules/defaultMessages.
 import { convertAudioToText } from "./modules/whisper.mjs";
 
 dotenv.config();
+const app = express();
 const allowedOrigins = [
   "https://holovision-avatar-app-1.onrender.com", // zameniti sa stvarnim URL-om tvoje React aplikacije
 ];
-
-const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
-
-const app = express();
-app.use(express.json({limit: '50mb'}));
-app.use(express.urlencoded({extended: true, limit: '50mb'}));
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -24,7 +19,12 @@ app.use(cors({
       callback(new Error("Not allowed by CORS"));
     }
   },
+  credentials: true,
 }));
+const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({extended: true, limit: '50mb'}));
+
 const port = process.env.PORT || 3000;
 
 app.get("/voices", async (req, res) => {
