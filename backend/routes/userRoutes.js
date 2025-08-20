@@ -1,14 +1,19 @@
 import express from "express";
-import { loginUser, registerUser } from "../controllers/userController.js";
-import { verifyToken } from "../middleware/auth.js";
 import User from "../models/User.js";
+import { loginUser, registerUser, updateSubscription } from "../controllers/userController.js";
+import { verifyToken } from "../middleware/auth.js";
+import { requireTier } from "../middleware/subscription.js";
 
 const router = express.Router();
 
-// Registracija i login
 router.post("/login", loginUser);
 router.post("/register", registerUser);
+router.put("/subscription", verifyToken, updateSubscription); // 🔐 zaštićena ruta
 
+// Primer rute dostupne samo za silver i gold korisnike
+router.get("/avatar/use", verifyToken, requireTier(["silver", "gold"]), (req, res) => {
+  res.json({ message: "You have access to avatar usage!" });
+});
 // Dohvatanje podataka o korisniku preko tokena
 router.get("/me", verifyToken, async (req, res) => {
   try {

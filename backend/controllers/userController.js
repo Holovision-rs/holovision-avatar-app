@@ -22,3 +22,18 @@ export const loginUser = async (req, res) => {
 
   res.json({ token: generateToken(user._id) });
 };
+
+export const updateSubscription = async (req, res) => {
+  const { id, newTier } = req.body;
+
+  if (!['free', 'silver', 'gold'].includes(newTier)) {
+    return res.status(400).json({ message: "Invalid tier" });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(id, { subscription: newTier }, { new: true });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Error updating subscription" });
+  }
+};
