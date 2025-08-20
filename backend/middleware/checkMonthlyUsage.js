@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import subscriptionLimits from "../config/subscriptionLimits.js";
+import { subscriptionLimits } from "./subscriptionAccess.js";
 
 export const checkMonthlyUsage = async (req, res, next) => {
   try {
