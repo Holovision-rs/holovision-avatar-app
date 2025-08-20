@@ -2,10 +2,23 @@ import express from "express";
 import User from "../models/User.js";
 import { loginUser, registerUser, updateSubscription } from "../controllers/userController.js";
 import { verifyToken } from "../middleware/auth.js";
-import { requireTier } from "../middleware/subscription.js";
+import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
+import { requireTier } from "../middleware/subscriptionAccess.js";
 
 const router = express.Router();
 
+router.post("/session-end", verifyToken, checkMonthlyUsage, async (req, res) => {
+  const { durationInSeconds } = req.body;
+  const durationInMinutes = Math.ceil(durationInSeconds / 60);
+
+  try {
+    req.currentUser.monthlyUsageMinutes += durationInMinutes;
+    await req.currentUser.save();
+    res.status(200).json({ message: "Usage updated", used: req.currentUser.monthlyUsageMinutes });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update usage" });
+  }
+});
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.put("/subscription", verifyToken, updateSubscription); // 🔐 zaštićena ruta
