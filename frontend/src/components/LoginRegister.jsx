@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com";
 
 const LoginRegister = () => {
+console.log("🟢 LoginRegister komponenta učitana");
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
