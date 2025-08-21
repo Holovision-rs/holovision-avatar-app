@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import useAdminGuard from "../hooks/useAdminGuard";
 
 const AdminPanel = () => {
+  useAdminGuard();
+  
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");

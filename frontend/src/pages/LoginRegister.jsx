@@ -8,7 +8,9 @@ const LoginRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isLogin ? "/api/login" : "/api/register";
+    const endpoint = isLogin
+  ? "https://holovision-avatar-app.onrender.com/api/login"
+  : "https://holovision-avatar-app.onrender.com/api/register";
 
     try {
       const response = await fetch(endpoint, {
