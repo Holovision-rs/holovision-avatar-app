@@ -16,20 +16,27 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
+    console.log("Login payload:", req.body); // 🔍 DEBUG
+
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
-    if (!user || !(await bcrypt.compare(password, user.password)))
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      console.log("Invalid credentials"); // 🔍
       return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    res.status(200).json({
+    const responsePayload = {
       _id: user._id,
       email: user.email,
       subscription: user.subscription,
       monthlyUsageMinutes: user.monthlyUsageMinutes,
       usageMonth: user.usageMonth,
       token: generateToken(user._id),
-    });
+    };
+
+    console.log("Login successful, sending:", responsePayload); // 🔍
+    res.status(200).json(responsePayload);
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });

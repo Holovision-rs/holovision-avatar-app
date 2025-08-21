@@ -15,8 +15,11 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
-const app = express();
+const app = express(); // ✅ prvo kreiraj instancu
 
+// Body parser
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // CORS
 const allowedOrigins = [
   "https://holovision-avatar-app-1.onrender.com", // izmeni po potrebi
@@ -32,11 +35,6 @@ app.use(cors({
   },
   credentials: true,
 }));
-
-// Body parser
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
 // MongoDB konekcija
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
