@@ -48,7 +48,7 @@ router.get("/me", verifyToken, async (req, res) => {
 
 router.get("/admin/users", verifyToken, requireAdmin, async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const users = await User.find().select("-password isAdmin");
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch users" });
