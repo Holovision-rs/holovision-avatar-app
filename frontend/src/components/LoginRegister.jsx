@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com"; // ispravan backend URL
+const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com";
 
 const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,33 +23,37 @@ const LoginRegister = () => {
 
       const text = await response.text();
       let data;
+
       try {
         data = JSON.parse(text);
       } catch (err) {
-        throw new Error("Invalid response from server");
+        throw new Error("❌ Invalid response from server");
       }
 
       if (!response.ok) throw new Error(data.message);
+
+      if (!data.token) throw new Error("No token received");
+
+      localStorage.setItem("token", data.token);
       setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      // 🔐 Dohvati podatke o korisniku
+      const meRes = await fetch(`${BACKEND_URL}/api/me`, {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
 
-        // 🔐 Fetch user info preko tokena
-        const meRes = await fetch(`${BACKEND_URL}/api/me`, {
-          headers: {
-            Authorization: `Bearer ${data.token}`,
-          },
-        });
+      const user = await meRes.json();
+      if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
-        const user = await meRes.json();
-
-        if (user.isAdmin) {
-          navigate("/admin");
-        } else {
-          navigate("/"); // ili gde god želiš da vodiš običnog korisnika
-        }
+      // ✅ Redirekcija na osnovu privilegija
+      if (user.isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/");
       }
+
     } catch (err) {
       setMessage(`❌ ${err.message}`);
     }

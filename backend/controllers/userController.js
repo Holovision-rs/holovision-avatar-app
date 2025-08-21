@@ -16,33 +16,41 @@ export const registerUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    console.log("Login payload:", req.body); // 🔍 DEBUG
-
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    console.log("➡️ Login attempt:", email);
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      console.log("Invalid credentials"); // 🔍
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.log("❌ User not found");
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const responsePayload = {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log("❌ Password mismatch");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    console.log("✅ Login successful:", user.email);
+
+    res.status(200).json({
+      token,
       _id: user._id,
       email: user.email,
       subscription: user.subscription,
       monthlyUsageMinutes: user.monthlyUsageMinutes,
       usageMonth: user.usageMonth,
-      token: generateToken(user._id),
-    };
-
-    console.log("Login successful, sending:", responsePayload); // 🔍
-    res.status(200).json(responsePayload);
+      isAdmin: user.isAdmin,
+    });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
     res.status(500).json({ message: "Server error during login" });
   }
 };
-
 export const updateSubscription = async (req, res) => {
   const { id, newTier } = req.body;
 
