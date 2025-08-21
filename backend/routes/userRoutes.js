@@ -35,11 +35,10 @@ router.get("/admin/users", verifyToken, isAdmin, async (req, res) => {
 router.get("/avatar/use", verifyToken, requireTier(["silver", "gold"]), (req, res) => {
   res.json({ message: "You have access to avatar usage!" });
 });
-// Dohvatanje podataka o korisniku preko tokena
+ 
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
-    res.status(200).json(user);
+    res.status(200).json(req.user); // već očišćen od lozinke
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }

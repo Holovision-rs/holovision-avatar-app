@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = "https://holovision-backend.onrender.com"; // tvoj backend URL
+const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com"; // ispravan backend URL
 
 const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,22 +28,27 @@ const LoginRegister = () => {
       } catch (err) {
         throw new Error("Invalid response from server");
       }
-      if (!response.ok) throw new Error(data.message);
 
-      localStorage.setItem("token", data.token);
+      if (!response.ok) throw new Error(data.message);
       setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
 
-      // Fetch user info (da vidimo da li je admin)
-      const userRes = await fetch(`${BACKEND_URL}/api/me`, {
-        headers: { Authorization: `Bearer ${data.token}` },
-      });
-      const user = await userRes.json();
+      if (data.token) {
+        localStorage.setItem("token", data.token);
 
-      // Ako je admin, idi na admin panel
-      if (user.isAdmin) {
-        navigate("/admin");
-      } else {
-        navigate("/");
+        // 🔐 Fetch user info preko tokena
+        const meRes = await fetch(`${BACKEND_URL}/api/me`, {
+          headers: {
+            Authorization: `Bearer ${data.token}`,
+          },
+        });
+
+        const user = await meRes.json();
+
+        if (user.isAdmin) {
+          navigate("/admin");
+        } else {
+          navigate("/"); // ili gde god želiš da vodiš običnog korisnika
+        }
       }
     } catch (err) {
       setMessage(`❌ ${err.message}`);
