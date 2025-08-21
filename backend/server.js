@@ -2,20 +2,25 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// MODULES
 import { openAIChain, parser } from "./modules/openAI.mjs";
 import { lipSync } from "./modules/lip-sync.mjs";
 import { sendDefaultMessages, defaultResponse } from "./modules/defaultMessages.mjs";
 import { convertAudioToText } from "./modules/whisper.mjs";
 
+// ROUTES
 import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 const app = express();
 
 // CORS
 const allowedOrigins = [
-  "https://holovision-avatar-app-1.onrender.com", // zameni sa tvojim frontend URL-om
+  "https://holovision-avatar-app-1.onrender.com", // izmeni po potrebi
 ];
 
 app.use(cors({
@@ -29,6 +34,7 @@ app.use(cors({
   credentials: true,
 }));
 
+// Body parser
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -37,8 +43,9 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// User rute
+// API rute
 app.use("/api", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 // ElevenLabs API Key
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
@@ -97,7 +104,21 @@ app.post("/sts", async (req, res) => {
   }
 });
 
-// START SERVER
+
+// STATIC FILES (React app)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientBuildPath = path.join(__dirname, "../frontend/dist"); // prilagodi ako koristiš CRA ili Vite
+
+app.use(express.static(clientBuildPath));
+
+// Fallback route for React SPA
+app.get("*", (req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"));
+});
+
+
+// START SERVER (na kraju!)
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server is running on port ${port}`);
