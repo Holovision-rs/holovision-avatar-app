@@ -2,8 +2,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
-import path from "path";
-import { fileURLToPath } from "url";
+
 
 // MODULES
 import { openAIChain, parser } from "./modules/openAI.mjs";
@@ -103,20 +102,6 @@ app.post("/sts", async (req, res) => {
     res.status(500).send({ error: "Failed to process STT request." });
   }
 });
-
-
-// STATIC FILES (React app)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const clientBuildPath = path.join(__dirname, "../frontend/dist"); // prilagodi ako koristiš CRA ili Vite
-
-app.use(express.static(clientBuildPath));
-
-// Fallback route for React SPA
-app.get("*", (req, res) => {
-  res.sendFile(path.join(clientBuildPath, "index.html"));
-});
-
 
 // START SERVER (na kraju!)
 const port = process.env.PORT || 3000;
