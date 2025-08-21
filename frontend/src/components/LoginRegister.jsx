@@ -1,14 +1,18 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const BACKEND_URL = "https://holovision-backend.onrender.com"; // tvoj backend URL
 
 const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isLogin ? "/api/login" : "/api/register";
+    const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
 
     try {
       const response = await fetch(endpoint, {
@@ -17,14 +21,29 @@ const LoginRegister = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error("Invalid response from server");
+      }
       if (!response.ok) throw new Error(data.message);
 
+      localStorage.setItem("token", data.token);
       setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        // Optional redirect or fetch user data
+      // Fetch user info (da vidimo da li je admin)
+      const userRes = await fetch(`${BACKEND_URL}/api/me`, {
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+      const user = await userRes.json();
+
+      // Ako je admin, idi na admin panel
+      if (user.isAdmin) {
+        navigate("/admin");
+      } else {
+        navigate("/");
       }
     } catch (err) {
       setMessage(`❌ ${err.message}`);

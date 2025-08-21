@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useAdminGuard from "../hooks/useAdminGuard";
 
 const AdminPanel = () => {
   const [users, setUsers] = useState([]);
