@@ -1,19 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-console.log("🌐 BACKEND_URL:", BACKEND_URL);
+// 👇 Backend URL iz .env ili fallback
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
+
 const LoginRegister = () => {
-console.log("🟢 LoginRegister komponenta učitana");
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
+  // 🟢 Učitavanje komponente
+  useEffect(() => {
+    console.log("🟢 LoginRegister komponenta učitana");
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("🧪 Submitting login/register form", email);
+    console.log("🧪 Submitting login/register form", { email, password });
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
 
     try {
@@ -33,13 +38,11 @@ console.log("🟢 LoginRegister komponenta učitana");
       }
 
       if (!response.ok) throw new Error(data.message);
-
       if (!data.token) throw new Error("No token received");
 
       localStorage.setItem("token", data.token);
-      setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
+      console.log("✅ Token saved:", data.token);
 
-      // 🔐 Dohvati podatke o korisniku
       const meRes = await fetch(`${BACKEND_URL}/api/me`, {
         headers: {
           Authorization: `Bearer ${data.token}`,
@@ -47,17 +50,22 @@ console.log("🟢 LoginRegister komponenta učitana");
       });
 
       const user = await meRes.json();
+      console.log("🧪 User object:", user);
+
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
-      // ✅ Redirekcija na osnovu privilegija
+      // 🔁 Redirekcija
       if (user.isAdmin) {
+        console.log("✅ Redirecting to /admin");
         navigate("/admin");
       } else {
+        console.log("✅ Redirecting to /");
         navigate("/");
       }
 
     } catch (err) {
       setMessage(`❌ ${err.message}`);
+      console.error("⚠️ Error:", err.message);
     }
   };
 
