@@ -15,12 +15,25 @@ export const registerUser = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user || !(await bcrypt.compare(password, user.password)))
-    return res.status(401).json({ message: "Invalid credentials" });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
 
-  res.json({ token: generateToken(user._id) });
+    if (!user || !(await bcrypt.compare(password, user.password)))
+      return res.status(401).json({ message: "Invalid credentials" });
+
+    res.status(200).json({
+      _id: user._id,
+      email: user.email,
+      subscription: user.subscription,
+      monthlyUsageMinutes: user.monthlyUsageMinutes,
+      usageMonth: user.usageMonth,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error during login" });
+  }
 };
 
 export const updateSubscription = async (req, res) => {
