@@ -17,6 +17,7 @@
     "leva": "^0.9.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.23.0",
     "three": "^0.178.0"
   },
   "devDependencies": {
