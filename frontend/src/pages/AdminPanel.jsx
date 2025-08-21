@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAdminGuard from "../hooks/useAdminGuard";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const AdminPanel = () => {
   console.log("🧩 AdminPanel komponenta učitana");
@@ -15,8 +16,8 @@ const AdminPanel = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
+          headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
