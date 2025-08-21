@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
+const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+console.log("🌐 BACKEND_URL:", BACKEND_URL);
 const LoginRegister = () => {
 console.log("🟢 LoginRegister komponenta učitana");
   const [isLogin, setIsLogin] = useState(true);
