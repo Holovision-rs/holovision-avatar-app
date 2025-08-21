@@ -1,22 +1,18 @@
-import { Loader } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { Leva } from "leva";
-import { Scenario } from "./components/Scenario";
-import { ChatInterface } from "./components/ChatInterface";
-import { SpeechProvider } from "./context/SpeechProvider"; // dodaj import
-import UserSpeech from "./hooks/UserSpeech"; // dodaj import
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginRegister from "./pages/LoginRegister";
+import AdminPanel from "./pages/AdminPanel";
+import Home from "./pages/Home"; // Avatar stranica
 
 function App() {
   return (
-    <SpeechProvider> {/* Omotaj sve unutar SpeechProvider */}
-    <UserSpeech/>
-      <Loader />
-      <Leva collapsed hidden />
-      <ChatInterface />
-      <Canvas shadows camera={{ position: [0, 0, 0], fov: 10 }}>
-        <Scenario />
-      </Canvas>
-    </SpeechProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginRegister />} />
+        <Route path="/admin" element={<AdminPanel />} />
+      </Routes>
+    </Router>
   );
 }
+
 export default App;

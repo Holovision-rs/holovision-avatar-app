@@ -1,0 +1,181 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const AdminPanel = () => {
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      } else {
+        const err = await res.json();
+        setMessage(err.message || "Access denied");
+        setTimeout(() => navigate("/login"), 2000);
+      }
+    } catch (err) {
+      setMessage("Failed to fetch users");
+    }
+  };
+
+  useEffect(() => {
+    if (!token) {
+      setMessage("No token. Redirecting...");
+      setTimeout(() => navigate("/login"), 2000);
+    } else {
+      fetchUsers();
+    }
+  }, []);
+
+  const handleDelete = async (userId) => {
+    if (!window.confirm("Are you sure?")) return;
+
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      setUsers(users.filter((u) => u._id !== userId));
+    } else {
+      alert("Failed to delete user");
+    }
+  };
+
+  const handleSubscriptionChange = async (userId, newSub) => {
+    const res = await fetch(`/api/admin/users/${userId}/subscription`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ subscription: newSub }),
+    });
+
+    if (res.ok) {
+      fetchUsers(); // reload
+    } else {
+      alert("Failed to update subscription");
+    }
+  };
+
+  const filtered = users.filter((u) =>
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div style={styles.container}>
+      <h2>Admin Panel</h2>
+      <button onClick={() => {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }} style={styles.logoutButton}>Logout</button>
+
+      <input
+        type="text"
+        placeholder="Search by email"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={styles.searchInput}
+      />
+
+      {message && <p style={styles.message}>{message}</p>}
+
+      <p>Total users: {filtered.length}</p>
+
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Subscription</th>
+            <th>Minutes Used</th>
+            <th>Month</th>
+            <th>Change</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((u) => (
+            <tr key={u._id}>
+              <td>{u.email}</td>
+              <td>{u.subscription}</td>
+              <td>{u.monthlyUsageMinutes}</td>
+              <td>{u.usageMonth}</td>
+              <td>
+                <select
+                  value={u.subscription}
+                  onChange={(e) =>
+                    handleSubscriptionChange(u._id, e.target.value)
+                  }
+                >
+                  <option value="free">Free</option>
+                  <option value="silver">Silver</option>
+                  <option value="gold">Gold</option>
+                </select>
+              </td>
+              <td>
+                <button
+                  onClick={() => handleDelete(u._id)}
+                  style={styles.deleteButton}
+                >
+                  X
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const styles = {
+  container: {
+    maxWidth: "900px",
+    margin: "40px auto",
+    padding: "20px",
+    fontFamily: "Arial, sans-serif",
+  },
+  searchInput: {
+    padding: "6px",
+    marginBottom: "10px",
+    width: "100%",
+    maxWidth: "300px",
+  },
+  logoutButton: {
+    padding: "8px 12px",
+    marginBottom: "10px",
+    backgroundColor: "#444",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+    borderRadius: "4px",
+  },
+  message: {
+    color: "red",
+    marginTop: 10,
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+  deleteButton: {
+    backgroundColor: "red",
+    color: "white",
+    border: "none",
+    padding: "4px 8px",
+    cursor: "pointer",
+  },
+};
+
+export default AdminPanel;
