@@ -1,16 +1,18 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com"; // koristi pravi backend URL
 
 const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isLogin
-  ? "https://holovision-avatar-app.onrender.com/api/login"
-  : "https://holovision-avatar-app.onrender.com/api/register";
+    const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
 
     try {
       const response = await fetch(endpoint, {
@@ -19,19 +21,35 @@ const LoginRegister = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error("Invalid response from server");
+      }
+
       if (!response.ok) throw new Error(data.message);
 
+      // Čuvamo token
+      localStorage.setItem("token", data.token);
       setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
 
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        // Optionally redirect
-        if (email === "admin@holovision.rs") {
-          window.location.href = "/admin";
+      // Dobavljanje korisničkih podataka
+      const meRes = await fetch(`${BACKEND_URL}/api/me`, {
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+
+      const user = await meRes.json();
+
+      if (meRes.ok) {
+        if (user.isAdmin) {
+          navigate("/admin");
         } else {
-          window.location.href = "/";
+          navigate("/");
         }
+      } else {
+        throw new Error(user.message || "Failed to fetch user info");
       }
     } catch (err) {
       setMessage(`❌ ${err.message}`);
@@ -75,30 +93,29 @@ const LoginRegister = () => {
 
 const styles = {
   container: {
-    maxWidth: "320px",
-    margin: "auto",
-    padding: "2rem",
+    maxWidth: "300px",
+    margin: "100px auto",
+    padding: "20px",
+    border: "1px solid #ccc",
+    borderRadius: "10px",
     textAlign: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: "8px",
-    marginTop: "5rem",
+    fontFamily: "sans-serif",
+    backgroundColor: "#f9f9f9",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
+    gap: "10px",
   },
   input: {
-    padding: "10px",
-    fontSize: "1rem",
-    borderRadius: "4px",
-    border: "1px solid #ccc",
+    padding: "8px",
+    fontSize: "14px",
   },
   button: {
     padding: "10px",
-    fontSize: "1rem",
     backgroundColor: "#007bff",
     color: "#fff",
+    fontWeight: "bold",
     border: "none",
     borderRadius: "4px",
     cursor: "pointer",
@@ -109,6 +126,7 @@ const styles = {
     color: "#007bff",
     cursor: "pointer",
     textDecoration: "underline",
+    fontSize: "14px",
   },
 };
 
