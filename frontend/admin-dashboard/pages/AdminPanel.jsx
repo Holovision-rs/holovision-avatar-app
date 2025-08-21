@@ -1,33 +1,51 @@
-import { useEffect, useState } from "react";
-import UserTable from "../components/UserTable";
+import React, { useEffect, useState } from "react";
 
 const AdminPanel = () => {
   const [users, setUsers] = useState([]);
-  const [token, setToken] = useState(""); // admin JWT token
 
   useEffect(() => {
     const fetchUsers = async () => {
+      const token = localStorage.getItem("token");
       const res = await fetch("/api/admin/users", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await res.json();
-      setUsers(data);
+
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      } else {
+        alert("Access denied");
+      }
     };
 
-    if (token) fetchUsers();
-  }, [token]);
+    fetchUsers();
+  }, []);
 
   return (
     <div>
-      <input
-        type="text"
-        className="border p-2 mb-4 w-full"
-        placeholder="Enter admin token"
-        onChange={(e) => setToken(e.target.value)}
-      />
-      <UserTable users={users} />
+      <h2>Admin Panel</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Subscription</th>
+            <th>Minutes Used</th>
+            <th>Month</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u._id}>
+              <td>{u.email}</td>
+              <td>{u.subscription}</td>
+              <td>{u.monthlyUsageMinutes}</td>
+              <td>{u.usageMonth}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
