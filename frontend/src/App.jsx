@@ -8,7 +8,14 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<LoginRegister />} />
+        <Route path="/login" 
+        element={
+	    <>
+	      {console.log("🧪 Detektovana ruta /login")}
+	      <LoginRegister />
+	    </>
+  }
+/>
         <Route path="/admin" element={<AdminPanel />} />
       </Routes>
     </Router>
