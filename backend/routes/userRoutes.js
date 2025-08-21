@@ -4,7 +4,7 @@ import { loginUser, registerUser, updateSubscription } from "../controllers/user
 import { verifyToken } from "../middleware/auth.js";
 import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
 import { requireTier } from "../middleware/subscriptionAccess.js";
-
+import { isAdmin } from "../middleware/isAdmin.js";
 const router = express.Router();
 
 router.post("/session-end", verifyToken, checkMonthlyUsage, async (req, res) => {
@@ -22,7 +22,14 @@ router.post("/session-end", verifyToken, checkMonthlyUsage, async (req, res) => 
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.put("/subscription", verifyToken, updateSubscription); // 🔐 zaštićena ruta
-
+router.get("/admin/users", verifyToken, isAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, "email subscription monthlyUsageMinutes usageMonth");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
 // Primer rute dostupne samo za silver i gold korisnike
 router.get("/avatar/use", verifyToken, requireTier(["silver", "gold"]), (req, res) => {
   res.json({ message: "You have access to avatar usage!" });
