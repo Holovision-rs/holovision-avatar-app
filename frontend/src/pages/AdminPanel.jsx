@@ -79,7 +79,7 @@ const AdminPanel = () => {
   );
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} >
       <h2>Admin Panel</h2>
       <button onClick={() => {
         localStorage.removeItem("token");
@@ -150,6 +150,8 @@ const styles = {
     margin: "40px auto",
     padding: "20px",
     fontFamily: "Arial, sans-serif",
+    backgroundColor: "#f2f2f2", // 👈 svetla pozadina samo za admin
+    borderRadius: "8px", // opcionalno
   },
   searchInput: {
     padding: "6px",
