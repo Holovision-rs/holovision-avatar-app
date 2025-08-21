@@ -5,6 +5,7 @@ import { verifyToken } from "../middleware/auth.js";
 import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
 import { requireTier } from "../middleware/subscriptionAccess.js";
 import { isAdmin } from "../middleware/isAdmin.js";
+import { requireAdmin } from "../middleware/adminOnly.js"; // moraš napraviti middleware
 const router = express.Router();
 
 router.post("/session-end", verifyToken, checkMonthlyUsage, async (req, res) => {
@@ -44,4 +45,13 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
+
+router.get("/admin/users", verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
 export default router;
