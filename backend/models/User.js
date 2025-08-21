@@ -11,12 +11,16 @@ const userSchema = new mongoose.Schema(
     },
     monthlyUsageMinutes: {
 	  type: Number,
-	  default: 0,
-	},
-	usageMonth: {
-	  type: String, // format: "2025-08"
-	  default: () => new Date().toISOString().slice(0, 7),
-	},
+  	  default: 0,
+  	},
+  	usageMonth: {
+  	  type: String, // format: "2025-08"
+  	  default: () => new Date().toISOString().slice(0, 7),
+  	},
+    isAdmin: {
+    type: Boolean,
+    default: false,
+    },
   },
   { timestamps: true }
 );
