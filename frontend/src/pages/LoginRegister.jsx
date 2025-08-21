@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = "https://holovision-avatar-app-1.onrender.com"; // koristi pravi backend URL
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+console.log("🌐 BACKEND_URL:", BACKEND_URL);
 const LoginRegister = () => {
+console.log("🟢 LoginRegister komponenta učitana");
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,6 +13,7 @@ const LoginRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("🧪 Submitting login/register form", email);
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
 
     try {
@@ -23,34 +25,37 @@ const LoginRegister = () => {
 
       const text = await response.text();
       let data;
+
       try {
         data = JSON.parse(text);
       } catch (err) {
-        throw new Error("Invalid response from server");
+        throw new Error("❌ Invalid response from server");
       }
 
       if (!response.ok) throw new Error(data.message);
 
-      // Čuvamo token
+      if (!data.token) throw new Error("No token received");
+
       localStorage.setItem("token", data.token);
       setMessage(`✅ ${isLogin ? "Logged in" : "Registered"} successfully`);
 
-      // Dobavljanje korisničkih podataka
+      // 🔐 Dohvati podatke o korisniku
       const meRes = await fetch(`${BACKEND_URL}/api/me`, {
-        headers: { Authorization: `Bearer ${data.token}` },
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
       });
 
       const user = await meRes.json();
+      if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
-      if (meRes.ok) {
-        if (user.isAdmin) {
-          navigate("/admin");
-        } else {
-          navigate("/");
-        }
+      // ✅ Redirekcija na osnovu privilegija
+      if (user.isAdmin) {
+        navigate("/admin");
       } else {
-        throw new Error(user.message || "Failed to fetch user info");
+        navigate("/");
       }
+
     } catch (err) {
       setMessage(`❌ ${err.message}`);
     }
