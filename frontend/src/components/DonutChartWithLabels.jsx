@@ -59,7 +59,7 @@ const renderCustomizedLabel = ({
   );
 };
 
-cconst DonutChartWithLabels = ({ data }) => {
+const DonutChartWithLabels = ({ data }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={300} height={220}>
