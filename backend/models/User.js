@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema(
   	  type: String, // format: "2025-08"
   	  default: () => new Date().toISOString().slice(0, 7),
   	},
+    monthlyPaidMinutes: {
+      type: Number,
+      default: 0,
+    },
     isAdmin: {
     type: Boolean,
     default: false,

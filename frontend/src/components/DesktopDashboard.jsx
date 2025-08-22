@@ -77,6 +77,11 @@ const DesktopDashboard = () => {
   );
 
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
+  const totalQuota = users.reduce((acc, u) => {
+      if (u.subscription === "silver") return acc + 5000;
+      if (u.subscription === "gold") return acc + 10000;
+      return acc; // free korisnici nemaju dodatnu kvotu
+    }, 0);
   const usageDonut = [
     { name: "Used", value: totalMinutes },
     { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) }
@@ -150,7 +155,9 @@ const DesktopDashboard = () => {
           <div className="card">
             <h3>Total Minutes Used</h3>
             <p>{totalMinutes}</p>
-          </div>
+            <h3>Total Quota (Paid Plans)</h3>
+            <p>{totalQuota}</p>
+        </div>
         </div>
 
         <input
