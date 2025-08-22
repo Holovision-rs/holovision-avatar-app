@@ -2,52 +2,58 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
-const CustomLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
+const renderCustomShape = (props) => {
   const RADIAN = Math.PI / 180;
-  const radius = outerRadius + 30;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  const textAnchor = x > cx ? "start" : "end";
+  const {
+    cx, cy, midAngle, innerRadius, outerRadius,
+    startAngle, endAngle, fill, percent
+  } = props;
+
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const mx = cx + (outerRadius + 10) * cos;
+  const my = cy + (outerRadius + 10) * sin;
+
+  // Label pozicija (samo levo ili desno)
+  const labelX = cx + (outerRadius + 40) * (cos >= 0 ? 1 : -1);
+  const labelY = my;
+  const textAnchor = cos >= 0 ? "start" : "end";
 
   return (
-    <>
-      <line
-        x1={cx + (outerRadius + 10) * Math.cos(-midAngle * RADIAN)}
-        y1={cy + (outerRadius + 10) * Math.sin(-midAngle * RADIAN)}
-        x2={x}
-        y2={y}
-        stroke={COLORS[index % COLORS.length]}
-        strokeWidth={1}
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
       />
-      <circle cx={x} cy={y} r={2} fill={COLORS[index % COLORS.length]} />
-      <text
-        x={x + (x > cx ? 10 : -10)}
-        y={y}
-        textAnchor={textAnchor}
-        fill="#fff"
-        dominantBaseline="central"
-      >
-        {`${(percent * 100).toFixed(1)}%`}
+      <path d={`M${cx + cos * outerRadius},${cy + sin * outerRadius}
+                L${mx},${my} L${labelX - (cos >= 0 ? -8 : 8)},${labelY}`} 
+            stroke={fill} fill="none" />
+      <circle cx={labelX} cy={labelY} r={2} fill={fill} stroke="none" />
+      <text x={labelX + (cos >= 0 ? 10 : -10)} y={labelY} textAnchor={textAnchor} fill="#fff">
+        {(percent * 100).toFixed(1)}%
       </text>
-    </>
+    </g>
   );
 };
 
 const DonutChartWithLabels = ({ data }) => {
   return (
     <div style={{ textAlign: "center" }}>
-      <PieChart width={300} height={300}>
+      <PieChart width={220} height={220}>
         <Pie
+          activeShape={renderCustomShape}
           data={data}
-          cx={150}
-          cy={150}
-          innerRadius={60}
-          outerRadius={80}
+          cx="50%"
+          cy="50%"
+          innerRadius={50}
+          outerRadius={70}
+          fill="#8884d8"
           dataKey="value"
-          labelLine={false}
-          label={props => (
-            <CustomLabel {...props} />
-          )}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
