@@ -275,7 +275,7 @@ body {
   margin-bottom: 1rem;
   border-radius: 8px;
   background-color: #0d1117;
-  border: 1px solid #00ffffaa;
+  border: 1px solid #533fedb5;
   color: white;
   outline: none;
   box-shadow: 0 0 8px #00ffff33;
@@ -308,7 +308,7 @@ body {
 }
 
 .delete-btn {
-  background-color: #ff4d4f;
+  background-color: #ff4d4d;
   color: white;
   border: none;
   padding: 0.3rem 0.7rem;

@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
-const COLORS = ["#876ffe", "#1b6cd5", "#47c7f9"];
+const COLORS = ["#533fed", "#c2c7c7", "#d8a31f"];
 
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -156,7 +156,7 @@ const DesktopDashboard = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="minutes" stroke="#00ffff" />
+                <Line type="monotone" dataKey="minutes" stroke="#614bde" />
               </LineChart>
             </ResponsiveContainer>
           </div>
