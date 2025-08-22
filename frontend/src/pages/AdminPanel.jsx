@@ -140,9 +140,10 @@ const AdminPanel = () => {
         <tr>
           <th>Email</th>
           <th>Subscription</th>
-          <th>Minutes Used</th>
-          <th>Paid Minutes</th>
+          <th>Used</th>
+          <th>Paid</th>
           <th>Month</th>
+          <th>Add Used</th>
           <th>Add Paid</th>
           <th>Change</th>
           <th>Delete</th>
@@ -153,9 +154,30 @@ const AdminPanel = () => {
           <tr key={u._id}>
             <td>{u.email}</td>
             <td>{u.subscription}</td>
-            <td>{u.monthlyUsageMinutes}</td>
+            <td>{u.monthlyUsageMinutes || 0}</td>
             <td>{u.monthlyPaidMinutes || 0}</td>
             <td>{u.usageMonth}</td>
+
+            {/* Add Used Minutes */}
+            <td>
+              <input
+                type="number"
+                min="1"
+                style={{ width: "60px" }}
+                placeholder="min"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const minutes = parseInt(e.target.value, 10);
+                    if (!isNaN(minutes)) {
+                      handleAddMinutes(u._id, minutes);
+                      e.target.value = "";
+                    }
+                  }
+                }}
+              />
+            </td>
+
+            {/* Add Paid Minutes */}
             <td>
               <input
                 type="number"
@@ -173,22 +195,24 @@ const AdminPanel = () => {
                 }}
               />
             </td>
+
+            {/* Subscription Change */}
             <td>
               <select
                 value={u.subscription}
-                onChange={(e) =>
-                  handleSubscriptionChange(u._id, e.target.value)
-                }
+                onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
               >
                 <option value="free">Free</option>
                 <option value="silver">Silver</option>
                 <option value="gold">Gold</option>
               </select>
             </td>
+
+            {/* Delete Button */}
             <td>
               <button
                 onClick={() => handleDelete(u._id)}
-                style={styles.deleteButton}
+                style={{ backgroundColor: "red", color: "white", border: "none", padding: "4px 8px", cursor: "pointer" }}
               >
                 X
               </button>
@@ -196,7 +220,7 @@ const AdminPanel = () => {
           </tr>
         ))}
       </tbody>
-      </table>
+            </table>
     </div>
   );
 };
