@@ -48,6 +48,29 @@ router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Failed to update" });
   }
 });
+  router.patch("/users/:id/add-minutes", verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const { minutes } = req.body;
+
+    if (!Number.isInteger(minutes) || minutes <= 0) {
+      return res.status(400).json({ message: "Invalid minutes" });
+    }
+
+    try {
+      const user = await User.findById(id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      user.monthlyUsageMinutes += minutes;
+      await user.save();
+
+      res.status(200).json({
+        message: "Minutes added",
+        monthlyUsageMinutes: user.monthlyUsageMinutes
+      });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update" });
+    }
+  });
 // Izmena pretplate
 router.patch("/users/:id/subscription", verifyToken, requireAdmin, async (req, res) => {
   try {
