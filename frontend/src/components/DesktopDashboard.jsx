@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
-const COLORS = ["#00c6ff", "#ffc107", "#ff6384"];
+const COLORS = ["#533fed", "#ffc107", "#876ffc"];
 
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);

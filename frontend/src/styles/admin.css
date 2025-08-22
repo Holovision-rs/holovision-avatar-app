@@ -22,9 +22,6 @@ body {
   flex-direction: column;
   border-right: 1px solid #222;
 }
- .sidebar .logo {
-    color: #9f19f6;
-  }
 .sidebar h2 {
   font-size: 22px;
   margin-bottom: 40px;
@@ -48,7 +45,7 @@ body {
 
 .sidebar li:hover,
 .sidebar li.active {
-  background-color: #400078;
+  background-color: #533fed;
   color: #fff;
 }
 
@@ -144,20 +141,6 @@ body {
 .btn-primary:hover {
   background-color: #553cc4;
 }
-
-.logout-btn {
-  margin-top: auto;
-  padding: 10px 12px;
-  background-color: #222;
-  border: none;
-  color: #ccc;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.logout-btn:hover {
-  background-color: #333;
-}
  .subscription-select {
     margin-top: 8px;
     padding: 6px;
@@ -213,7 +196,7 @@ body {
 }
 
 .sidebar .logo {
-  color: #00ffff;
+  color: #ffffff;
   font-size: 24px;
   font-weight: bold;
 }
@@ -225,26 +208,32 @@ body {
 }
 
 .sidebar nav ul li {
-  padding: 0.5rem 0.2rem;
-  color: #ccc;
-  cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .sidebar nav ul li.active {
-  color: #00deff;
+  color: #ffffff;
   font-weight: bold;
 }
 
 .logout-btn {
   margin-top: auto;
-  background-color: #9f19f6;
+  background-color: #533fed;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
   cursor: pointer;
   border-radius: 4px;
 }
-
+.logout-btn:hover {
+  background-color: #333;
+}
 .dashboard-content {
   flex-grow: 1;
   padding: 2rem;
