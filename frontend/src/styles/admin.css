@@ -329,10 +329,16 @@ body {
   background-color: #1b1b1b;
   border-radius: 12px;
   padding: 1rem;
-  flex: 1;
   text-align: center;
   color: #fff;
   box-shadow: 0 0 10px #0ff4;
+   position: relative;
+    width: 240px;
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .chart-wrapper h3 {
