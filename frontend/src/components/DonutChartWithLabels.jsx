@@ -59,7 +59,7 @@ const renderCustomizedLabel = ({
   );
 };
 
-const DonutChartWithLabels = ({ data }) => {
+cconst DonutChartWithLabels = ({ data }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={300} height={220}>
@@ -72,6 +72,7 @@ const DonutChartWithLabels = ({ data }) => {
           dataKey="value"
           label={renderCustomizedLabel}
           labelLine={false}
+          isAnimationActive={false}
         >
           {data.map((entry, index) => (
             <Cell
@@ -111,6 +112,7 @@ const DonutChartWithLabels = ({ data }) => {
     </div>
   );
 };
+
 
 
 
