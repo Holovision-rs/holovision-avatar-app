@@ -13,35 +13,45 @@ const renderCustomizedLabel = ({
   percent,
   index
 }) => {
-  const RADIAN = Math.PI / 180;
-  const sin = Math.sin(-RADIAN * midAngle);
-  const cos = Math.cos(-RADIAN * midAngle);
-  const sx = cx + outerRadius * cos;
-  const sy = cy + outerRadius * sin;
-  const mx = cx + (outerRadius + 10) * cos;
-  const my = cy + (outerRadius + 10) * sin;
-  const ex = mx + (cos >= 0 ? 20 : -20); // linija desno/levo
-  const ey = my;
-  const textAnchor = cos >= 0 ? "start" : "end";
+  const radius = outerRadius + 12;
+  const extendedLine = outerRadius + 30;
+  const textOffset = 12;
+  const angle = -midAngle * RADIAN;
+
+  const startX = cx + radius * Math.cos(angle);
+  const startY = cy + radius * Math.sin(angle);
+  const midX = cx + extendedLine * Math.cos(angle);
+  const midY = cy + extendedLine * Math.sin(angle);
+  const endX = midX + (midX > cx ? 20 : -20);
+  const endY = midY;
 
   return (
     <g>
-      {/* linija od centra do tačke */}
-      <polyline
-        points={`${sx},${sy} ${mx},${my} ${ex},${ey}`}
+      <line
+        x1={startX}
+        y1={startY}
+        x2={midX}
+        y2={midY}
         stroke={COLORS[index % COLORS.length]}
-        fill="none"
         strokeWidth={1}
       />
-      {/* tačka na kraju */}
-      <circle cx={ex} cy={ey} r={2} fill={COLORS[index % COLORS.length]} />
-      {/* tekst */}
+      <line
+        x1={midX}
+        y1={midY}
+        x2={endX}
+        y2={endY}
+        stroke={COLORS[index % COLORS.length]}
+        strokeWidth={1}
+      />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index % COLORS.length]} />
       <text
-        x={ex + (cos >= 0 ? 6 : -6)}
-        y={ey}
-        textAnchor={textAnchor}
+        x={endX + (endX > cx ? textOffset : -textOffset)}
+        y={endY}
+        textAnchor={endX > cx ? "start" : "end"}
         dominantBaseline="central"
-        fill="#fff"
+        fill="#ffffff"
+        fontSize={13}
+        fontWeight="bold"
       >
         {`${(percent * 100).toFixed(1)}%`}
       </text>
@@ -52,7 +62,7 @@ const renderCustomizedLabel = ({
 const DonutChartWithLabels = ({ data }) => {
   return (
     <div style={{ textAlign: "center" }}>
-      <PieChart width={220} height={220}>
+      <PieChart width={300} height={220}>
         <Pie
           data={data}
           cx="50%"
