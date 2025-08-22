@@ -2,7 +2,7 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
-const RADIAN = Math.PI / 180;
+
 
 const renderCustomizedLabel = ({
   cx,
@@ -13,35 +13,33 @@ const renderCustomizedLabel = ({
   percent,
   index
 }) => {
-  const radius = outerRadius + 20;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  const labelX = cx + (outerRadius + 40) * Math.cos(-midAngle * RADIAN);
-  const labelY = cy + (outerRadius + 40) * Math.sin(-midAngle * RADIAN);
-  const lineEndX = cx + (outerRadius + 30) * Math.cos(-midAngle * RADIAN);
-  const lineEndY = cy + (outerRadius + 30) * Math.sin(-midAngle * RADIAN);
+  const RADIAN = Math.PI / 180;
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + outerRadius * cos;
+  const sy = cy + outerRadius * sin;
+  const mx = cx + (outerRadius + 10) * cos;
+  const my = cy + (outerRadius + 10) * sin;
+  const ex = mx + (cos >= 0 ? 20 : -20); // linija desno/levo
+  const ey = my;
+  const textAnchor = cos >= 0 ? "start" : "end";
 
   return (
     <g>
-      <line
-        x1={x}
-        y1={y}
-        x2={lineEndX}
-        y2={lineEndY}
+      {/* linija od centra do tačke */}
+      <polyline
+        points={`${sx},${sy} ${mx},${my} ${ex},${ey}`}
         stroke={COLORS[index % COLORS.length]}
+        fill="none"
+        strokeWidth={1}
       />
-      <line
-        x1={lineEndX}
-        y1={lineEndY}
-        x2={labelX}
-        y2={labelY}
-        stroke={COLORS[index % COLORS.length]}
-      />
-      <circle cx={labelX} cy={labelY} r={2} fill={COLORS[index % COLORS.length]} />
+      {/* tačka na kraju */}
+      <circle cx={ex} cy={ey} r={2} fill={COLORS[index % COLORS.length]} />
+      {/* tekst */}
       <text
-        x={labelX + (labelX > cx ? 6 : -6)}
-        y={labelY}
-        textAnchor={labelX > cx ? "start" : "end"}
+        x={ex + (cos >= 0 ? 6 : -6)}
+        y={ey}
+        textAnchor={textAnchor}
         dominantBaseline="central"
         fill="#fff"
       >
@@ -72,14 +70,20 @@ const DonutChartWithLabels = ({ data }) => {
         </Pie>
       </PieChart>
 
-      <div className="chart-legend">
+      {/* Legenda ispod */}
+      <div className="chart-legend" style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "10px" }}>
         {data.map((entry, index) => (
-          <div key={index} className="legend-item">
+          <div key={index} className="legend-item" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <span
               className="legend-color"
-              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                backgroundColor: COLORS[index % COLORS.length]
+              }}
             ></span>
-            <span className="legend-label">{entry.name}</span>
+            <span className="legend-label" style={{ color: "#fff" }}>{entry.name}</span>
           </div>
         ))}
       </div>
