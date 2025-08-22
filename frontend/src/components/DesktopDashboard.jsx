@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "../../styles/admin.css";
+import "../styles/admin.css";
 
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
