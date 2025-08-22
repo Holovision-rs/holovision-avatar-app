@@ -78,13 +78,13 @@ const DesktopDashboard = () => {
 
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
   const totalQuota = users.reduce((acc, u) => {
-      if (u.subscription === "silver") return acc + 5000;
-      if (u.subscription === "gold") return acc + 10000;
+      if (u.subscription === "silver") return acc + 300;
+      if (u.subscription === "gold") return acc + 1500;
       return acc; // free korisnici nemaju dodatnu kvotu
     }, 0);
   const usageDonut = [
-    { name: "Used", value: totalMinutes },
-    { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) }
+      { name: "Used", value: totalMinutes },
+      { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
   ];
   const subsData = ["free", "silver", "gold"].map((sub) => ({
     name: sub.charAt(0).toUpperCase() + sub.slice(1),
