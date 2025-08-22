@@ -10,10 +10,7 @@ import {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
-const subsData = ["free", "silver", "gold"].map((sub) => ({
-    name: sub.charAt(0).toUpperCase() + sub.slice(1),
-    value: users.filter((u) => u.subscription === sub).length
-  }));
+
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -82,7 +79,7 @@ const DesktopDashboard = () => {
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
 
   const subsData = ["free", "silver", "gold"].map((sub) => ({
-    name: sub,
+    name: sub.charAt(0).toUpperCase() + sub.slice(1),
     value: users.filter((u) => u.subscription === sub).length
   }));
 
@@ -90,11 +87,6 @@ const DesktopDashboard = () => {
     name: u.email,
     minutes: u.monthlyUsageMinutes || 0
   }));
-
-  const usageDonutData = [
-    { name: "Used", value: totalMinutes },
-    { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) }
-  ];
 
   return (
     <div className="dashboard-container">
@@ -123,28 +115,14 @@ const DesktopDashboard = () => {
         <h1>Admin Dashboard</h1>
 
         <div className="top-charts">
-            <div className="chart-wrapper">
-              <h3>Subscription Distribution</h3>
-              <DonutChartWithLabels data={subsData} />
-            </div>
-
-            <div className="chart-wrapper">
-              <h3>Usage Overview</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={usageChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="minutes" stroke="#8884d8" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="chart-wrapper">
+            <h3>Subscriptions</h3>
+            <DonutChartWithLabels data={subsData} />
           </div>
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-              <PieChart width={220} height={220}>
+            <PieChart width={220} height={220}>
               <Pie
                 data={[
                   { name: "Used", value: totalMinutes },
