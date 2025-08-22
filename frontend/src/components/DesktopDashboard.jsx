@@ -1,5 +1,6 @@
 // src/components/DesktopDashboard.jsx
 import React, { useEffect, useState } from "react";
+import DonutChartWithLabels from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
   PieChart, Pie, Cell,
@@ -9,7 +10,10 @@ import {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
-
+const subsData = ["free", "silver", "gold"].map((sub) => ({
+    name: sub.charAt(0).toUpperCase() + sub.slice(1),
+    value: users.filter((u) => u.subscription === sub).length
+  }));
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -119,34 +123,23 @@ const DesktopDashboard = () => {
         <h1>Admin Dashboard</h1>
 
         <div className="top-charts">
-          <div className="chart-wrapper">
-            <h3>Subscriptions</h3>
-              <PieChart width={200} height={200}>
-            <Pie
-              data={subsData}
-              dataKey="value"
-              cx="50%"
-              cy="50%"
-              outerRadius={70}
-              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-              labelLine={false}
-            >
-              {subsData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-          </PieChart>
-          <div className="chart-legend">
-            {subsData.map((entry, index) => (
-              <div key={index} className="legend-item">
-                <span
-                  className="legend-color"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                ></span>
-                <span className="legend-label">{entry.name}</span>
-              </div>
-            ))}
-          </div>
+            <div className="chart-wrapper">
+              <h3>Subscription Distribution</h3>
+              <DonutChartWithLabels data={subsData} />
+            </div>
+
+            <div className="chart-wrapper">
+              <h3>Usage Overview</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={usageChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="minutes" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           <div className="chart-wrapper">
