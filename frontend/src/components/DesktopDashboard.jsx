@@ -8,54 +8,20 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { useAdminUsers } from "../hooks/useAdminUsers";
 
+const { users, setUsers, message, fetchUsers } = useAdminUsers();
 
 const navigate = useNavigate();
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 
 const DesktopDashboard = () => {
+
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
-
   const token = localStorage.getItem("token");
-
-  const fetchUsers = async () => {
-    if (!token) {
-      setMessage("No token. Redirecting...");
-      setTimeout(() => navigate("/login"), 2000);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
-      } else {
-        const err = await res.json();
-        setMessage(err.message || "Access denied");
-        setTimeout(() => navigate("/login"), 2000);
-      }
-    } catch (err) {
-      setMessage("Failed to fetch users");
-      setTimeout(() => navigate("/login"), 2000);
-    }
-  };
-
-  useEffect(() => {
-    if (!token) {
-      setMessage("No token. Redirecting...");
-      setTimeout(() => navigate("/login"), 2000);
-      return;
-    }
-
-    fetchUsers();
-  }, []);
 
   const handleDelete = async (userId) => {
     if (!window.confirm("Are you sure?")) return;
@@ -88,7 +54,8 @@ const DesktopDashboard = () => {
       alert("Failed to update subscription");
     }
   };
-const handleAddPaidMinutes = async (userId, paidMinutes) => {
+
+  const handleAddPaidMinutes = async (userId, paidMinutes) => {
     const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-paid`, {
       method: "POST",
       headers: {
@@ -104,6 +71,7 @@ const handleAddPaidMinutes = async (userId, paidMinutes) => {
       alert("Failed to add paid minutes");
     }
   };
+
   const handleAddMinutes = async (userId, minutes) => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
@@ -124,6 +92,7 @@ const handleAddPaidMinutes = async (userId, paidMinutes) => {
       alert("Error adding minutes");
     }
   };
+
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -134,10 +103,12 @@ const handleAddPaidMinutes = async (userId, paidMinutes) => {
       if (u.subscription === "gold") return acc + 1500;
       return acc; // free korisnici nemaju dodatnu kvotu
     }, 0);
+
   const usageDonut = [
       { name: "Used", value: totalMinutes },
       { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
   ];
+  
   const subsData = ["free", "silver", "gold"].map((sub) => ({
     name: sub.charAt(0).toUpperCase() + sub.slice(1),
     value: users.filter((u) => u.subscription === sub).length
