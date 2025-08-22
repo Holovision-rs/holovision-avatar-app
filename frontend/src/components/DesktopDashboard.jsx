@@ -1,5 +1,6 @@
 // src/components/DesktopDashboard.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DonutChartWithLabels from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
@@ -8,6 +9,8 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
+
+const navigate = useNavigate();
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 
@@ -19,6 +22,12 @@ const DesktopDashboard = () => {
   const token = localStorage.getItem("token");
 
   const fetchUsers = async () => {
+    if (!token) {
+      setMessage("No token. Redirecting...");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
+
     try {
       const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -30,14 +39,22 @@ const DesktopDashboard = () => {
       } else {
         const err = await res.json();
         setMessage(err.message || "Access denied");
+        setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
       setMessage("Failed to fetch users");
+      setTimeout(() => navigate("/login"), 2000);
     }
   };
 
   useEffect(() => {
-    if (token) fetchUsers();
+    if (!token) {
+      setMessage("No token. Redirecting...");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
+
+    fetchUsers();
   }, []);
 
   const handleDelete = async (userId) => {
@@ -71,7 +88,42 @@ const DesktopDashboard = () => {
       alert("Failed to update subscription");
     }
   };
+const handleAddPaidMinutes = async (userId, paidMinutes) => {
+    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-paid`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ paidMinutes })
+    });
 
+    if (res.ok) {
+      fetchUsers(); // reload
+    } else {
+      alert("Failed to add paid minutes");
+    }
+  };
+  const handleAddMinutes = async (userId, minutes) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ minutes })
+      });
+
+      if (res.ok) {
+        fetchUsers(); // Reload
+      } else {
+        alert("Failed to add minutes");
+      }
+    } catch (err) {
+      alert("Error adding minutes");
+    }
+  };
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
