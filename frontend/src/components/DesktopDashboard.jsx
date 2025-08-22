@@ -68,100 +68,46 @@ const DesktopDashboard = () => {
   );
 
   return (
-    <div className="dashboard-container">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="avatar" />
-          <h2>Gelap</h2>
+    <div className="admin-container">
+      <div className="sidebar">
+        <h2>HOLOVISION</h2>
+        <ul>
+          <li className="active">Dashboard</li>
+          <li>Users</li>
+          <li>Usage</li>
+          <li>Settings</li>
+        </ul>
+        <button className="logout-btn">Logout</button>
+      </div>
+      <div className="dashboard-content">
+        <div className="card">
+          <div className="card-title">Total Users</div>
+          <div className="card-value">123</div>
         </div>
-        <nav className="nav-links">
-          <a className="active">Dashboard</a>
-          <a>Tasks</a>
-          <a>Messages</a>
-          <a>Team</a>
-          <a>Help</a>
-          <a>Settings</a>
-          <a>Log out</a>
-        </nav>
-        <div className="upgrade-box">
-          <p>Want More Tools?</p>
-          <button>Upgrade to Pro</button>
+        <div className="card">
+          <div className="card-title">Total Minutes</div>
+          <div className="card-value">458</div>
         </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="dashboard-header">
-          <input type="text" placeholder="Search..." />
-          <div className="header-icons">
-            <span>🔔</span>
-            <span>👤</span>
-          </div>
-        </header>
-
-        <section className="dashboard-metrics">
-          <div className="revenue-box">
-            <h3>Revenue</h3>
-            <p className="value">$37,100.18 <span className="positive">+12%</span></p>
-            <div className="line-chart-placeholder">Line Chart</div>
-          </div>
-          <div className="mobile-session-box">
-            <h3>Mobile Session</h3>
-            <div className="pie-chart-placeholder">Pie Chart</div>
-          </div>
-        </section>
-
-        <section className="user-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Age</th>
-                <th>Email</th>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Rafidya</td><td>18</td><td>rafidya@example.com</td><td>18, June 2023</td><td>Done</td>
-              </tr>
-              <tr>
-                <td>Imam</td><td>17</td><td>imam@example.com</td><td>18, June 2023</td><td>Failed</td>
-              </tr>
-              <tr>
-                <td>Tengku</td><td>21</td><td>tengku@example.com</td><td>18, June 2023</td><td>Done</td>
-              </tr>
-              <tr>
-                <td>Deru</td><td>10</td><td>deru@example.com</td><td>18, June 2023</td><td>Done</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section className="activity-boxes">
-          <div className="activity-box">
-            <h4>Total Customers</h4>
-            <p className="value">12,132</p>
-            <span className="positive">+12% from last month</span>
-          </div>
-          <div className="activity-box">
-            <h4>Total Customers</h4>
-            <p className="value">12,132</p>
-            <span className="positive">+12% from last month</span>
-          </div>
-          <div className="activity-log">
-            <h4>Activity Log</h4>
-            <ul>
-              <li><strong>Cody Fisher</strong> deleted 2 items • Just now</li>
-              <li><strong>Eleanor Pena</strong> deleted 2 items • 12 mins ago</li>
-              <li><strong>Cameron Williamson</strong> deleted 2 items • 19 mins ago</li>
-              <li><strong>Esther Howard</strong> deleted 2 items • 51 mins ago</li>
-            </ul>
-          </div>
-        </section>
-      </main>
+        <table className="user-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Subscription</th>
+              <th>Usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>admin@holovision.rs</td>
+              <td>Gold</td>
+              <td>43 min</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
+
 
 export default DesktopDashboard;
