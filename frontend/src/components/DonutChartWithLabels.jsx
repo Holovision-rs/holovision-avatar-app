@@ -74,15 +74,27 @@ const DonutChartWithLabels = ({ data }) => {
           labelLine={false}
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            <Cell
+              key={`cell-${index}`}
+              fill={COLORS[index % COLORS.length]}
+            />
           ))}
         </Pie>
       </PieChart>
 
-      {/* Legenda */}
       <div className="chart-legend">
         {data.map((entry, index) => (
-          <div key={index} className="legend-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '4px' }}>
+          <div
+            key={index}
+            className="legend-item"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              justifyContent: "center",
+              marginTop: "4px"
+            }}
+          >
             <span
               style={{
                 width: 12,
@@ -99,6 +111,7 @@ const DonutChartWithLabels = ({ data }) => {
     </div>
   );
 };
+
 
 
 export default DonutChartWithLabels;
