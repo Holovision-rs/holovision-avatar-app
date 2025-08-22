@@ -10,26 +10,24 @@ import {
 } from 'recharts';
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
-const {
-  users,
-  setUsers,
-  message,
-  fetchUsers,
-  handleDelete,
-  handleAddMinutes,
-  handleAddPaidMinutes,
-  handleSubscriptionChange
-} = useAdminUsers();
-
 const navigate = useNavigate();
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 
 const DesktopDashboard = () => {
 
-  const [users, setUsers] = useState([]);
+   const {
+    users,
+    setUsers,
+    message,
+    fetchUsers,
+    handleDelete,
+    handleAddMinutes,
+    handleAddPaidMinutes,
+    handleSubscriptionChange
+  } = useAdminUsers();
+
   const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
   const token = localStorage.getItem("token");
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
