@@ -22,7 +22,9 @@ body {
   flex-direction: column;
   border-right: 1px solid #222;
 }
-
+ .sidebar .logo {
+    color: #9f19f6;
+  }
 .sidebar h2 {
   font-size: 22px;
   margin-bottom: 40px;
@@ -46,7 +48,7 @@ body {
 
 .sidebar li:hover,
 .sidebar li.active {
-  background-color: #3e2b82;
+  background-color: #400078;
   color: #fff;
 }
 
@@ -223,19 +225,19 @@ body {
 }
 
 .sidebar nav ul li {
-  padding: 0.5rem 0;
+  padding: 0.5rem 0.2rem;
   color: #ccc;
   cursor: pointer;
 }
 
 .sidebar nav ul li.active {
-  color: #00ffff;
+  color: #00deff;
   font-weight: bold;
 }
 
 .logout-btn {
   margin-top: auto;
-  background-color: #ff3b3b;
+  background-color: #9f19f6;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -425,7 +427,7 @@ body {
   }
 
   .logout-button {
-    background-color: #0077ff;
+    background-color: #9f19f6;
     border: none;
     color: white;
     padding: 0.6rem 1rem;
