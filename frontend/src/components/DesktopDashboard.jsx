@@ -1,7 +1,14 @@
+// src/components/DesktopDashboard.jsx
 import React, { useEffect, useState } from "react";
 import "../styles/admin.css";
+import {
+  PieChart, Pie, Cell,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
+const COLORS = ["#00c6ff", "#ffc107", "#ff6384"];
 
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -58,7 +65,7 @@ const DesktopDashboard = () => {
     });
 
     if (res.ok) {
-      fetchUsers(); // reload
+      fetchUsers();
     } else {
       alert("Failed to update subscription");
     }
@@ -69,6 +76,21 @@ const DesktopDashboard = () => {
   );
 
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
+
+  const subsData = ["free", "silver", "gold"].map((sub) => ({
+    name: sub,
+    value: users.filter((u) => u.subscription === sub).length
+  }));
+
+  const usageChartData = users.map((u) => ({
+    name: u.email,
+    minutes: u.monthlyUsageMinutes || 0
+  }));
+
+  const usageDonutData = [
+    { name: "Used", value: totalMinutes },
+    { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) }
+  ];
 
   return (
     <div className="dashboard-container">
@@ -95,6 +117,50 @@ const DesktopDashboard = () => {
 
       <main className="dashboard-content">
         <h1>Admin Dashboard</h1>
+
+        <div className="top-charts">
+          <div className="chart-wrapper">
+            <h3>Subscriptions</h3>
+            <PieChart width={200} height={200}>
+              <Pie data={subsData} dataKey="value" cx="50%" cy="50%" outerRadius={70}>
+                {subsData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </div>
+
+          <div className="chart-wrapper">
+            <h3>Quota</h3>
+            <PieChart width={200} height={200}>
+              <Pie
+                data={usageDonutData}
+                dataKey="value"
+                cx="50%" cy="50%"
+                innerRadius={40}
+                outerRadius={70}
+              >
+                {usageDonutData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </div>
+
+          <div className="chart-wrapper">
+            <h3>Usage per User</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={usageChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="minutes" stroke="#00ffff" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
         <div className="cards">
           <div className="card">
@@ -137,9 +203,8 @@ const DesktopDashboard = () => {
                 <td>
                   <select
                     value={u.subscription}
-                    onChange={(e) =>
-                      handleSubscriptionChange(u._id, e.target.value)
-                    }
+                    onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
+                    className="subscription-select"
                   >
                     <option value="free">Free</option>
                     <option value="silver">Silver</option>
@@ -147,12 +212,7 @@ const DesktopDashboard = () => {
                   </select>
                 </td>
                 <td>
-                  <button
-                    onClick={() => handleDelete(u._id)}
-                    className="delete-btn"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => handleDelete(u._id)} className="delete-btn">✕</button>
                 </td>
               </tr>
             ))}

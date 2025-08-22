@@ -175,6 +175,155 @@ body {
     color: #0ff;
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
   }
+  .dashboard-charts {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .chart-box {
+    flex: 1 1 30%;
+    min-width: 300px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px;
+    color: #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+}
+/* styles/admin.css */
+.dashboard-container {
+  display: flex;
+  height: 100vh;
+  background-color: #0d1117;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.sidebar {
+  width: 240px;
+  background-color: #161b22;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar .logo {
+  color: #00ffff;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 2rem;
+}
+
+.sidebar nav ul li {
+  padding: 0.5rem 0;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.sidebar nav ul li.active {
+  color: #00ffff;
+  font-weight: bold;
+}
+
+.logout-btn {
+  margin-top: auto;
+  background-color: #ff3b3b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.dashboard-content {
+  flex-grow: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.top-charts {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chart-wrapper {
+  background-color: #1e1e2f;
+  padding: 1rem;
+  border-radius: 12px;
+  flex: 1;
+  box-shadow: 0 0 10px #00ffff44;
+}
+
+.cards {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.card {
+  flex: 1;
+  background-color: #1e1e2f;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 0 10px #0077ff44;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background-color: #0d1117;
+  border: 1px solid #00ffffaa;
+  color: white;
+  outline: none;
+  box-shadow: 0 0 8px #00ffff33;
+}
+
+.subscription-select {
+  padding: 0.3rem;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #000000;
+  border: none;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #161b22;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.user-table th, .user-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #333;
+  text-align: left;
+}
+
+.user-table th {
+  background-color: #1e1e2f;
+}
+
+.delete-btn {
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
 /* Responsive adjustments */
 /* MOBILE STILOVI */
 @media (max-width: 767px) {
@@ -187,36 +336,66 @@ body {
     font-family: 'Segoe UI', sans-serif;
     padding: 20px;
   }
+   .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    display: none;
+  }
 
   .dashboard-content {
-    flex: 1;
-    padding-top: 10px;
+    width: 100%;
+    padding: 1rem;
   }
-
   .admin-search {
-    padding: 10px;
-    margin: 20px 0;
-    width: 300px;
-    border: 2px solid #0ff;
-    border-radius: 12px;
+    width: 90%;
+    margin: 0 auto 1rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #00ffff;
     background-color: #111;
-    color: #0ff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 0 5px #00ffff44;
   }
-
   .mobile-users-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1rem;
+}
 
-  .mobile-user-card {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
-  }
+.mobile-user-card {
+  background: #111;
+  border-radius: 12px;
+  border: 1px solid #444;
+  padding: 1rem;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+.mobile-user-card select,
+.mobile-user-card button {
+  margin-top: 0.5rem;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.mobile-user-card select {
+  background: #222;
+  color: #fff;
+  border: 1px solid #00ffff;
+}
+
+.mobile-user-card button.delete-button {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
   .mobile-user-card p {
     margin: 5px 0;
@@ -246,13 +425,15 @@ body {
   }
 
   .logout-button {
-    padding: 10px;
-    background-color: #222;
-    border: 1px solid #444;
-    color: #0ff;
-    border-radius: 6px;
-    margin-top: 10px;
-    font-weight: bold;
+    background-color: #0077ff;
+    border: none;
+    color: white;
+    padding: 0.6rem 1rem;
+    margin: 1rem auto;
+    border-radius: 8px;
+    display: block;
+    cursor: pointer;
+    box-shadow: 0 0 5px #0077ff88;
   }
 
   .admin-message {
