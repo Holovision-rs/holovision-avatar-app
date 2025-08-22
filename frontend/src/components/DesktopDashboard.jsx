@@ -153,10 +153,10 @@ const DesktopDashboard = () => {
                 {/* Add Used Minutes */}
                 <td>
                   <input
-                    type="number"
+                   type="number"
                     min="1"
-                    style={{ width: "60px" }}
                     placeholder="min"
+                    className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         const minutes = parseInt(e.target.value, 10);
@@ -174,8 +174,8 @@ const DesktopDashboard = () => {
                   <input
                     type="number"
                     min="1"
-                    style={{ width: "60px" }}
                     placeholder="min"
+                    className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         const minutes = parseInt(e.target.value, 10);
