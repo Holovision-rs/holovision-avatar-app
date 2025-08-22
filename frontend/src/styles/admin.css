@@ -331,10 +331,9 @@ body {
   padding: 1rem;
   text-align: center;
   color: #fff;
-  box-shadow: 0 0 10px #0ff4;
+  border: 1px solid #533fedb5;
+    box-shadow: 0 0 8px #533fedc4;
    position: relative;
-    width: 240px;
-    height: 260px;
     display: flex;
     flex-direction: column;
     align-items: center;
