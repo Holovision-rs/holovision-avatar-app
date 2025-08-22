@@ -62,25 +62,26 @@ export const useAdminUsers = () => {
 
   // 🕓 Dodaj potrošene minute (usage)
   const handleAddMinutes = async (userId, minutes) => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ minutes })
-      });
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ minutes })
+    });
 
-      if (res.ok) {
-        fetchUsers();
-      } else {
-        alert("Failed to add minutes");
-      }
-    } catch (err) {
-      alert("Error adding minutes");
+    if (res.ok) {
+      fetchUsers();
+    } else {
+      const error = await res.json();
+      alert("Failed to add minutes: " + (error.message || "Unknown error"));
     }
-  };
+  } catch (err) {
+    alert("Error adding minutes: " + err.message);
+  }
+};
 
   // 💳 Dodaj plaćene minute (paid)
   const handleAddPaidMinutes = async (userId, paidMinutes) => {
