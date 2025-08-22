@@ -155,7 +155,7 @@ const DesktopDashboard = () => {
           <div className="card">
             <h3>Total Minutes Used</h3>
             <p>{totalMinutes}</p>
-            <h3>Total Quota (Paid Plans)</h3>
+            <h3>Total Minutes Paid</h3>
             <p>{totalQuota}</p>
         </div>
         </div>
