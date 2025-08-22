@@ -77,7 +77,10 @@ const DesktopDashboard = () => {
   );
 
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
-
+  const usageDonut = [
+    { name: "Used", value: totalMinutes },
+    { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) }
+  ];
   const subsData = ["free", "silver", "gold"].map((sub) => ({
     name: sub.charAt(0).toUpperCase() + sub.slice(1),
     value: users.filter((u) => u.subscription === sub).length
@@ -122,34 +125,7 @@ const DesktopDashboard = () => {
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-            <PieChart width={220} height={220}>
-              <Pie
-                data={[
-                  { name: "Used", value: totalMinutes },
-                  { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) },
-                ]}
-                dataKey="value"
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={70}
-                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                labelLine={false}
-              >
-                <Cell fill="#00c6ff" />
-                <Cell fill="#333" />
-              </Pie>
-            </PieChart>
-            <div className="chart-legend">
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: "#00c6ff" }}></span>
-                <span className="legend-label">Used</span>
-              </div>
-              <div className="legend-item">
-                <span className="legend-color" style={{ backgroundColor: "#333" }}></span>
-                <span className="legend-label">Remaining</span>
-              </div>
-            </div>
+            <DonutChartWithLabels data={usageDonut} />
           </div>
 
           <div className="chart-wrapper">
