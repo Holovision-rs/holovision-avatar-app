@@ -10,7 +10,16 @@ import {
 } from 'recharts';
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
-const { users, setUsers, message, fetchUsers } = useAdminUsers();
+const {
+  users,
+  setUsers,
+  message,
+  fetchUsers,
+  handleDelete,
+  handleAddMinutes,
+  handleAddPaidMinutes,
+  handleSubscriptionChange
+} = useAdminUsers();
 
 const navigate = useNavigate();
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
@@ -22,77 +31,6 @@ const DesktopDashboard = () => {
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
   const token = localStorage.getItem("token");
-
-  const handleDelete = async (userId) => {
-    if (!window.confirm("Are you sure?")) return;
-
-    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.ok) {
-      setUsers(users.filter((u) => u._id !== userId));
-    } else {
-      alert("Failed to delete user");
-    }
-  };
-
-  const handleSubscriptionChange = async (userId, newSub) => {
-    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/subscription`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ subscription: newSub }),
-    });
-
-    if (res.ok) {
-      fetchUsers();
-    } else {
-      alert("Failed to update subscription");
-    }
-  };
-
-  const handleAddPaidMinutes = async (userId, paidMinutes) => {
-    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-paid`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ paidMinutes })
-    });
-
-    if (res.ok) {
-      fetchUsers(); // reload
-    } else {
-      alert("Failed to add paid minutes");
-    }
-  };
-
-  const handleAddMinutes = async (userId, minutes) => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ minutes })
-      });
-
-      if (res.ok) {
-        fetchUsers(); // Reload
-      } else {
-        alert("Failed to add minutes");
-      }
-    } catch (err) {
-      alert("Error adding minutes");
-    }
-  };
-
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -108,7 +46,7 @@ const DesktopDashboard = () => {
       { name: "Used", value: totalMinutes },
       { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
   ];
-  
+
   const subsData = ["free", "silver", "gold"].map((sub) => ({
     name: sub.charAt(0).toUpperCase() + sub.slice(1),
     value: users.filter((u) => u.subscription === sub).length
