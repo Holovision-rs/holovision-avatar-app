@@ -1,6 +1,5 @@
 // src/components/DesktopDashboard.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import DonutChartWithLabels from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
@@ -10,12 +9,11 @@ import {
 } from 'recharts';
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
-const navigate = useNavigate();
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 
 const DesktopDashboard = () => {
-
    const {
     users,
     setUsers,
@@ -34,6 +32,7 @@ const DesktopDashboard = () => {
   );
 
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
+
   const totalQuota = users.reduce((acc, u) => {
       if (u.subscription === "silver") return acc + 300;
       if (u.subscription === "gold") return acc + 1500;
