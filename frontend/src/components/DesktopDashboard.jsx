@@ -232,14 +232,15 @@ const DesktopDashboard = () => {
 
                 {/* Subscription Change */}
                 <td>
-                  <select
+                <select
                     value={u.subscription}
                     onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
+                    className="px-2 py-1 rounded-md border border-gray-300 bg-white text-black text-sm"
                   >
                     <option value="free">Free</option>
                     <option value="silver">Silver</option>
                     <option value="gold">Gold</option>
-                  </select>
+                </select>
                 </td>
 
                 {/* Delete Button */}
