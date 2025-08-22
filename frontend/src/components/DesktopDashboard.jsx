@@ -9,20 +9,21 @@ const DesktopDashboard = () => {
 
   const token = localStorage.getItem("token");
 
-  const handleSubscriptionChange = async (userId, newSub) => {
-    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/subscription`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ subscription: newSub }),
-    });
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (res.ok) {
-      fetchUsers();
-    } else {
-      alert("Failed to update subscription");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      } else {
+        const err = await res.json();
+        setMessage(err.message || "Access denied");
+      }
+    } catch (err) {
+      setMessage("Failed to fetch users");
     }
   };
 
