@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
-const COLORS = ["#533fed", "#c2c7c7", "#d8a31f"];
+const COLORS = ["#3baedb", "#876efe", "#614bde"];
 
 const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -121,31 +121,64 @@ const DesktopDashboard = () => {
         <div className="top-charts">
           <div className="chart-wrapper">
             <h3>Subscriptions</h3>
-            <PieChart width={200} height={200}>
-              <Pie data={subsData} dataKey="value" cx="50%" cy="50%" outerRadius={70}>
-                {subsData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-            </PieChart>
+              <PieChart width={200} height={200}>
+            <Pie
+              data={subsData}
+              dataKey="value"
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+              labelLine={false}
+            >
+              {subsData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+          <div className="chart-legend">
+            {subsData.map((entry, index) => (
+              <div key={index} className="legend-item">
+                <span
+                  className="legend-color"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                ></span>
+                <span className="legend-label">{entry.name}</span>
+              </div>
+            ))}
+          </div>
           </div>
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-            <PieChart width={200} height={200}>
+              <PieChart width={220} height={220}>
               <Pie
-                data={usageDonutData}
+                data={[
+                  { name: "Used", value: totalMinutes },
+                  { name: "Remaining", value: Math.max(10000 - totalMinutes, 0) },
+                ]}
                 dataKey="value"
-                cx="50%" cy="50%"
-                innerRadius={40}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
                 outerRadius={70}
+                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
               >
-                {usageDonutData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
+                <Cell fill="#00c6ff" />
+                <Cell fill="#333" />
               </Pie>
-              <Tooltip />
             </PieChart>
+            <div className="chart-legend">
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: "#00c6ff" }}></span>
+                <span className="legend-label">Used</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-color" style={{ backgroundColor: "#333" }}></span>
+                <span className="legend-label">Remaining</span>
+              </div>
+            </div>
           </div>
 
           <div className="chart-wrapper">
