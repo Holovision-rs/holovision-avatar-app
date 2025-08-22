@@ -62,17 +62,16 @@ const renderCustomizedLabel = ({
 const DonutChartWithLabels = ({ data }) => {
   return (
     <div style={{ textAlign: "center" }}>
-      <PieChart width={300} height={220}>
+      <PieChart width={220} height={220}>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
           innerRadius={50}
           outerRadius={70}
-          fill="#8884d8"
           dataKey="value"
-          labelLine={false}
           label={renderCustomizedLabel}
+          labelLine={false}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -80,25 +79,26 @@ const DonutChartWithLabels = ({ data }) => {
         </Pie>
       </PieChart>
 
-      {/* Legenda ispod */}
-      <div className="chart-legend" style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "10px" }}>
+      {/* Legenda */}
+      <div className="chart-legend">
         {data.map((entry, index) => (
-          <div key={index} className="legend-item" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <div key={index} className="legend-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '4px' }}>
             <span
-              className="legend-color"
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: COLORS[index % COLORS.length]
+                width: 12,
+                height: 12,
+                backgroundColor: COLORS[index % COLORS.length],
+                display: "inline-block",
+                borderRadius: 2
               }}
             ></span>
-            <span className="legend-label" style={{ color: "#fff" }}>{entry.name}</span>
+            <span style={{ color: "#ccc", fontSize: 12 }}>{entry.name}</span>
           </div>
         ))}
       </div>
     </div>
   );
 };
+
 
 export default DonutChartWithLabels;
