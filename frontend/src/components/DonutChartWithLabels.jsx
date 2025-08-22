@@ -2,9 +2,7 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
- const RADIAN = Math.PI / 180;
-
- const RADIAN = Math.PI / 180;
+const RADIAN = Math.PI / 180;
 
 const DonutChartWithLabels = ({ data }) => {
   return (
