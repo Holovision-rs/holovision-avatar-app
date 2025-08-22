@@ -75,7 +75,42 @@ const AdminPanel = () => {
       alert("Failed to update subscription");
     }
   };
+  const handleAddPaidMinutes = async (userId, paidMinutes) => {
+    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-paid`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ paidMinutes })
+    });
 
+    if (res.ok) {
+      fetchUsers(); // reload
+    } else {
+      alert("Failed to add paid minutes");
+    }
+  };
+  const handleAddMinutes = async (userId, minutes) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/add-minutes`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ minutes })
+      });
+
+      if (res.ok) {
+        fetchUsers(); // Reload
+      } else {
+        alert("Failed to add minutes");
+      }
+    } catch (err) {
+      alert("Error adding minutes");
+    }
+  };
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -101,46 +136,66 @@ const AdminPanel = () => {
       <p>Total users: {filtered.length}</p>
 
       <table style={styles.table}>
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Subscription</th>
-            <th>Minutes Used</th>
-            <th>Month</th>
-            <th>Change</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((u) => (
-            <tr key={u._id}>
-              <td>{u.email}</td>
-              <td>{u.subscription}</td>
-              <td>{u.monthlyUsageMinutes}</td>
-              <td>{u.usageMonth}</td>
-              <td>
-                <select
-                  value={u.subscription}
-                  onChange={(e) =>
-                    handleSubscriptionChange(u._id, e.target.value)
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Subscription</th>
+          <th>Minutes Used</th>
+          <th>Paid Minutes</th>
+          <th>Month</th>
+          <th>Add Paid</th>
+          <th>Change</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filtered.map((u) => (
+          <tr key={u._id}>
+            <td>{u.email}</td>
+            <td>{u.subscription}</td>
+            <td>{u.monthlyUsageMinutes}</td>
+            <td>{u.monthlyPaidMinutes || 0}</td>
+            <td>{u.usageMonth}</td>
+            <td>
+              <input
+                type="number"
+                min="1"
+                style={{ width: "60px" }}
+                placeholder="min"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const minutes = parseInt(e.target.value, 10);
+                    if (!isNaN(minutes)) {
+                      handleAddPaidMinutes(u._id, minutes);
+                      e.target.value = "";
+                    }
                   }
-                >
-                  <option value="free">Free</option>
-                  <option value="silver">Silver</option>
-                  <option value="gold">Gold</option>
-                </select>
-              </td>
-              <td>
-                <button
-                  onClick={() => handleDelete(u._id)}
-                  style={styles.deleteButton}
-                >
-                  X
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
+                }}
+              />
+            </td>
+            <td>
+              <select
+                value={u.subscription}
+                onChange={(e) =>
+                  handleSubscriptionChange(u._id, e.target.value)
+                }
+              >
+                <option value="free">Free</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+              </select>
+            </td>
+            <td>
+              <button
+                onClick={() => handleDelete(u._id)}
+                style={styles.deleteButton}
+              >
+                X
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
       </table>
     </div>
   );
