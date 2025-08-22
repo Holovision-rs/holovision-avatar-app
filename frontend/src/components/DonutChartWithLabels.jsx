@@ -2,23 +2,23 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
 
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
-
-const renderActiveShape = (props) => {
+const renderCustomLabel = (props) => {
   const RADIAN = Math.PI / 180;
   const {
     cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle,
-    fill, payload, percent, value
+    fill, percent
   } = props;
 
   const sin = Math.sin(-RADIAN * midAngle);
   const cos = Math.cos(-RADIAN * midAngle);
-  const sx = cx + (outerRadius + 10) * cos;
-  const sy = cy + (outerRadius + 10) * sin;
-  const mx = cx + (outerRadius + 30) * cos;
-  const my = cy + (outerRadius + 30) * sin;
-  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-  const ey = my;
+
+  const labelRadius = outerRadius + 40;
+  const x = cx + labelRadius * cos;
+  const y = cy + labelRadius * sin;
   const textAnchor = cos >= 0 ? "start" : "end";
+
+  const lineX = cx + (outerRadius + 10) * cos;
+  const lineY = cy + (outerRadius + 10) * sin;
 
   return (
     <g>
@@ -31,37 +31,30 @@ const renderActiveShape = (props) => {
         endAngle={endAngle}
         fill={fill}
       />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#fff">
+      {/* Linija od kruga ka tekstu */}
+      <path d={`M${lineX},${lineY}L${x},${y}`} stroke={fill} fill="none" />
+      <circle cx={x} cy={y} r={2} fill={fill} stroke="none" />
+      {/* Procenat levo/desno */}
+      <text x={x + (cos >= 0 ? 12 : -12)} y={y} textAnchor={textAnchor} fill="#fff">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     </g>
   );
 };
 
-
 const DonutChartWithLabels = ({ data }) => {
-  const [activeIndex, setActiveIndex] = React.useState(0);
-
-  const onPieEnter = (_, index) => {
-    setActiveIndex(index);
-  };
-
   return (
     <div style={{ textAlign: "center" }}>
-      <PieChart width={220} height={220}>
+      <PieChart width={240} height={220}>
         <Pie
-          activeIndex={activeIndex}
-          activeShape={renderActiveShape}
           data={data}
           cx="50%"
           cy="50%"
           innerRadius={50}
           outerRadius={70}
-          fill="#8884d8"
           dataKey="value"
-          onMouseEnter={onPieEnter}
+          labelLine={false}
+          label={renderCustomLabel}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
