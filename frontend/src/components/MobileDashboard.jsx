@@ -1,4 +1,3 @@
-// src/components/MobileDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/admin.css";
@@ -78,50 +77,61 @@ const MobileDashboard = () => {
 
   return (
     <div className="admin-container">
-      <h2>Admin Panel (Mobile)</h2>
+      <div className="sidebar">
+        <div className="logo">HOLOVISION</div>
+        <ul>
+          <li className="active">Dashboard</li>
+          <li>Users</li>
+          <li>Usage</li>
+          <li>Settings</li>
+        </ul>
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            navigate("/login");
+          }}
+          className="logout-btn"
+        >
+          Logout
+        </button>
+      </div>
 
-      <button
-        onClick={() => {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }}
-        className="logout-button"
-      >
-        Logout
-      </button>
+      <div className="dashboard-content">
+        <h2>Admin Panel (Mobile)</h2>
 
-      <input
-        type="text"
-        placeholder="Search by email"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="admin-search"
-      />
+        <input
+          type="text"
+          placeholder="Search by email"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="admin-search"
+        />
 
-      {message && <p className="admin-message">{message}</p>}
-      <p>Total users: {filtered.length}</p>
+        {message && <p className="admin-message">{message}</p>}
+        <p>Total users: {filtered.length}</p>
 
-      <div className="mobile-users-list">
-        {filtered.map((u) => (
-          <div key={u._id} className="mobile-user-card">
-            <p><strong>Email:</strong> {u.email}</p>
-            <p><strong>Subscription:</strong> {u.subscription}</p>
-            <p><strong>Used:</strong> {u.monthlyUsageMinutes} min</p>
-            <p><strong>Month:</strong> {u.usageMonth}</p>
-            <select
-              value={u.subscription}
-              onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
-              className="subscription-select"
-            >
-              <option value="free">Free</option>
-              <option value="silver">Silver</option>
-              <option value="gold">Gold</option>
-            </select>
-            <button onClick={() => handleDelete(u._id)} className="delete-button">
-              Delete
-            </button>
-          </div>
-        ))}
+        <div className="mobile-users-list">
+          {filtered.map((u) => (
+            <div key={u._id} className="mobile-user-card">
+              <p><strong>Email:</strong> {u.email}</p>
+              <p><strong>Subscription:</strong> {u.subscription}</p>
+              <p><strong>Used:</strong> {u.monthlyUsageMinutes} min</p>
+              <p><strong>Month:</strong> {u.usageMonth}</p>
+              <select
+                value={u.subscription}
+                onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
+                className="subscription-select"
+              >
+                <option value="free">Free</option>
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+              </select>
+              <button onClick={() => handleDelete(u._id)} className="delete-button">
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

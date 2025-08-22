@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../styles/admin.css";
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
 const DesktopDashboard = () => {
@@ -34,7 +35,7 @@ const DesktopDashboard = () => {
   const handleDelete = async (userId) => {
     if (!window.confirm("Are you sure?")) return;
 
-    const res = await fetch(`/api/admin/users/${userId}`, {
+    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -47,7 +48,7 @@ const DesktopDashboard = () => {
   };
 
   const handleSubscriptionChange = async (userId, newSub) => {
-    const res = await fetch(`/api/admin/users/${userId}/subscription`, {
+    const res = await fetch(`${BACKEND_URL}/api/admin/users/${userId}/subscription`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -67,47 +68,99 @@ const DesktopDashboard = () => {
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
+
   return (
-    <div className="admin-container">
-      <div className="sidebar">
-        <h2>HOLOVISION</h2>
-        <ul>
-          <li className="active">Dashboard</li>
-          <li>Users</li>
-          <li>Usage</li>
-          <li>Settings</li>
-        </ul>
-        <button className="logout-btn">Logout</button>
-      </div>
-      <div className="dashboard-content">
-        <div className="card">
-          <div className="card-title">Total Users</div>
-          <div className="card-value">123</div>
+    <div className="dashboard-container">
+      <aside className="sidebar">
+        <h2 className="logo">HOLOVISION</h2>
+        <nav>
+          <ul>
+            <li className="active">Dashboard</li>
+            <li>Users</li>
+            <li>Usage</li>
+            <li>Settings</li>
+          </ul>
+        </nav>
+        <button
+          className="logout-btn"
+          onClick={() => {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+          }}
+        >
+          Logout
+        </button>
+      </aside>
+
+      <main className="dashboard-content">
+        <h1>Admin Dashboard</h1>
+
+        <div className="cards">
+          <div className="card">
+            <h3>Total Users</h3>
+            <p>{users.length}</p>
+          </div>
+          <div className="card">
+            <h3>Total Minutes Used</h3>
+            <p>{totalMinutes}</p>
+          </div>
         </div>
-        <div className="card">
-          <div className="card-title">Total Minutes</div>
-          <div className="card-value">458</div>
-        </div>
+
+        <input
+          className="search-input"
+          placeholder="Search users by email"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {message && <p className="message">{message}</p>}
+
         <table className="user-table">
           <thead>
             <tr>
               <th>Email</th>
               <th>Subscription</th>
-              <th>Usage</th>
+              <th>Minutes</th>
+              <th>Month</th>
+              <th>Change</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>admin@holovision.rs</td>
-              <td>Gold</td>
-              <td>43 min</td>
-            </tr>
+            {filtered.map((u) => (
+              <tr key={u._id}>
+                <td>{u.email}</td>
+                <td>{u.subscription}</td>
+                <td>{u.monthlyUsageMinutes || 0}</td>
+                <td>{u.usageMonth}</td>
+                <td>
+                  <select
+                    value={u.subscription}
+                    onChange={(e) =>
+                      handleSubscriptionChange(u._id, e.target.value)
+                    }
+                  >
+                    <option value="free">Free</option>
+                    <option value="silver">Silver</option>
+                    <option value="gold">Gold</option>
+                  </select>
+                </td>
+                <td>
+                  <button
+                    onClick={() => handleDelete(u._id)}
+                    className="delete-btn"
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </div>
+      </main>
     </div>
   );
 };
-
 
 export default DesktopDashboard;
