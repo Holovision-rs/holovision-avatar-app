@@ -1,25 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import useAdminGuard from "../hooks/useAdminGuard";
-import "../styles/admin.css";
+import "../../styles/admin.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-const AdminPanel = () => {
-  console.log("🧩 AdminPanel komponenta učitana");
-
-  
+const DesktopDashboard = () => {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch("/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
@@ -28,7 +20,6 @@ const AdminPanel = () => {
       } else {
         const err = await res.json();
         setMessage(err.message || "Access denied");
-        setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
       setMessage("Failed to fetch users");
@@ -36,12 +27,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    if (!token) {
-      setMessage("No token. Redirecting...");
-      setTimeout(() => navigate("/login"), 2000);
-    } else {
-      fetchUsers();
-    }
+    if (token) fetchUsers();
   }, []);
 
   const handleDelete = async (userId) => {
@@ -81,26 +67,29 @@ const AdminPanel = () => {
   );
 
   return (
-    <div style={styles.container} >
-      <h2>Admin Panel</h2>
-      <button onClick={() => {
-        localStorage.removeItem("token");
-        navigate("/login");
-      }} style={styles.logoutButton}>Logout</button>
+    <div className="admin-container">
+      <h2>Admin Dashboard</h2>
+      <button
+        className="logout-btn"
+        onClick={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }}
+      >
+        Logout
+      </button>
 
       <input
         type="text"
         placeholder="Search by email"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={styles.searchInput}
       />
 
-      {message && <p style={styles.message}>{message}</p>}
-
+      {message && <p className="message">{message}</p>}
       <p>Total users: {filtered.length}</p>
 
-      <table style={styles.table}>
+      <table className="admin-table">
         <thead>
           <tr>
             <th>Email</th>
@@ -132,8 +121,8 @@ const AdminPanel = () => {
               </td>
               <td>
                 <button
+                  className="delete-btn"
                   onClick={() => handleDelete(u._id)}
-                  style={styles.deleteButton}
                 >
                   X
                 </button>
@@ -146,45 +135,4 @@ const AdminPanel = () => {
   );
 };
 
-const styles = {
-  container: {
-    maxWidth: "900px",
-    margin: "40px auto",
-    padding: "20px",
-    fontFamily: "Arial, sans-serif",
-    backgroundColor: "#f2f2f2", // 👈 svetla pozadina samo za admin
-    borderRadius: "8px", // opcionalno
-  },
-  searchInput: {
-    padding: "6px",
-    marginBottom: "10px",
-    width: "100%",
-    maxWidth: "300px",
-  },
-  logoutButton: {
-    padding: "8px 12px",
-    marginBottom: "10px",
-    backgroundColor: "#444",
-    color: "#fff",
-    border: "none",
-    cursor: "pointer",
-    borderRadius: "4px",
-  },
-  message: {
-    color: "red",
-    marginTop: 10,
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
-  deleteButton: {
-    backgroundColor: "red",
-    color: "white",
-    border: "none",
-    padding: "4px 8px",
-    cursor: "pointer",
-  },
-};
-
-export default AdminPanel;
+export default DesktopDashboard;

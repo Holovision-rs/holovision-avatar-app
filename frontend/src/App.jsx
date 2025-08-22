@@ -1,25 +1,23 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
 import LoginRegister from "./pages/LoginRegister";
-import AdminPanel from "./pages/AdminPanel";
-import Home from "./pages/Home"; // Avatar stranica
+import { useMediaQuery } from "react-responsive";
+import MobileDashboard from "./components/MobileDashboard";
+import DesktopDashboard from "./components/DesktopDashboard";
 
-function App() {
+const App = () => {
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" 
-        element={
-	    <>
-	      {console.log("🧪 Detektovana ruta /login")}
-	      <LoginRegister />
-	    </>
-  }
-/>
-        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/login" element={<LoginRegister />} />
+        <Route path="/admin" element={isMobile ? <MobileDashboard /> : <DesktopDashboard />} />
       </Routes>
     </Router>
   );
-}
+};
 
 export default App;
