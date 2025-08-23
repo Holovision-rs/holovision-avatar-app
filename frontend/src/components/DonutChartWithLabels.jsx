@@ -1,7 +1,7 @@
 import React from "react";
 import { PieChart, Pie, Cell } from "recharts";
 
-const COLORS = ["#3baedb", "#876efe", "#614bde"];
+const COLORS = ["#ef00ff", "#876efe", "#614bde"];
 const RADIAN = Math.PI / 180;
 
 // --- LABEL 1: Donut (procenti) ---
