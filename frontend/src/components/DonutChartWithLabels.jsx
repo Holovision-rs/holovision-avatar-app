@@ -94,27 +94,48 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
           ))}
         </defs>
 
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={50}
-          outerRadius={70}
-          dataKey="value"
-          label={labelRenderer}
-          labelLine={false}
-          isAnimationActive={false}
-        >
-          {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={`url(#grad-${index})`}
-              filter={`url(#glow-${index})`}
-              stroke="none"
-            />
-          ))}
-        </Pie>
-      </PieChart>
+<PieChart width={300} height={220}>
+  {/* OVDE DODAJ DEFINICIJE */}
+  <defs>
+    {COLORS.map((color, index) => (
+      <React.Fragment key={index}>
+        <linearGradient id={`grad-${index}`}>
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={color} />
+        </linearGradient>
+
+        <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </React.Fragment>
+    ))}
+  </defs>
+
+  <Pie
+    data={data}
+    cx="50%"
+    cy="50%"
+    innerRadius={50}
+    outerRadius={70}
+    dataKey="value"
+    label={labelRenderer}
+    labelLine={false}
+    isAnimationActive={false}
+  >
+    {data.map((entry, index) => (
+      <Cell
+        key={`cell-${index}`}
+        fill={`url(#grad-${index})`}
+        filter={`url(#glow-${index})`}
+        stroke="none"
+      />
+    ))}
+  </Pie>
+</PieChart>
 
       <div className="chart-legend">
         {data.map((entry, index) => (
