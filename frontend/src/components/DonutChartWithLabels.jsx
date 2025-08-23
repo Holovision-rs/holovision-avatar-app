@@ -112,7 +112,7 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           dataKey="value"
           label={labelRenderer}
           labelLine={false}
-          isAnimationActive={false}
+          isAnimationActive={true}
         >
           {data.map((entry, index) => (
             <Cell

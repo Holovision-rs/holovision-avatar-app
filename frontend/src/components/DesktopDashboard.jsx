@@ -88,9 +88,11 @@ const DesktopDashboard = () => {
       <main className="dashboard-content">
         <h1>Admin Dashboard</h1>
 
-        {/* Wrapper za charts + kartice + search */}
-        <div className="flex flex-col md:flex-row gap-4 relative">
-          <div className="flex-1">
+        {/* Gornji deo - flex u dve kolone */}
+        <div className="flex flex-col md:flex-row gap-6 mb-8">
+          {/* Leva kolona */}
+          <div className="flex-1 flex flex-col gap-6">
+            {/* Charts */}
             <div className="top-charts">
               <div className="chart-wrapper">
                 <h3>Subscriptions</h3>
@@ -191,9 +193,9 @@ const DesktopDashboard = () => {
             {message && <p className="message">{message}</p>}
           </div>
 
-          {/* User Detail desno */}
+          {/* Desna kolona - User Detail Card */}
           {selectedUser && (
-            <div className="fixed top-[130px] right-0 w-80 h-[calc(100vh-130px)] bg-[#1c1c2b] text-white rounded-l-xl p-4 shadow-lg z-30 overflow-y-auto border-l border-purple-600">
+            <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white rounded-xl p-4 shadow-md border border-purple-600">
               <h3 className="text-lg font-semibold text-purple-400 mb-3">User Detail</h3>
               <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
               <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
@@ -210,7 +212,7 @@ const DesktopDashboard = () => {
           )}
         </div>
 
-        {/* Tabela ispod, full width */}
+        {/* Tabela ispod */}
         <div className="mt-6">
           <table className="user-table">
             <thead>
