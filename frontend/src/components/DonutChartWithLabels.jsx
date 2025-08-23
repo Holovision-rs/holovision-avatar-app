@@ -4,7 +4,10 @@ import { PieChart, Pie, Cell } from "recharts";
 const COLORS = ["#ef00ff", "#876efe", "#614bde"];
 const RADIAN = Math.PI / 180;
 
-const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => {
+// --- LABEL 1: Donut (procenti) ---
+const renderDonutLabel = ({
+  cx, cy, outerRadius, midAngle, percent, index,
+}) => {
   const angle = -midAngle * RADIAN;
   const radius = outerRadius + 12;
   const extended = outerRadius + 30;
@@ -37,7 +40,10 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
   );
 };
 
-const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
+// --- LABEL 2: Quota (minuti) ---
+const renderQuotaLabel = ({
+  cx, cy, outerRadius, index, payload,
+}) => {
   const angle = index === 0 ? 180 : 0;
   const angleRad = angle * RADIAN;
   const radius = outerRadius + 12;
@@ -77,13 +83,27 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
       <PieChart width={400} height={220}>
         <defs>
           {COLORS.map((color, index) => (
-            <filter id={`glow-${index}`} key={index} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
+            <>
+              <radialGradient
+                key={`gradient-${index}`}
+                id={`glow-gradient-${index}`}
+                cx="50%"
+                cy="50%"
+                r="50%"
+              >
+                <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+                <stop offset="70%" stopColor={color} stopOpacity={0.7} />
+                <stop offset="100%" stopColor={color} stopOpacity={1} />
+              </radialGradient>
+
+              <filter id={`glow-filter-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </>
           ))}
         </defs>
 
@@ -98,12 +118,12 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
           labelLine={false}
           isAnimationActive={false}
         >
-          {data.map((entry, index) => (
+          {data.map((_, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={COLORS[index % COLORS.length]}
-              filter={`url(#glow-${index})`}
+              fill={`url(#glow-gradient-${index})`}
               stroke="none"
+              filter={`url(#glow-filter-${index})`}
             />
           ))}
         </Pie>
@@ -128,8 +148,7 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
                 height: 12,
                 backgroundColor: COLORS[index % COLORS.length],
                 display: "inline-block",
-                borderRadius: 2,
-                boxShadow: `0 0 6px ${COLORS[index]}`
+                borderRadius: 2
               }}
             ></span>
             <span style={{ color: "#ccc", fontSize: 12 }}>{entry.name}</span>
