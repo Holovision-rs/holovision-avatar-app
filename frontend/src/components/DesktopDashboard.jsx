@@ -5,7 +5,7 @@ import "../styles/admin.css";
 import {
   PieChart, Pie, Cell,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,Area
 } from 'recharts';
 import { useAdminUsers } from "../hooks/useAdminUsers";
 

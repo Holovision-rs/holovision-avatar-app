@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  PieChart, Pie, Cell,
-  LineChart, Line, Area,
-  XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
-} from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
