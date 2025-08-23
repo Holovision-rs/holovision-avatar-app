@@ -195,7 +195,7 @@ const DesktopDashboard = () => {
 
           {/* Desna kolona - User Detail Card */}
           {selectedUser && (
-            <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white rounded-xl p-4 shadow-md border border-purple-600">
+            <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 shadow-purple">
               <h3 className="text-lg font-semibold text-purple-400 mb-3">User Detail</h3>
               <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
               <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>

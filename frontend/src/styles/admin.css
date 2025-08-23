@@ -397,7 +397,11 @@ body {
   margin-top: 24px;
   position: relative;
 }
-
+.shadow-purple{
+  border: 1px solid #751ae07d;
+  box-shadow: 0 0 16px #751ae060;
+  border-radius: 12px;
+}
 .user-details-panel {
   width: 280px;
   background: #1c1c2b;
