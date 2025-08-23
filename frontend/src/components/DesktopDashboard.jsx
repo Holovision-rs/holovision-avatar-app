@@ -305,34 +305,24 @@ const DesktopDashboard = () => {
             </table>
           </div>
 
-          {selectedUser && (
-            <div className="bg-[#1c1c2b] text-white rounded-xl p-4 shadow-lg w-full md:w-80 mt-4 md:mt-0 md:absolute md:top-0 md:right-0 z-20">
-              <h3 className="text-lg font-semibold text-purple-400 mb-3">
-                User Detail
-              </h3>
-              <p>
-                <span className="font-semibold">Email:</span> {selectedUser.email}
-              </p>
-              <p>
-                <span className="font-semibold">Subscription:</span> {selectedUser.subscription}
-              </p>
-              <p>
-                <span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min
-              </p>
-              <p>
-                <span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min
-              </p>
-              <p>
-                <span className="font-semibold">Month:</span> {selectedUser.usageMonth}
-              </p>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
-              >
-                Close
-              </button>
-            </div>
-          )}
+{selectedUser && (
+  <div className="fixed top-[130px] right-0 w-80 h-[calc(100vh-130px)] bg-[#1c1c2b] text-white rounded-l-xl p-4 shadow-lg z-30 overflow-y-auto border-l border-purple-600">
+    <h3 className="text-lg font-semibold text-purple-400 mb-3">
+      User Detail
+    </h3>
+    <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
+    <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
+    <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
+    <p><span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min</p>
+    <p><span className="font-semibold">Month:</span> {selectedUser.usageMonth}</p>
+    <button
+      onClick={() => setSelectedUser(null)}
+      className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
+    >
+      Close
+    </button>
+  </div>
+)}
         </div>
       </main>
     </div>
