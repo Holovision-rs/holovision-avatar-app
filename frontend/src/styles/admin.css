@@ -402,7 +402,7 @@ body {
   box-shadow: 0 0 16px #751ae060;
   border-radius: 12px;
 }
-.mt-16{
+.dashboard-content .margin-16{
   margin-top: 16px;
   margin-bottom: 16px;
 }
