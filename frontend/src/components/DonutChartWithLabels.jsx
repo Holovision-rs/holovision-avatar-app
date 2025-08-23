@@ -48,7 +48,7 @@ const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
   const startY = cy + radius * Math.sin(angleRad);
   const midX = cx + extended * Math.cos(angleRad);
   const midY = cy + extended * Math.sin(angleRad);
-  const endX = midX + (midX > cx ? 20 : -20);
+  const endX = midX + (midX > cx ? -20 : 20);
   const endY = midY;
 
   return (
