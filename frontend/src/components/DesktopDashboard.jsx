@@ -96,31 +96,61 @@ const DesktopDashboard = () => {
 
           <div className="chart-wrapper">
             <h3>Usage per User</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={usageChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="#aaa" />
-                <YAxis stroke="#aaa" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1b1b1b",
-                    border: "none",
-                    borderRadius: "4px",
-                    boxShadow: "0 0 8px #751ae07d",
-                    color: "#fff",
-                  }}
-                  labelStyle={{ color: "#fff" }}
-                  itemStyle={{ color: "#fff" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="minutes"
-                  stroke="#614bde"
-                  strokeWidth={2}
-                  dot={{ r: 3, stroke: "#614bde", strokeWidth: 1, fill: "#1b1b1b" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={usageChartData}>
+                  {/* Gradient i glow efekti */}
+                  <defs>
+                    <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#fc00ff" />
+                      <stop offset="100%" stopColor="#00dbde" />
+                    </linearGradient>
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fc00ff" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#1b1b1b" stopOpacity={0} />
+                    </linearGradient>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="name" stroke="#aaa" />
+                  <YAxis stroke="#aaa" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1b1b1b",
+                      border: "none",
+                      borderRadius: "4px",
+                      boxShadow: "0 0 8px #751ae07d",
+                      color: "#fff",
+                    }}
+                    labelStyle={{ color: "#fff" }}
+                    itemStyle={{ color: "#fff" }}
+                  />
+
+                  {/* Area ispod linije */}
+                  <Area type="monotone" dataKey="minutes" fill="url(#areaGradient)" stroke="none" />
+
+                  <Line
+                    type="monotone"
+                    dataKey="minutes"
+                    stroke="url(#lineGradient)"
+                    strokeWidth={3}
+                    dot={{
+                      r: 6,
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                      fill: "#1b1b1b",
+                      filter: "url(#glow)",
+                    }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
           </div>
         </div>
 
