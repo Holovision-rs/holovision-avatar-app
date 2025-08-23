@@ -380,6 +380,15 @@ body {
   font-size: 0.9rem;
   color: #ddd;
 }
+.custom-popup {
+  background-color: #1b1b1b;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 0 8px #751ae07d;
+  color: white;
+  padding: 12px 16px;
+  z-index: 1000;
+}
 /* Responsive adjustments */
 /* MOBILE STILOVI */
 @media (max-width: 767px) {

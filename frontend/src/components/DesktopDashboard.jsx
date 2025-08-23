@@ -96,10 +96,26 @@ const DesktopDashboard = () => {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={usageChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="minutes" stroke="#614bde" />
+                <XAxis dataKey="name" stroke="#aaa" />
+                <YAxis stroke="#aaa" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1b1b1b",
+                    border: "none",
+                    borderRadius: "4px",
+                    boxShadow: "0 0 8px #751ae07d",
+                    color: "#fff",
+                  }}
+                  labelStyle={{ color: "#fff" }}
+                  itemStyle={{ color: "#fff" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="minutes"
+                  stroke="#614bde"
+                  strokeWidth={2}
+                  dot={{ r: 3, stroke: "#614bde", strokeWidth: 1, fill: "#1b1b1b" }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
