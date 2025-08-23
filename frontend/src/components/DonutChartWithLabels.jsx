@@ -107,7 +107,7 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={50}
+          innerRadius={62}
           outerRadius={70}
           dataKey="value"
           label={labelRenderer}
