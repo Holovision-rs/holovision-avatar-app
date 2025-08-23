@@ -38,7 +38,7 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
 };
 
   const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
-    const angle = index === 0 ? 180 : 0;
+    const angle = index === 0 ? 0 : 180;
     const angleRad = angle * RADIAN;
     const radius = outerRadius + 12;
     const extended = outerRadius + 30;
