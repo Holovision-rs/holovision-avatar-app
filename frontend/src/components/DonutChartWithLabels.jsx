@@ -130,8 +130,8 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           isAnimationActive={true}
           animationBegin={0}
           animationDuration={1000}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          onMouseEnter={(_, index) => setActiveIndex(index)}
+          onMouseLeave={() => setActiveIndex(null)}
         >
           {data.map((entry, index) => (
             <Cell
