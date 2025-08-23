@@ -11,8 +11,7 @@ const renderCustomizedLabel = ({
   innerRadius,
   outerRadius,
   index,
-  payload,
-  data
+  payload
 }) => {
   const radius = outerRadius + 12;
   const extendedLine = outerRadius + 30;
@@ -40,7 +39,7 @@ const renderCustomizedLabel = ({
         fontSize={13}
         fontWeight="bold"
       >
-        {`${data[index].value} min`}
+        {`${payload.value} min`}
       </text>
     </g>
   );
