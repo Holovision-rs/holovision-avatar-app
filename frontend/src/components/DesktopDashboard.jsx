@@ -11,7 +11,7 @@ import { useAdminUsers } from "../hooks/useAdminUsers";
 
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
-const COLORS = ["#3baedb", "#876efe", "#614bde"];
+const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 
 const DesktopDashboard = () => {
    const {
@@ -89,9 +89,9 @@ const DesktopDashboard = () => {
           <div className="chart-wrapper">
             <h3>Quota</h3>
            <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} customLegend={[
-            { name: "Remaining", color: COLORS[1] },
-            { name: "Used", color: COLORS[0] },
-            ]} />
+              { name: "Remaining", color: COLORS[1] },
+              { name: "Used", color: COLORS[0] },
+              ]} />
           </div>
 
           <div className="chart-wrapper">
