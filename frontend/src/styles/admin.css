@@ -45,7 +45,7 @@ body {
 
 .sidebar li:hover,
 .sidebar li.active {
-  background-color: #533fed;
+  background-color: #751ae0;
   color: #fff;
 }
 
@@ -224,7 +224,7 @@ body {
 
 .logout-btn {
   margin-top: auto;
-  background-color: #533fed;
+  background-color: #751ae0;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -275,7 +275,7 @@ body {
   margin-bottom: 1rem;
   border-radius: 8px;
   background-color: #0d1117;
-  border: 1px solid #533fedb5;
+  border: 1px solid #751ae0;
   color: white;
   outline: none;
   box-shadow: 0 0 8px #00ffff33;
@@ -331,8 +331,8 @@ body {
   padding: 1rem;
   text-align: center;
   color: #fff;
-  border: 1px solid #533fedb5;
-    box-shadow: 0 0 8px #533fedc4;
+  border: 1px solid #751ae07d;
+    box-shadow: 0 0 8px #751ae07d;
    position: relative;
     display: flex;
     flex-direction: column;
