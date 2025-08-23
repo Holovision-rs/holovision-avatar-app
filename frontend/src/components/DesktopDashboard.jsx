@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DonutChartWithLabels, {
   renderDonutLabel,
   renderQuotaLabel,
@@ -31,7 +31,16 @@ const DesktopDashboard = () => {
 
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-
+  useEffect(() => {
+  if (!selectedUser && users.length > 0) {
+    const defaultAdmin = users.find(
+      (u) => u.email.toLowerCase().includes("admin") // možeš da dodaš i u.role === "admin" ako postoji
+    );
+    if (defaultAdmin) {
+      setSelectedUser(defaultAdmin);
+    }
+  }
+}, [users, selectedUser]);
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
