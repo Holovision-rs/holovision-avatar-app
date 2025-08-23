@@ -1,7 +1,112 @@
+import React from "react";
+import { PieChart, Pie, Cell } from "recharts";
+
+const COLORS = ["#3baedb", "#876efe", "#614bde"];
+const RADIAN = Math.PI / 180;
+
+// --- LABEL 1: Donut (procenti) ---
+const renderDonutLabel = ({
+  cx, cy, outerRadius, midAngle, percent, index,
+}) => {
+  const angle = -midAngle * RADIAN;
+  const radius = outerRadius + 12;
+  const extended = outerRadius + 30;
+  const offset = 12;
+
+  const startX = cx + radius * Math.cos(angle);
+  const startY = cy + radius * Math.sin(angle);
+  const midX = cx + extended * Math.cos(angle);
+  const midY = cy + extended * Math.sin(angle);
+  const endX = midX + (midX > cx ? 20 : -20);
+  const endY = midY;
+
+  return (
+    <g>
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
+      <text
+        x={endX + (endX > cx ? offset : -offset)}
+        y={endY}
+        fill="#fff"
+        textAnchor={endX > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={13}
+        fontWeight="bold"
+      >
+        {(percent * 100).toFixed(1)}%
+      </text>
+    </g>
+  );
+};
+
+// --- LABEL 2: Quota (minuti) ---
+const renderQuotaLabel = ({
+  cx, cy, outerRadius, index, payload,
+}) => {
+  const angle = index === 0 ? 180 : 0;
+  const angleRad = angle * RADIAN;
+  const radius = outerRadius + 12;
+  const extended = outerRadius + 30;
+  const offset = 12;
+
+  const startX = cx + radius * Math.cos(angleRad);
+  const startY = cy + radius * Math.sin(angleRad);
+  const midX = cx + extended * Math.cos(angleRad);
+  const midY = cy + extended * Math.sin(angleRad);
+  const endX = midX + (midX > cx ? 20 : -20);
+  const endY = midY;
+
+  return (
+    <g>
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
+      <text
+        x={endX + (endX > cx ? offset : -offset)}
+        y={endY}
+        fill="#fff"
+        textAnchor={endX > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={13}
+        fontWeight="bold"
+      >
+        {payload.value} min
+      </text>
+    </g>
+  );
+};
+
 const DonutChartWithLabels = ({ data, labelRenderer }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={300} height={220}>
+        <defs>
+          {COLORS.map((color, index) => (
+            <>
+              <radialGradient
+                key={`gradient-${index}`}
+                id={`glow-gradient-${index}`}
+                cx="50%"
+                cy="50%"
+                r="50%"
+              >
+                <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+                <stop offset="70%" stopColor={color} stopOpacity={0.7} />
+                <stop offset="100%" stopColor={color} stopOpacity={1} />
+              </radialGradient>
+
+              <filter id={`glow-filter-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </>
+          ))}
+        </defs>
+
         <Pie
           data={data}
           cx="50%"
@@ -9,12 +114,17 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
           innerRadius={50}
           outerRadius={70}
           dataKey="value"
-          label={labelRenderer} // ✔ koristi prop ovde
+          label={labelRenderer}
           labelLine={false}
           isAnimationActive={false}
         >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {data.map((_, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={`url(#glow-gradient-${index})`}
+              stroke="none"
+              filter={`url(#glow-filter-${index})`}
+            />
           ))}
         </Pie>
       </PieChart>
@@ -49,4 +159,8 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
   );
 };
 
-export default DonutChartWithLabels;
+export {
+  DonutChartWithLabels as default,
+  renderDonutLabel,
+  renderQuotaLabel
+};

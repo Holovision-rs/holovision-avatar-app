@@ -1,6 +1,6 @@
 // src/components/DesktopDashboard.jsx
 import React, { useEffect, useState } from "react";
-import { DonutChartWithLabels } from "./DonutChartWithLabels";
+import DonutChartWithLabels, { renderDonutLabel, renderQuotaLabel } from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
   PieChart, Pie, Cell,
