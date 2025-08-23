@@ -205,7 +205,7 @@ const DesktopDashboard = () => {
                 <td>
                   <button
                     onClick={() => handleDelete(u._id)}
-                    style={border-radius: "2px", backgroundColor: "red", color: "white", border: "none", padding: "4px 8px", cursor: "pointer"}
+                    style={{ borderRadius: "2px", backgroundColor: "red", color: "white", border: "none", padding: "4px 8px", cursor: "pointer" }}
                   >
                     X
                   </button>
