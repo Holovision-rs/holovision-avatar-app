@@ -29,36 +29,34 @@ const DesktopDashboard = () => {
     handleSubscriptionChange,
   } = useAdminUsers();
 
-    const getAvatarUrl = (user) => {
-      let style = "pixel-art"; // default stil
-
-      if (user.email.toLowerCase().includes("admin")) {
-        style = "croodles"; // ručno-crtani avatar za admina
-      } else if (user.subscription === "gold") {
-        style = "bottts";
-      } else if (user.subscription === "silver") {
-        style = "adventurer";
-      } else if (user.subscription === "free") {
-        style = "pixel-art";
-      }
-
-      return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
-    };
-
-      return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
+  const getAvatarUrl = (user) => {
+    let style = "pixel-art";
+    if (user.email.toLowerCase().includes("admin")) {
+      style = "croodles";
+    } else if (user.subscription === "gold") {
+      style = "bottts";
+    } else if (user.subscription === "silver") {
+      style = "adventurer";
+    } else if (user.subscription === "free") {
+      style = "pixel-art";
+    }
+    return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
   };
+
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+
   useEffect(() => {
-  if (!selectedUser && users.length > 0) {
-    const defaultAdmin = users.find(
-      (u) => u.email.toLowerCase().includes("admin") // možeš da dodaš i u.role === "admin" ako postoji
-    );
-    if (defaultAdmin) {
-      setSelectedUser(defaultAdmin);
+    if (!selectedUser && users.length > 0) {
+      const defaultAdmin = users.find((u) =>
+        u.email.toLowerCase().includes("admin")
+      );
+      if (defaultAdmin) {
+        setSelectedUser(defaultAdmin);
+      }
     }
-  }
-}, [users, selectedUser]);
+  }, [users, selectedUser]);
+
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -115,11 +113,9 @@ const DesktopDashboard = () => {
       <main className="dashboard-content">
         <h1>Admin Dashboard</h1>
 
-        {/* Gornji deo - flex u dve kolone */}
         <div className="flex flex-col md:flex-row gap-6 mb-8">
           {/* Leva kolona */}
           <div className="flex-1 flex flex-col gap-6">
-            {/* Charts */}
             <div className="top-charts">
               <div className="chart-wrapper">
                 <h3>Subscriptions</h3>
@@ -128,7 +124,6 @@ const DesktopDashboard = () => {
                   labelRenderer={renderDonutLabel}
                 />
               </div>
-
               <div className="chart-wrapper">
                 <h3>Quota</h3>
                 <DonutChartWithLabels
@@ -140,7 +135,6 @@ const DesktopDashboard = () => {
                   ]}
                 />
               </div>
-
               <div className="chart-wrapper">
                 <h3>Usage per User</h3>
                 <ResponsiveContainer width="100%" height={250}>
@@ -176,7 +170,12 @@ const DesktopDashboard = () => {
                       labelStyle={{ color: "#fff" }}
                       itemStyle={{ color: "#fff" }}
                     />
-                    <Area type="monotone" dataKey="minutes" fill="url(#areaGradient)" stroke="none" />
+                    <Area
+                      type="monotone"
+                      dataKey="minutes"
+                      fill="url(#areaGradient)"
+                      stroke="none"
+                    />
                     <Line
                       type="monotone"
                       dataKey="minutes"
@@ -192,14 +191,12 @@ const DesktopDashboard = () => {
                       isAnimationActive={true}
                       animationBegin={0}
                       animationDuration={1000}
-
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Kartice */}
             <div className="cards">
               <div className="card">
                 <h3>Total Users</h3>
@@ -213,7 +210,6 @@ const DesktopDashboard = () => {
               </div>
             </div>
 
-            {/* Search */}
             <input
               className="search-input"
               placeholder="Search users by email"
@@ -223,34 +219,32 @@ const DesktopDashboard = () => {
             {message && <p className="message">{message}</p>}
           </div>
 
-          {/* Desna kolona - User Detail Card */}
+          {/* Desna kolona */}
           {selectedUser && (
-               <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple">
-                <div className="flex flex-col items-center mb-4">
-                  <img
-                    src={getAvatarUrl(selectedUser)}
-                    alt="Avatar"
-                    className="w-16 h-16 rounded-full border border-purple-500 mb-2 bg-[#2c2c3b] p-1"
-                  />
-                  <h3 className="text-lg font-semibold text-purple-400">User</h3>
-                </div>
-
-                <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
-                <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
-                <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
-                <p><span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min</p>
-                <p><span className="font-semibold">Month:</span> {selectedUser.usageMonth}</p>
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
-                >
-                  Close
-                </button>
+            <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple">
+              <div className="flex flex-col items-center mb-4">
+                <img
+                  src={getAvatarUrl(selectedUser)}
+                  alt="Avatar"
+                  className="w-16 h-16 rounded-full border border-purple-500 mb-2 bg-[#2c2c3b] p-1"
+                />
+                <h3 className="text-lg font-semibold text-purple-400">User</h3>
               </div>
+              <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
+              <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
+              <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
+              <p><span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min</p>
+              <p><span className="font-semibold">Month:</span> {selectedUser.usageMonth}</p>
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
+              >
+                Close
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Tabela ispod */}
         <div className="mt-6">
           <table className="user-table">
             <thead>
@@ -273,7 +267,7 @@ const DesktopDashboard = () => {
                   key={u._id}
                   onClick={() => setSelectedUser(u)}
                   style={{ cursor: "pointer" }}
-                >  
+                >
                   <td>
                     <img
                       src={getAvatarUrl(u)}
