@@ -333,12 +333,12 @@ body {
   text-align: center;
   color: #fff;
   border: 1px solid #751ae07d;
-    box-shadow: 0 0 8px #751ae07d;
-   position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  box-shadow: 0 0 10px #07f4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .chart-wrapper h3 {
