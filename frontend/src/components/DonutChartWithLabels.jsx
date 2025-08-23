@@ -48,7 +48,7 @@ const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
   const startY = cy + radius * Math.sin(angleRad);
   const midX = cx + extended * Math.cos(angleRad);
   const midY = cy + extended * Math.sin(angleRad);
-  const endX = midX + (midX > cx ? -20 : 20);
+  const endX = midX + (midX > cx ? 20 : -20);
   const endY = midY;
 
   return (
@@ -75,33 +75,33 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={400} height={220}>
-                {/* Definicije gradijenata i glow filtera */}
+        {/* Definicije gradijenata i glow filtera */}
         <defs>
-          {COLORS.map((color, index) => (
-            <React.Fragment key={index}>
-              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={color} stopOpacity="1" />
-                <stop offset="100%" stopColor={color} stopOpacity="1" />
-              </linearGradient>
+            {COLORS.map((color, index) => (
+              <React.Fragment key={index}>
+                <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={color} stopOpacity="1" />
+                  <stop offset="100%" stopColor={color} stopOpacity="1" />
+                </linearGradient>
 
-              <filter id={`glow-${index}`} x="-70%" y="-70%" width="240%" height="240%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur" />
-                <feColorMatrix
-                  in="blur"
-                  type="matrix"
-                  values="1 0 0 0 0
-                          0 1 0 0 0
-                          0 0 1 0 0
-                          0 0 0 30 -10"
-                />
-                <feMerge>
-                  <feMergeNode />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </React.Fragment>
-          ))}
-        </defs>
+                <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
+                  <feColorMatrix
+                    in="blur"
+                    type="matrix"
+                    values="1 0 0 0 0
+                            0 1 0 0 0
+                            0 0 1 0 0
+                            0 0 0 30 -10"
+                  />
+                  <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </React.Fragment>
+            ))}
+          </defs>
 
         <Pie
           data={data}
