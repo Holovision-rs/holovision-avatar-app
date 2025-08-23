@@ -1,5 +1,10 @@
 import React from "react";
-import { PieChart, Pie, Cell } from "recharts";
+import {
+  PieChart, Pie, Cell,
+  LineChart, Line, Area,
+  XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
+} from "recharts";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
@@ -107,7 +112,7 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={62}
+          innerRadius={58}
           outerRadius={70}
           dataKey="value"
           label={labelRenderer}
