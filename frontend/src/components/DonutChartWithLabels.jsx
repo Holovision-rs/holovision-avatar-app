@@ -92,7 +92,7 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
                     values="1 0 0 0 0
                             0 1 0 0 0
                             0 0 1 0 0
-                            0 0 0 30 -10"
+                            0 0 0 20 -10"
                   />
                   <feMerge>
                     <feMergeNode />
