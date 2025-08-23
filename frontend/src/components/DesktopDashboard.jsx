@@ -5,16 +5,15 @@ import "../styles/admin.css";
 import {
   PieChart, Pie, Cell,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,Area
+  ResponsiveContainer, Area
 } from 'recharts';
 import { useAdminUsers } from "../hooks/useAdminUsers";
-
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 
 const DesktopDashboard = () => {
-   const {
+  const {
     users,
     setUsers,
     message,
@@ -26,7 +25,8 @@ const DesktopDashboard = () => {
   } = useAdminUsers();
 
   const [search, setSearch] = useState("");
-  const token = localStorage.getItem("token");
+  const [selectedUser, setSelectedUser] = useState(null);
+
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -34,14 +34,14 @@ const DesktopDashboard = () => {
   const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
 
   const totalQuota = users.reduce((acc, u) => {
-      if (u.subscription === "silver") return acc + 300;
-      if (u.subscription === "gold") return acc + 1500;
-      return acc; // free korisnici nemaju dodatnu kvotu
-    }, 0);
+    if (u.subscription === "silver") return acc + 300;
+    if (u.subscription === "gold") return acc + 1500;
+    return acc;
+  }, 0);
 
   const usageDonut = [
-      { name: "Used", value: totalMinutes },
-      { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
+    { name: "Used", value: totalMinutes },
+    { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
   ];
 
   const subsData = ["free", "silver", "gold"].map((sub) => ({
@@ -88,69 +88,65 @@ const DesktopDashboard = () => {
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-           <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} customLegend={[
+            <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} customLegend={[
               { name: "Remaining", color: COLORS[1] },
               { name: "Used", color: COLORS[0] },
-              ]} />
+            ]} />
           </div>
 
           <div className="chart-wrapper">
             <h3>Usage per User</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={usageChartData}>
-                  {/* Gradient i glow efekti */}
-                  <defs>
-                    <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#fc00ff" />
-                      <stop offset="100%" stopColor="#00dbde" />
-                    </linearGradient>
-                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#fc00ff" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#1b1b1b" stopOpacity={0} />
-                    </linearGradient>
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={usageChartData}>
+                <defs>
+                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#fc00ff" />
+                    <stop offset="100%" stopColor="#00dbde" />
+                  </linearGradient>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fc00ff" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#1b1b1b" stopOpacity={0} />
+                  </linearGradient>
+                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
 
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="name" stroke="#aaa" />
-                  <YAxis stroke="#aaa" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1b1b1b",
-                      border: "none",
-                      borderRadius: "4px",
-                      boxShadow: "0 0 8px #751ae07d",
-                      color: "#fff",
-                    }}
-                    labelStyle={{ color: "#fff" }}
-                    itemStyle={{ color: "#fff" }}
-                  />
-
-                  {/* Area ispod linije */}
-                  <Area type="monotone" dataKey="minutes" fill="url(#areaGradient)" stroke="none" />
-
-                  <Line
-                    type="monotone"
-                    dataKey="minutes"
-                    stroke="url(#lineGradient)"
-                    strokeWidth={3}
-                    dot={{
-                      r: 6,
-                      stroke: "#fff",
-                      strokeWidth: 2,
-                      fill: "#1b1b1b",
-                      filter: "url(#glow)",
-                    }}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="name" stroke="#aaa" />
+                <YAxis stroke="#aaa" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1b1b1b",
+                    border: "none",
+                    borderRadius: "4px",
+                    boxShadow: "0 0 8px #751ae07d",
+                    color: "#fff",
+                  }}
+                  labelStyle={{ color: "#fff" }}
+                  itemStyle={{ color: "#fff" }}
+                />
+                <Area type="monotone" dataKey="minutes" fill="url(#areaGradient)" stroke="none" />
+                <Line
+                  type="monotone"
+                  dataKey="minutes"
+                  stroke="url(#lineGradient)"
+                  strokeWidth={3}
+                  dot={{
+                    r: 6,
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                    fill: "#1b1b1b",
+                    filter: "url(#glow)",
+                  }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -164,7 +160,7 @@ const DesktopDashboard = () => {
             <p>{totalMinutes}</p>
             <h3>Total Minutes Paid</h3>
             <p>{totalQuota}</p>
-        </div>
+          </div>
         </div>
 
         <input
@@ -176,93 +172,126 @@ const DesktopDashboard = () => {
 
         {message && <p className="message">{message}</p>}
 
-        <table className="user-table">
-          <thead>
-          <tr>
-            <th>Email</th>
-            <th>Subscription</th>
-            <th>Used</th>
-            <th>Paid</th>
-            <th>Month</th>
-            <th>Add Used</th>
-            <th>Add Paid</th>
-            <th>Change</th>
-            <th>Delete</th>
-          </tr>
-          </thead>
-          <tbody>
-            {filtered.map((u) => (
-              <tr key={u._id}>
-                <td>{u.email}</td>
-                <td>{u.subscription}</td>
-                <td>{u.monthlyUsageMinutes || 0}</td>
-                <td>{u.monthlyPaidMinutes || 0}</td>
-                <td>{u.usageMonth}</td>
+        <div style={{ position: "relative", display: "flex", gap: "40px" }}>
+          <div style={{ flex: 1 }}>
+            <table className="user-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Subscription</th>
+                  <th>Used</th>
+                  <th>Paid</th>
+                  <th>Month</th>
+                  <th>Add Used</th>
+                  <th>Add Paid</th>
+                  <th>Change</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u) => (
+                  <tr key={u._id} onClick={() => setSelectedUser(u)} style={{ cursor: "pointer" }}>
+                    <td>{u.email}</td>
+                    <td>{u.subscription}</td>
+                    <td>{u.monthlyUsageMinutes || 0}</td>
+                    <td>{u.monthlyPaidMinutes || 0}</td>
+                    <td>{u.usageMonth}</td>
 
-                {/* Add Used Minutes */}
-                <td>
-                  <input
-                   type="number"
-                    min="1"
-                    placeholder="min"
-                    className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const minutes = parseInt(e.target.value, 10);
-                        if (!isNaN(minutes)) {
-                          handleAddMinutes(u._id, minutes);
-                          e.target.value = "";
-                        }
-                      }
-                    }}
-                  />
-                </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="min"
+                        className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const minutes = parseInt(e.target.value, 10);
+                            if (!isNaN(minutes)) {
+                              handleAddMinutes(u._id, minutes);
+                              e.target.value = "";
+                            }
+                          }
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="min"
+                        className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const minutes = parseInt(e.target.value, 10);
+                            if (!isNaN(minutes)) {
+                              handleAddPaidMinutes(u._id, minutes);
+                              e.target.value = "";
+                            }
+                          }
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={u.subscription}
+                        onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
+                        className="px-2 py-1 rounded-md border border-gray-300 bg-white text-black text-sm"
+                      >
+                        <option value="free">Free</option>
+                        <option value="silver">Silver</option>
+                        <option value="gold">Gold</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => handleDelete(u._id)}
+                        style={{ borderRadius: "2px", backgroundColor: "#751ae0", color: "white", border: "none", padding: "4px 8px", cursor: "pointer" }}
+                      >
+                        X
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-                {/* Add Paid Minutes */}
-                <td>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="min"
-                    className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const minutes = parseInt(e.target.value, 10);
-                        if (!isNaN(minutes)) {
-                          handleAddPaidMinutes(u._id, minutes);
-                          e.target.value = "";
-                        }
-                      }
-                    }}
-                  />
-                </td>
+          {selectedUser && (
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "#1b1b1b",
+                boxShadow: "0 0 12px #751ae07d",
+                borderRadius: "10px",
+                color: "#fff",
+                minWidth: "250px",
+                height: "fit-content"
+              }}
+            >
+              <h3 style={{ color: "#876efe", marginBottom: "10px" }}>User Detail</h3>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+              <p><strong>Subscription:</strong> {selectedUser.subscription}</p>
+              <p><strong>Used:</strong> {selectedUser.monthlyUsageMinutes || 0} min</p>
+              <p><strong>Paid:</strong> {selectedUser.monthlyPaidMinutes || 0} min</p>
+              <p><strong>Month:</strong> {selectedUser.usageMonth}</p>
 
-                {/* Subscription Change */}
-                <td>
-                <select
-                    value={u.subscription}
-                    onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
-                    className="px-2 py-1 rounded-md border border-gray-300 bg-white text-black text-sm"
-                  >
-                    <option value="free">Free</option>
-                    <option value="silver">Silver</option>
-                    <option value="gold">Gold</option>
-                </select>
-                </td>
-
-                {/* Delete Button */}
-                <td>
-                  <button
-                    onClick={() => handleDelete(u._id)}
-                    style={{ borderRadius: "2px", backgroundColor: "#751ae0", color: "white", border: "none", padding: "4px 8px", cursor: "pointer" }}
-                  >
-                    X
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              <button
+                onClick={() => setSelectedUser(null)}
+                style={{
+                  marginTop: "12px",
+                  backgroundColor: "#751ae0",
+                  border: "none",
+                  color: "white",
+                  padding: "6px 12px",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                Close
+              </button>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
