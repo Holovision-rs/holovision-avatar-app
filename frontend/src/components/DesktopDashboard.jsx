@@ -1,27 +1,33 @@
 // src/components/DesktopDashboard.jsx
-import React, { useEffect, useState } from "react";
-import DonutChartWithLabels, { renderDonutLabel, renderQuotaLabel } from "./DonutChartWithLabels";
+import React, { useState } from "react";
+import DonutChartWithLabels, {
+  renderDonutLabel,
+  renderQuotaLabel,
+} from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
-  PieChart, Pie, Cell,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Area
-} from 'recharts';
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+} from "recharts";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 
 const DesktopDashboard = () => {
   const {
     users,
-    setUsers,
     message,
     fetchUsers,
     handleDelete,
     handleAddMinutes,
     handleAddPaidMinutes,
-    handleSubscriptionChange
+    handleSubscriptionChange,
   } = useAdminUsers();
 
   const [search, setSearch] = useState("");
@@ -31,7 +37,10 @@ const DesktopDashboard = () => {
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalMinutes = users.reduce((acc, u) => acc + (u.monthlyUsageMinutes || 0), 0);
+  const totalMinutes = users.reduce(
+    (acc, u) => acc + (u.monthlyUsageMinutes || 0),
+    0
+  );
 
   const totalQuota = users.reduce((acc, u) => {
     if (u.subscription === "silver") return acc + 300;
@@ -41,17 +50,17 @@ const DesktopDashboard = () => {
 
   const usageDonut = [
     { name: "Used", value: totalMinutes },
-    { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) }
+    { name: "Remaining", value: Math.max(totalQuota - totalMinutes, 0) },
   ];
 
   const subsData = ["free", "silver", "gold"].map((sub) => ({
     name: sub.charAt(0).toUpperCase() + sub.slice(1),
-    value: users.filter((u) => u.subscription === sub).length
+    value: users.filter((u) => u.subscription === sub).length,
   }));
 
   const usageChartData = users.map((u) => ({
     name: u.email,
-    minutes: u.monthlyUsageMinutes || 0
+    minutes: u.monthlyUsageMinutes || 0,
   }));
 
   return (
@@ -83,15 +92,22 @@ const DesktopDashboard = () => {
         <div className="top-charts">
           <div className="chart-wrapper">
             <h3>Subscriptions</h3>
-            <DonutChartWithLabels data={subsData} labelRenderer={renderDonutLabel} />
+            <DonutChartWithLabels
+              data={subsData}
+              labelRenderer={renderDonutLabel}
+            />
           </div>
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-            <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} customLegend={[
-              { name: "Remaining", color: COLORS[1] },
-              { name: "Used", color: COLORS[0] },
-            ]} />
+            <DonutChartWithLabels
+              data={usageDonut}
+              labelRenderer={renderQuotaLabel}
+              customLegend={[
+                { name: "Remaining", color: COLORS[1] },
+                { name: "Used", color: COLORS[0] },
+              ]}
+            />
           </div>
 
           <div className="chart-wrapper">
@@ -99,15 +115,33 @@ const DesktopDashboard = () => {
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={usageChartData}>
                 <defs>
-                  <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <linearGradient
+                    id="lineGradient"
+                    x1="0"
+                    y1="0"
+                    x2="1"
+                    y2="0"
+                  >
                     <stop offset="0%" stopColor="#fc00ff" />
                     <stop offset="100%" stopColor="#00dbde" />
                   </linearGradient>
-                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient
+                    id="areaGradient"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
                     <stop offset="0%" stopColor="#fc00ff" stopOpacity={0.4} />
                     <stop offset="100%" stopColor="#1b1b1b" stopOpacity={0} />
                   </linearGradient>
-                  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <filter
+                    id="glow"
+                    x="-50%"
+                    y="-50%"
+                    width="200%"
+                    height="200%"
+                  >
                     <feGaussianBlur stdDeviation="4" result="blur" />
                     <feMerge>
                       <feMergeNode in="blur" />
@@ -115,7 +149,6 @@ const DesktopDashboard = () => {
                     </feMerge>
                   </filter>
                 </defs>
-
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis dataKey="name" stroke="#aaa" />
                 <YAxis stroke="#aaa" />
@@ -130,7 +163,12 @@ const DesktopDashboard = () => {
                   labelStyle={{ color: "#fff" }}
                   itemStyle={{ color: "#fff" }}
                 />
-                <Area type="monotone" dataKey="minutes" fill="url(#areaGradient)" stroke="none" />
+                <Area
+                  type="monotone"
+                  dataKey="minutes"
+                  fill="url(#areaGradient)"
+                  stroke="none"
+                />
                 <Line
                   type="monotone"
                   dataKey="minutes"
@@ -172,7 +210,7 @@ const DesktopDashboard = () => {
 
         {message && <p className="message">{message}</p>}
 
-        <div style={{ position: "relative", display: "flex", gap: "40px" }}>
+        <div className="table-and-sidebar">
           <div style={{ flex: 1 }}>
             <table className="user-table">
               <thead>
@@ -190,13 +228,16 @@ const DesktopDashboard = () => {
               </thead>
               <tbody>
                 {filtered.map((u) => (
-                  <tr key={u._id} onClick={() => setSelectedUser(u)} style={{ cursor: "pointer" }}>
+                  <tr
+                    key={u._id}
+                    onClick={() => setSelectedUser(u)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <td>{u.email}</td>
                     <td>{u.subscription}</td>
                     <td>{u.monthlyUsageMinutes || 0}</td>
                     <td>{u.monthlyPaidMinutes || 0}</td>
                     <td>{u.usageMonth}</td>
-
                     <td>
                       <input
                         type="number"
@@ -234,7 +275,9 @@ const DesktopDashboard = () => {
                     <td>
                       <select
                         value={u.subscription}
-                        onChange={(e) => handleSubscriptionChange(u._id, e.target.value)}
+                        onChange={(e) =>
+                          handleSubscriptionChange(u._id, e.target.value)
+                        }
                         className="px-2 py-1 rounded-md border border-gray-300 bg-white text-black text-sm"
                       >
                         <option value="free">Free</option>
@@ -245,7 +288,14 @@ const DesktopDashboard = () => {
                     <td>
                       <button
                         onClick={() => handleDelete(u._id)}
-                        style={{ borderRadius: "2px", backgroundColor: "#751ae0", color: "white", border: "none", padding: "4px 8px", cursor: "pointer" }}
+                        style={{
+                          borderRadius: "2px",
+                          backgroundColor: "#751ae0",
+                          color: "white",
+                          border: "none",
+                          padding: "4px 8px",
+                          cursor: "pointer",
+                        }}
                       >
                         X
                       </button>
@@ -257,35 +307,28 @@ const DesktopDashboard = () => {
           </div>
 
           {selectedUser && (
-            <div
-              style={{
-                padding: "16px",
-                backgroundColor: "#1b1b1b",
-                boxShadow: "0 0 12px #751ae07d",
-                borderRadius: "10px",
-                color: "#fff",
-                minWidth: "250px",
-                height: "fit-content"
-              }}
-            >
-              <h3 style={{ color: "#876efe", marginBottom: "10px" }}>User Detail</h3>
-              <p><strong>Email:</strong> {selectedUser.email}</p>
-              <p><strong>Subscription:</strong> {selectedUser.subscription}</p>
-              <p><strong>Used:</strong> {selectedUser.monthlyUsageMinutes || 0} min</p>
-              <p><strong>Paid:</strong> {selectedUser.monthlyPaidMinutes || 0} min</p>
-              <p><strong>Month:</strong> {selectedUser.usageMonth}</p>
-
+            <div className="user-details-panel">
+              <h3>User Detail</h3>
+              <p>
+                <strong>Email:</strong> {selectedUser.email}
+              </p>
+              <p>
+                <strong>Subscription:</strong> {selectedUser.subscription}
+              </p>
+              <p>
+                <strong>Used:</strong> {selectedUser.monthlyUsageMinutes || 0}{" "}
+                min
+              </p>
+              <p>
+                <strong>Paid:</strong> {selectedUser.monthlyPaidMinutes || 0}{" "}
+                min
+              </p>
+              <p>
+                <strong>Month:</strong> {selectedUser.usageMonth}
+              </p>
               <button
                 onClick={() => setSelectedUser(null)}
-                style={{
-                  marginTop: "12px",
-                  backgroundColor: "#751ae0",
-                  border: "none",
-                  color: "white",
-                  padding: "6px 12px",
-                  borderRadius: "4px",
-                  cursor: "pointer"
-                }}
+                className="close-btn"
               >
                 Close
               </button>

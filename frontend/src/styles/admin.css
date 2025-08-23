@@ -390,6 +390,44 @@ body {
   padding: 12px 16px;
   z-index: 1000;
 }
+.table-and-sidebar {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 24px;
+  position: relative;
+}
+
+.user-details-panel {
+  width: 280px;
+  background: #1c1c2b;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  box-shadow: 0 0 16px #751ae060;
+  position: sticky;
+  top: 100px;
+  flex-shrink: 0;
+}
+
+.user-details-panel h3 {
+  margin-top: 0;
+  color: #876efe;
+}
+
+.user-details-panel p {
+  margin: 6px 0;
+}
+
+.user-details-panel .close-btn {
+  margin-top: 12px;
+  background-color: #751ae0;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
 /* Responsive adjustments */
 /* MOBILE STILOVI */
 @media (max-width: 767px) {
