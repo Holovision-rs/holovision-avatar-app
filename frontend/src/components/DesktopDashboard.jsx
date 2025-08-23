@@ -88,7 +88,7 @@ const DesktopDashboard = () => {
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-            <DonutChartWithLabels data={usageDonut} />
+           <DonutChartWithLabels data={usageDonut} labelType="value" />
           </div>
 
           <div className="chart-wrapper">

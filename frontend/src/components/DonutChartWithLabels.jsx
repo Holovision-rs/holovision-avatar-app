@@ -1,17 +1,11 @@
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
- const RADIAN = Math.PI / 180;
+const RADIAN = Math.PI / 180;
 
-const renderCustomizedLabel = ({
-  cx,
-  cy,
-  midAngle,
-  innerRadius,
-  outerRadius,
-  index,
-  payload
+const renderCustomizedLabel = ({ 
+  cx, cy, midAngle, innerRadius, outerRadius, percent, index, payload, labelType 
 }) => {
   const radius = outerRadius + 12;
   const extendedLine = outerRadius + 30;
@@ -27,8 +21,22 @@ const renderCustomizedLabel = ({
 
   return (
     <g>
-      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index % COLORS.length]} strokeWidth={1} />
-      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index % COLORS.length]} strokeWidth={1} />
+      <line
+        x1={startX}
+        y1={startY}
+        x2={midX}
+        y2={midY}
+        stroke={COLORS[index % COLORS.length]}
+        strokeWidth={1}
+      />
+      <line
+        x1={midX}
+        y1={midY}
+        x2={endX}
+        y2={endY}
+        stroke={COLORS[index % COLORS.length]}
+        strokeWidth={1}
+      />
       <circle cx={endX} cy={endY} r={2} fill={COLORS[index % COLORS.length]} />
       <text
         x={endX + (endX > cx ? textOffset : -textOffset)}
@@ -39,13 +47,15 @@ const renderCustomizedLabel = ({
         fontSize={13}
         fontWeight="bold"
       >
-        {`${payload.value} min`}
+        {labelType === "value"
+          ? `${payload.value} min`
+          : `${(percent * 100).toFixed(1)}%`}
       </text>
     </g>
   );
 };
 
-const DonutChartWithLabels = ({ data }) => {
+const DonutChartWithLabels = ({ data, labelType = "percent" }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={300} height={220}>
@@ -56,7 +66,7 @@ const DonutChartWithLabels = ({ data }) => {
           innerRadius={50}
           outerRadius={70}
           dataKey="value"
-          label={renderCustomizedLabel}
+          label={(props) => renderCustomizedLabel({ ...props, labelType })}
           labelLine={false}
           isAnimationActive={false}
         >
@@ -98,8 +108,5 @@ const DonutChartWithLabels = ({ data }) => {
     </div>
   );
 };
-
-
-
 
 export default DonutChartWithLabels;
