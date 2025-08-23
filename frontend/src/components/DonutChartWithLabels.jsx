@@ -74,23 +74,16 @@ const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
 const DonutChartWithLabels = ({ data, labelRenderer }) => {
   return (
     <div style={{ textAlign: "center" }}>
-      <PieChart width={300} height={220}>
-        {/* Definicije gradijenata i filtera */}
+      <PieChart width={400} height={220}>
         <defs>
           {COLORS.map((color, index) => (
-            <React.Fragment key={index}>
-              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={color} stopOpacity={0.5} />
-                <stop offset="100%" stopColor={color} stopOpacity={1} />
-              </linearGradient>
-              <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </React.Fragment>
+            <filter id={`glow-${index}`} key={index} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           ))}
         </defs>
 
@@ -108,7 +101,7 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
           {data.map((entry, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={`url(#grad-${index})`}
+              fill={COLORS[index % COLORS.length]}
               filter={`url(#glow-${index})`}
               stroke="none"
             />
@@ -133,9 +126,10 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
               style={{
                 width: 12,
                 height: 12,
-                background: `linear-gradient(45deg, ${COLORS[index]}88, ${COLORS[index]})`,
+                backgroundColor: COLORS[index % COLORS.length],
                 display: "inline-block",
-                borderRadius: 2
+                borderRadius: 2,
+                boxShadow: `0 0 6px ${COLORS[index]}`
               }}
             ></span>
             <span style={{ color: "#ccc", fontSize: 12 }}>{entry.name}</span>
