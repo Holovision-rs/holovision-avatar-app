@@ -4,13 +4,19 @@ import { PieChart, Pie, Cell } from "recharts";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 const RADIAN = Math.PI / 180;
 
-const renderCustomizedLabel = ({ 
-  cx, cy, midAngle, innerRadius, outerRadius, percent, index, payload, labelType 
-}) => {
+const renderCustomizedLabel = (props) => {
+  const {
+    cx, cy, outerRadius, index, percent, payload, midAngle,
+  } = props;
+
+  const textOffset = 12;
+  const baseAngle = (props.data?.length === 2)
+    ? (index === 0 ? 180 : 0) // Levi i desni
+    : -midAngle; // Normalno za više segmenata
+
+  const angle = baseAngle * RADIAN;
   const radius = outerRadius + 12;
   const extendedLine = outerRadius + 30;
-  const textOffset = 12;
-  const angle = -midAngle * RADIAN;
 
   const startX = cx + radius * Math.cos(angle);
   const startY = cy + radius * Math.sin(angle);
@@ -18,6 +24,11 @@ const renderCustomizedLabel = ({
   const midY = cy + extendedLine * Math.sin(angle);
   const endX = midX + (midX > cx ? 20 : -20);
   const endY = midY;
+
+  const label =
+    props.labelType === "value"
+      ? `${payload.value} min`
+      : `${(percent * 100).toFixed(1)}%`;
 
   return (
     <g>
@@ -47,9 +58,7 @@ const renderCustomizedLabel = ({
         fontSize={13}
         fontWeight="bold"
       >
-        {labelType === "value"
-          ? `${payload.value} min`
-          : `${(percent * 100).toFixed(1)}%`}
+        {label}
       </text>
     </g>
   );
