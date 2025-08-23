@@ -71,37 +71,37 @@ const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
   );
 };
 
-const DonutChartWithLabels = ({ data, labelRenderer }) => {
+const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={400} height={220}>
         {/* Definicije gradijenata i glow filtera */}
         <defs>
-            {COLORS.map((color, index) => (
-              <React.Fragment key={index}>
-                <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor={color} stopOpacity="1" />
-                  <stop offset="100%" stopColor={color} stopOpacity="1" />
-                </linearGradient>
+          {COLORS.map((color, index) => (
+            <React.Fragment key={index}>
+              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={color} stopOpacity="1" />
+                <stop offset="100%" stopColor={color} stopOpacity="1" />
+              </linearGradient>
 
-                <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
-                  <feColorMatrix
-                    in="blur"
-                    type="matrix"
-                    values="1 0 0 0 0
-                            0 1 0 0 0
-                            0 0 1 0 0
-                            0 0 0 20 -10"
-                  />
-                  <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </React.Fragment>
-            ))}
-          </defs>
+              <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
+                <feColorMatrix
+                  in="blur"
+                  type="matrix"
+                  values="1 0 0 0 0
+                          0 1 0 0 0
+                          0 0 1 0 0
+                          0 0 0 20 -10"
+                />
+                <feMerge>
+                  <feMergeNode />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </React.Fragment>
+          ))}
+        </defs>
 
         <Pie
           data={data}
@@ -125,31 +125,37 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
         </Pie>
       </PieChart>
 
+      {/* LEGEND */}
       <div className="chart-legend">
-        {data.map((entry, index) => (
-          <div
-            key={index}
-            className="legend-item"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              justifyContent: "center",
-              marginTop: "4px"
-            }}
-          >
-            <span
+        {(customLegend || data).map((entry, index) => {
+          const color = customLegend ? entry.color : COLORS[index % COLORS.length];
+          const name = customLegend ? entry.name : entry.name;
+
+          return (
+            <div
+              key={index}
+              className="legend-item"
               style={{
-                width: 12,
-                height: 12,
-                background: `linear-gradient(45deg, ${COLORS[index]}88, ${COLORS[index]})`,
-                display: "inline-block",
-                borderRadius: 2
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                justifyContent: "center",
+                marginTop: "4px",
               }}
-            ></span>
-            <span style={{ color: "#ccc", fontSize: 12 }}>{entry.name}</span>
-          </div>
-        ))}
+            >
+              <span
+                style={{
+                  width: 12,
+                  height: 12,
+                  background: `linear-gradient(45deg, ${color}88, ${color})`,
+                  display: "inline-block",
+                  borderRadius: 2,
+                }}
+              ></span>
+              <span style={{ color: "#ccc", fontSize: 12 }}>{name}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

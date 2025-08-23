@@ -88,7 +88,10 @@ const DesktopDashboard = () => {
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-           <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} />
+           <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} customLegend={[
+            { name: "Remaining", color: COLORS[1] },
+            { name: "Used", color: COLORS[0] },
+            ]} />
           </div>
 
           <div className="chart-wrapper">
