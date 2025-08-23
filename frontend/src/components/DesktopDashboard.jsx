@@ -28,7 +28,25 @@ const DesktopDashboard = () => {
     handleAddPaidMinutes,
     handleSubscriptionChange,
   } = useAdminUsers();
+  
+    const getAvatarUrl = (user) => {
+      let style = "pixel-art"; // default stil
 
+      if (user.email.toLowerCase().includes("admin")) {
+        style = "croodles"; // ručno-crtani avatar za admina
+      } else if (user.subscription === "gold") {
+        style = "bottts";
+      } else if (user.subscription === "silver") {
+        style = "adventurer";
+      } else if (user.subscription === "free") {
+        style = "pixel-art";
+      }
+
+      return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
+    };
+
+      return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
+  };
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   useEffect(() => {
@@ -207,27 +225,28 @@ const DesktopDashboard = () => {
 
           {/* Desna kolona - User Detail Card */}
           {selectedUser && (
-             <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple">
-              <h3 className="text-lg font-semibold text-purple-400 mb-3 flex items-center gap-2">
-                <img
-                  src={selectedUser.avatarUrl || `https://i.pravatar.cc/64?u=${selectedUser._id}`}
-                  alt="Avatar"
-                  className="w-10 h-10 rounded-full border border-purple-500"
-                />
-                User
-              </h3>
-              <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
-              <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
-              <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
-              <p><span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min</p>
-              <p><span className="font-semibold">Month:</span> {selectedUser.usageMonth}</p>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
-              >
-                Close
-              </button>
-            </div>
+               <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple">
+                <div className="flex flex-col items-center mb-4">
+                  <img
+                    src={getAvatarUrl(selectedUser)}
+                    alt="Avatar"
+                    className="w-16 h-16 rounded-full border border-purple-500 mb-2 bg-[#2c2c3b] p-1"
+                  />
+                  <h3 className="text-lg font-semibold text-purple-400">User</h3>
+                </div>
+
+                <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
+                <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
+                <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
+                <p><span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min</p>
+                <p><span className="font-semibold">Month:</span> {selectedUser.usageMonth}</p>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
+                >
+                  Close
+                </button>
+              </div>
           )}
         </div>
 
