@@ -10,8 +10,9 @@ const renderCustomizedLabel = ({
   midAngle,
   innerRadius,
   outerRadius,
-  percent,
-  index
+  index,
+  payload,
+  data
 }) => {
   const radius = outerRadius + 12;
   const extendedLine = outerRadius + 30;
@@ -27,22 +28,8 @@ const renderCustomizedLabel = ({
 
   return (
     <g>
-      <line
-        x1={startX}
-        y1={startY}
-        x2={midX}
-        y2={midY}
-        stroke={COLORS[index % COLORS.length]}
-        strokeWidth={1}
-      />
-      <line
-        x1={midX}
-        y1={midY}
-        x2={endX}
-        y2={endY}
-        stroke={COLORS[index % COLORS.length]}
-        strokeWidth={1}
-      />
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index % COLORS.length]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index % COLORS.length]} strokeWidth={1} />
       <circle cx={endX} cy={endY} r={2} fill={COLORS[index % COLORS.length]} />
       <text
         x={endX + (endX > cx ? textOffset : -textOffset)}
@@ -53,7 +40,7 @@ const renderCustomizedLabel = ({
         fontSize={13}
         fontWeight="bold"
       >
-        {`${(percent * 100).toFixed(1)}%`}
+        {`${data[index].value} min`}
       </text>
     </g>
   );
