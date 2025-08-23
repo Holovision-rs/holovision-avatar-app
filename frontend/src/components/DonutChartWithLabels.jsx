@@ -48,3 +48,5 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
     </div>
   );
 };
+
+export default DonutChartWithLabels;
