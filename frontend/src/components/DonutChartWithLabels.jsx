@@ -28,7 +28,7 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
         fill="#fff"
         textAnchor={endX > cx ? "start" : "end"}
         dominantBaseline="central"
-        fontSize={18}
+        fontSize={16}
         fontWeight="bold"
       >
         {(percent * 100).toFixed(1)}%
@@ -62,7 +62,7 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
           fill="#fff"
           textAnchor={endX > cx ? "start" : "end"}
           dominantBaseline="central"
-          fontSize={18}
+          fontSize={16}
           fontWeight="bold"
         >
           {payload.value} min
