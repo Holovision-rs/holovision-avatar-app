@@ -171,7 +171,10 @@ const DesktopDashboard = () => {
                         fill: "#1b1b1b",
                         filter: "url(#glow)",
                       }}
-                      isAnimationActive={false}
+                      isAnimationActive={true}
+                      animationBegin={0}
+                      animationDuration={1000}
+                      
                     />
                   </LineChart>
                 </ResponsiveContainer>

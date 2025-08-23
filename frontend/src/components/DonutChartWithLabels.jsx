@@ -1,5 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell } from "recharts";
+import React, { useState } from "react";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
@@ -72,6 +73,18 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
   };
 
 const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
+  const [activeIndex, setActiveIndex] = useState(null);
+
+  const handleMouseEnter = (_, index) => {
+    if (data[index].name === "Used") {
+      setActiveIndex(index);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setActiveIndex(null);
+  };
+
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={400} height={220}>
@@ -109,10 +122,16 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           cy="50%"
           innerRadius={58}
           outerRadius={70}
+          activeOuterRadius={78}
+          activeIndex={activeIndex}
           dataKey="value"
           label={labelRenderer}
           labelLine={false}
           isAnimationActive={true}
+          animationBegin={0}
+          animationDuration={1000}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           {data.map((entry, index) => (
             <Cell
