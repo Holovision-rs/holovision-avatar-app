@@ -4,10 +4,41 @@ import { PieChart, Pie, Cell } from "recharts";
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
 
-  const renderQuotaLabel = ({
-    cx, cy, outerRadius, index, payload,
-  }) => {
-    const angle = index === 0 ? 0 : 180; // OBRNUTO!
+const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => {
+  const angle = -midAngle * RADIAN;
+  const radius = outerRadius + 12;
+  const extended = outerRadius + 30;
+  const offset = 12;
+
+  const startX = cx + radius * Math.cos(angle);
+  const startY = cy + radius * Math.sin(angle);
+  const midX = cx + extended * Math.cos(angle);
+  const midY = cy + extended * Math.sin(angle);
+  const endX = midX + (midX > cx ? 20 : -20);
+  const endY = midY;
+
+  return (
+    <g>
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
+      <text
+        x={endX + (endX > cx ? offset : -offset)}
+        y={endY}
+        fill="#fff"
+        textAnchor={endX > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={13}
+        fontWeight="bold"
+      >
+        {(percent * 100).toFixed(1)}%
+      </text>
+    </g>
+  );
+};
+
+  const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
+    const angle = index === 0 ? 180 : 0;
     const angleRad = angle * RADIAN;
     const radius = outerRadius + 12;
     const extended = outerRadius + 30;
@@ -39,40 +70,6 @@ const RADIAN = Math.PI / 180;
       </g>
     );
   };
-  
-const renderQuotaLabel = ({ cx, cy, outerRadius, index, payload }) => {
-  const angle = index === 0 ? 180 : 0;
-  const angleRad = angle * RADIAN;
-  const radius = outerRadius + 12;
-  const extended = outerRadius + 30;
-  const offset = 12;
-
-  const startX = cx + radius * Math.cos(angleRad);
-  const startY = cy + radius * Math.sin(angleRad);
-  const midX = cx + extended * Math.cos(angleRad);
-  const midY = cy + extended * Math.sin(angleRad);
-  const endX = midX + (midX > cx ? 20 : -20);
-  const endY = midY;
-
-  return (
-    <g>
-      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
-      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
-      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
-      <text
-        x={endX + (endX > cx ? offset : -offset)}
-        y={endY}
-        fill="#fff"
-        textAnchor={endX > cx ? "start" : "end"}
-        dominantBaseline="central"
-        fontSize={13}
-        fontWeight="bold"
-      >
-        {payload.value} min
-      </text>
-    </g>
-  );
-};
 
 const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
   return (
