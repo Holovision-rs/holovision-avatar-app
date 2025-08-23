@@ -83,12 +83,12 @@ const DesktopDashboard = () => {
         <div className="top-charts">
           <div className="chart-wrapper">
             <h3>Subscriptions</h3>
-            <DonutChartWithLabels data={subsData} />
+            <DonutChartWithLabels data={subsData} labelRenderer={renderDonutLabel} />
           </div>
 
           <div className="chart-wrapper">
             <h3>Quota</h3>
-           <DonutChartWithLabels data={usageDonut} labelType="value" />
+           <DonutChartWithLabels data={usageDonut} labelRenderer={renderQuotaLabel} />
           </div>
 
           <div className="chart-wrapper">

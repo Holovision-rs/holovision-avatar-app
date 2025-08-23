@@ -4,68 +4,79 @@ import { PieChart, Pie, Cell } from "recharts";
 const COLORS = ["#3baedb", "#876efe", "#614bde"];
 const RADIAN = Math.PI / 180;
 
-const renderCustomizedLabel = (props) => {
-  const {
-    cx, cy, outerRadius, index, percent, payload, midAngle,
-  } = props;
-
-  const textOffset = 12;
-  const baseAngle = (props.data?.length === 2)
-    ? (index === 0 ? 180 : 0) // Levi i desni
-    : -midAngle; // Normalno za više segmenata
-
-  const angle = baseAngle * RADIAN;
+const renderDonutLabel = ({
+  cx, cy, outerRadius, midAngle, percent, index,
+}) => {
+  const angle = -midAngle * RADIAN;
   const radius = outerRadius + 12;
-  const extendedLine = outerRadius + 30;
+  const extended = outerRadius + 30;
+  const offset = 12;
 
   const startX = cx + radius * Math.cos(angle);
   const startY = cy + radius * Math.sin(angle);
-  const midX = cx + extendedLine * Math.cos(angle);
-  const midY = cy + extendedLine * Math.sin(angle);
+  const midX = cx + extended * Math.cos(angle);
+  const midY = cy + extended * Math.sin(angle);
   const endX = midX + (midX > cx ? 20 : -20);
   const endY = midY;
 
-  const label =
-    props.labelType === "value"
-      ? `${payload.value} min`
-      : `${(percent * 100).toFixed(1)}%`;
-
   return (
     <g>
-      <line
-        x1={startX}
-        y1={startY}
-        x2={midX}
-        y2={midY}
-        stroke={COLORS[index % COLORS.length]}
-        strokeWidth={1}
-      />
-      <line
-        x1={midX}
-        y1={midY}
-        x2={endX}
-        y2={endY}
-        stroke={COLORS[index % COLORS.length]}
-        strokeWidth={1}
-      />
-      <circle cx={endX} cy={endY} r={2} fill={COLORS[index % COLORS.length]} />
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
       <text
-        x={endX + (endX > cx ? textOffset : -textOffset)}
+        x={endX + (endX > cx ? offset : -offset)}
         y={endY}
+        fill="#fff"
         textAnchor={endX > cx ? "start" : "end"}
         dominantBaseline="central"
-        fill="#ffffff"
         fontSize={13}
         fontWeight="bold"
       >
-        {label}
+        {(percent * 100).toFixed(1)}%
+      </text>
+    </g>
+  );
+};
+
+const renderQuotaLabel = ({
+  cx, cy, outerRadius, index, payload,
+}) => {
+  const angle = index === 0 ? 180 : 0;
+  const angleRad = angle * RADIAN;
+  const radius = outerRadius + 12;
+  const extended = outerRadius + 30;
+  const offset = 12;
+
+  const startX = cx + radius * Math.cos(angleRad);
+  const startY = cy + radius * Math.sin(angleRad);
+  const midX = cx + extended * Math.cos(angleRad);
+  const midY = cy + extended * Math.sin(angleRad);
+  const endX = midX + (midX > cx ? 20 : -20);
+  const endY = midY;
+
+  return (
+    <g>
+      <line x1={startX} y1={startY} x2={midX} y2={midY} stroke={COLORS[index]} strokeWidth={1} />
+      <line x1={midX} y1={midY} x2={endX} y2={endY} stroke={COLORS[index]} strokeWidth={1} />
+      <circle cx={endX} cy={endY} r={2} fill={COLORS[index]} />
+      <text
+        x={endX + (endX > cx ? offset : -offset)}
+        y={endY}
+        fill="#fff"
+        textAnchor={endX > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={13}
+        fontWeight="bold"
+      >
+        {payload.value} min
       </text>
     </g>
   );
 };
 
 const DonutChartWithLabels = ({ data, labelType = "percent" }) => {
-  return (
+   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={300} height={220}>
         <Pie
@@ -75,15 +86,12 @@ const DonutChartWithLabels = ({ data, labelType = "percent" }) => {
           innerRadius={50}
           outerRadius={70}
           dataKey="value"
-          label={(props) => renderCustomizedLabel({ ...props, labelType })}
+          label={labelRenderer}
           labelLine={false}
           isAnimationActive={false}
         >
           {data.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={COLORS[index % COLORS.length]}
-            />
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
       </PieChart>
