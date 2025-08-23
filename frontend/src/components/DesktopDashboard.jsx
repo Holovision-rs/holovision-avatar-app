@@ -28,7 +28,7 @@ const DesktopDashboard = () => {
     handleAddPaidMinutes,
     handleSubscriptionChange,
   } = useAdminUsers();
-  
+
     const getAvatarUrl = (user) => {
       let style = "pixel-art"; // default stil
 
@@ -255,6 +255,7 @@ const DesktopDashboard = () => {
           <table className="user-table">
             <thead>
               <tr>
+                <th>Avatar</th>
                 <th>Email</th>
                 <th>Subscription</th>
                 <th>Used</th>
@@ -272,7 +273,14 @@ const DesktopDashboard = () => {
                   key={u._id}
                   onClick={() => setSelectedUser(u)}
                   style={{ cursor: "pointer" }}
-                >
+                >  
+                  <td>
+                    <img
+                      src={getAvatarUrl(u)}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full border border-purple-600"
+                    />
+                  </td>
                   <td>{u.email}</td>
                   <td>{u.subscription}</td>
                   <td>{u.monthlyUsageMinutes || 0}</td>
