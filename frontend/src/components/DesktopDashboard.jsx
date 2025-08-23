@@ -1,4 +1,3 @@
-// src/components/DesktopDashboard.jsx
 import React, { useState } from "react";
 import DonutChartWithLabels, {
   renderDonutLabel,
@@ -210,7 +209,7 @@ const DesktopDashboard = () => {
 
         {message && <p className="message">{message}</p>}
 
-        <div className="table-and-sidebar">
+        <div className="table-and-sidebar relative flex flex-col md:flex-row gap-4 md:pr-80">
           <div style={{ flex: 1 }}>
             <table className="user-table">
               <thead>
@@ -307,28 +306,28 @@ const DesktopDashboard = () => {
           </div>
 
           {selectedUser && (
-            <div className="user-details-panel">
-              <h3>User Detail</h3>
+            <div className="bg-[#1c1c2b] text-white rounded-xl p-4 shadow-lg w-full md:w-80 mt-4 md:mt-0 md:absolute md:top-0 md:right-0 z-20">
+              <h3 className="text-lg font-semibold text-purple-400 mb-3">
+                User Detail
+              </h3>
               <p>
-                <strong>Email:</strong> {selectedUser.email}
+                <span className="font-semibold">Email:</span> {selectedUser.email}
               </p>
               <p>
-                <strong>Subscription:</strong> {selectedUser.subscription}
+                <span className="font-semibold">Subscription:</span> {selectedUser.subscription}
               </p>
               <p>
-                <strong>Used:</strong> {selectedUser.monthlyUsageMinutes || 0}{" "}
-                min
+                <span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min
               </p>
               <p>
-                <strong>Paid:</strong> {selectedUser.monthlyPaidMinutes || 0}{" "}
-                min
+                <span className="font-semibold">Paid:</span> {selectedUser.monthlyPaidMinutes || 0} min
               </p>
               <p>
-                <strong>Month:</strong> {selectedUser.usageMonth}
+                <span className="font-semibold">Month:</span> {selectedUser.usageMonth}
               </p>
               <button
                 onClick={() => setSelectedUser(null)}
-                className="close-btn"
+                className="mt-4 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
               >
                 Close
               </button>
