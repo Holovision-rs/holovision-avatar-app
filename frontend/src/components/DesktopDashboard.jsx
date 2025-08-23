@@ -174,7 +174,7 @@ const DesktopDashboard = () => {
                       isAnimationActive={true}
                       animationBegin={0}
                       animationDuration={1000}
-                      
+
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -208,7 +208,7 @@ const DesktopDashboard = () => {
           {/* Desna kolona - User Detail Card */}
           {selectedUser && (
             <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple">
-              <h3 className="text-lg font-semibold text-purple-400 mb-3">User Detail</h3>
+              <h3 className="text-lg font-semibold text-purple-400 mb-3">User</h3>
               <p><span className="font-semibold">Email:</span> {selectedUser.email}</p>
               <p><span className="font-semibold">Subscription:</span> {selectedUser.subscription}</p>
               <p><span className="font-semibold">Used:</span> {selectedUser.monthlyUsageMinutes || 0} min</p>
