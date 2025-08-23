@@ -75,67 +75,55 @@ const DonutChartWithLabels = ({ data, labelRenderer }) => {
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={400} height={220}>
-        {/* Definicije gradijenata i filtera */}
+        {/* Definicije gradijenata i glow filtera */}
         <defs>
-          {COLORS.map((color, index) => (
-            <React.Fragment key={index}>
-              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={color} stopOpacity={0.5} />
-                <stop offset="100%" stopColor={color} stopOpacity={1} />
-              </linearGradient>
-              <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </React.Fragment>
+            {COLORS.map((color, index) => (
+              <React.Fragment key={index}>
+                <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={color} stopOpacity="1" />
+                  <stop offset="100%" stopColor={color} stopOpacity="1" />
+                </linearGradient>
+
+                <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
+                  <feColorMatrix
+                    in="blur"
+                    type="matrix"
+                    values="1 0 0 0 0
+                            0 1 0 0 0
+                            0 0 1 0 0
+                            0 0 0 20 -10"
+                  />
+                  <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </React.Fragment>
+            ))}
+          </defs>
+
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          innerRadius={50}
+          outerRadius={70}
+          dataKey="value"
+          label={labelRenderer}
+          labelLine={false}
+          isAnimationActive={false}
+        >
+          {data.map((entry, index) => (
+            <Cell
+              key={`cell-${index}`}
+              fill={`url(#grad-${index})`}
+              filter={`url(#glow-${index})`}
+              stroke="none"
+            />
           ))}
-        </defs>
-
-<PieChart width={300} height={220}>
-  {/* OVDE DODAJ DEFINICIJE */}
-  <defs>
-    {COLORS.map((color, index) => (
-      <React.Fragment key={index}>
-        <linearGradient id={`grad-${index}`}>
-          <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor={color} />
-        </linearGradient>
-
-        <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </React.Fragment>
-    ))}
-  </defs>
-
-  <Pie
-    data={data}
-    cx="50%"
-    cy="50%"
-    innerRadius={50}
-    outerRadius={70}
-    dataKey="value"
-    label={labelRenderer}
-    labelLine={false}
-    isAnimationActive={false}
-  >
-    {data.map((entry, index) => (
-      <Cell
-        key={`cell-${index}`}
-        fill={`url(#grad-${index})`}
-        filter={`url(#glow-${index})`}
-        stroke="none"
-      />
-    ))}
-  </Pie>
-</PieChart>
+        </Pie>
+      </PieChart>
 
       <div className="chart-legend">
         {data.map((entry, index) => (
