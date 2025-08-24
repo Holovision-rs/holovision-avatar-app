@@ -13,7 +13,6 @@ export const useAdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      console.log('proba useAdminUser.js');
       const res = await fetch(`${BACKEND_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
