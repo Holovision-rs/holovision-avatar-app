@@ -4,36 +4,7 @@ import { PieChart, Pie, Cell, Sector } from "recharts";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
-const renderActiveShape = (props) => {
-  const {
-    cx, cy, innerRadius, outerRadius,
-    startAngle, endAngle, fill, percent,
-  } = props;
 
-  return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 8}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-      <text
-        x={cx}
-        y={cy}
-        dy={8}
-        textAnchor="middle"
-        fill="#fff"
-        style={{ fontSize: "14px" }}
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    </g>
-  );
-};
 const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => {
   const angle = -midAngle * RADIAN;
   const radius = outerRadius + 12;
@@ -100,6 +71,37 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
       </g>
     );
   };
+
+const renderActiveShape = (props) => {
+  const {
+    cx, cy, innerRadius, outerRadius,
+    startAngle, endAngle, fill, percent,
+  } = props;
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <text
+        x={cx}
+        y={cy}
+        dy={8}
+        textAnchor="middle"
+        fill="#fff"
+        style={{ fontSize: "14px" }}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+};
 
 const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
   const [activeIndex, setActiveIndex] = useState(null);
