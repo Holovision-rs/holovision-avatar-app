@@ -1,3 +1,4 @@
+// ✅ Finalna verzija DesktopDashboard.jsx
 import React, { useState, useEffect } from "react";
 import DonutChartWithLabels, {
   renderDonutLabel,
@@ -14,20 +15,23 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Area,
 } from "recharts";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 
-const generateLast12Months = () => {
+function generateLast12Months() {
+  const months = [];
   const now = new Date();
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = d.toISOString().slice(0, 7);
-    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
-    return { value, label };
-  });
-};
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const label = date.toLocaleString("default", { month: "long", year: "numeric" });
+    months.push({ value, label });
+  }
+  return months;
+}
 
 const DesktopDashboard = () => {
   const {
@@ -56,8 +60,6 @@ const DesktopDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userUsageLog, setUserUsageLog] = useState([]);
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     if (!selectedUser && users.length > 0) {
       const defaultAdmin = users.find((u) =>
@@ -69,24 +71,24 @@ const DesktopDashboard = () => {
 
   useEffect(() => {
     const fetchUsageLog = async () => {
+      const token = localStorage.getItem("token");
       if (selectedUser && selectedMonth) {
         try {
           const res = await fetch(
             `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
             {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+              headers: { Authorization: `Bearer ${token}` },
             }
           );
-          const data = await res.json();
-          if (res.ok) {
-            setUserUsageLog(data || []);
-          } else {
-            console.error("Greška:", data.message || res.statusText);
+          if (!res.ok) {
+            const error = await res.json();
+            console.error("Greška u fetchovanju:", error.message || res.statusText);
+            return;
           }
-        } catch (err) {
-          console.error("Fetch error:", err);
+          const data = await res.json();
+          setUserUsageLog(data || []);
+        } catch (error) {
+          console.error("Error fetching usage log:", error);
         }
       }
     };
@@ -133,7 +135,6 @@ const DesktopDashboard = () => {
       const label = `${day} ${hour}h`;
       usagePerHour[label] = (usagePerHour[label] || 0) + entry.minutes;
     });
-
     return Object.entries(usagePerHour).map(([label, minutes]) => ({
       label,
       minutes,
@@ -318,17 +319,17 @@ const DesktopDashboard = () => {
                     <p className="text-2xl font-bold text-pink-400">{selectedUser.monthlyUsageMinutes || 0} min</p>
                     <div className="h-24 mt-2">
                       <ResponsiveContainer width="100%" height="100%">
-                        <select
-                          className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
-                          value={selectedMonth}
-                          onChange={(e) => setSelectedMonth(e.target.value)}
-                        >
-                          {monthOptions.map(({ value, label }) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
+                          <select
+                            className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                          >
+                            {monthOptions.map(({ value, label }) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
                         <BarChart data={formatUsageDataForChart()}>
                          <XAxis dataKey="label" hide={false} angle={-45} textAnchor="end" fontSize={10} />
                           <YAxis hide />
