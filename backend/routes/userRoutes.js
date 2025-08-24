@@ -72,7 +72,7 @@ router.post("/:id/usage-log", adminAuth, async (req, res) => {
 });
 
 // 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
-router.get("/users/:id/usage-log", adminAuth, async (req, res) => {
+router.get("/:id/usage-log", adminAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("usageLog");
     if (!user) return res.status(404).json({ error: "User not found" });
