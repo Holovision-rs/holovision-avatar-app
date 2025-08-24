@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import DonutChartWithLabels from "./DonutChartWithLabels";
+import DonutChartWithLabels, {
+  renderDonutLabel,
+  renderQuotaLabel,
+} from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
   BarChart,
