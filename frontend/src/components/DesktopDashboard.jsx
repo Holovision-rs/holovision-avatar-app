@@ -235,7 +235,13 @@ const DesktopDashboard = () => {
                   {/* Subscription */}
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Subscription</p>
-                    <p className="text-2xl font-bold text-yellow-400">{selectedUser.subscription}</p>
+                    <p className={`text-2xl font-bold ${
+                      selectedUser.subscription === "gold"
+                        ? "text-yellow-400"
+                        : selectedUser.subscription === "silver"
+                        ? "text-gray-300"
+                        : "text-green-400"
+                    }`}>{selectedUser.subscription}</p>
                   </div>
 
                   {/* Used minutes */}
