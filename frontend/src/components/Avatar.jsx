@@ -17,7 +17,7 @@ export function Avatar(props) {
   const { message, onMessagePlayed } = useSpeech();
   const [lipsync, setLipsync] = useState();
   const [setupMode, setSetupMode] = useState(false);
-  const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   
   useEffect(() => {
     if (!message) {

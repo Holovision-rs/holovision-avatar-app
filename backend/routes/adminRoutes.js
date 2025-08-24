@@ -1,13 +1,13 @@
 // 📁 routes/adminRoutes.js
 import express from "express";
 import User from "../models/User.js";
-import { verifyToken } from "../middleware/auth.js";
+import { authMiddleware } from "../middleware/Auth.js";
 import { requireAdmin } from "../middleware/adminOnly.js";
 
 const router = express.Router();
 
 // Lista svih korisnika
-router.get("/users", verifyToken, requireAdmin, async (req, res) => {
+router.get("/users", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select("-password");
     res.status(200).json(users);
@@ -16,7 +16,7 @@ router.get("/users", verifyToken, requireAdmin, async (req, res) => {
   }
 });
 // Brisanje korisnika
-router.delete("/users/:id", verifyToken, requireAdmin, async (req, res) => {
+router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "User deleted" });
@@ -24,7 +24,7 @@ router.delete("/users/:id", verifyToken, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to delete user" });
   }
 });
-router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
+router.post("/users/:id/add-paid", authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { paidMinutes } = req.body;
 
@@ -48,7 +48,7 @@ router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
   }
 });
 
-  router.patch("/users/:id/add-minutes", verifyToken, async (req, res) => {
+  router.patch("/users/:id/add-minutes", authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { minutes } = req.body;
 
@@ -72,7 +72,7 @@ router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
     }
   });
 // Izmena pretplate
-router.patch("/users/:id/subscription", verifyToken, requireAdmin, async (req, res) => {
+router.patch("/users/:id/subscription", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { subscription } = req.body;
 

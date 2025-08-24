@@ -44,7 +44,7 @@ const DesktopDashboard = () => {
     handleSubscriptionChange,
   } = useAdminUsers();
 
-  const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const getAvatarUrl = (user) => {
     let style = "pixel-art";
