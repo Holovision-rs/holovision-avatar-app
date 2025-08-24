@@ -47,8 +47,10 @@ router.put("/subscription", verifyToken, updateSubscription);
 router.get("/avatar/use", verifyToken, requireTier(["silver", "gold"]), (req, res) => {
   res.json({ message: "You have access to avatar usage!" });
 });
+
 router.get('/users/:id/usage-log', adminAuth, async (req, res) => {
   try {
+    console.log('/users/:id/usage-log');
     const user = await User.findById(req.params.id).select("usageLog");
     if (!user) return res.status(404).json({ error: "User not found" });
 
