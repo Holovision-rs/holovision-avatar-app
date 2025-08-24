@@ -1,6 +1,3 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -107,13 +104,6 @@ app.post("/sts", async (req, res) => {
   }
 });
 
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, "frontend", "dist")));
-
-// Catch-all route: React SPA fallback
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
-});
 // START SERVER (na kraju!)
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

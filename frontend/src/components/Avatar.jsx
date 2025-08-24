@@ -9,7 +9,7 @@ import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 import useAuth from "../hooks/useAuth";
-
+const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
 export function Avatar(props) {
   const { token, user, isAuthenticated, logout } = useAuth(); // ⬅️ IDE OVDE 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
@@ -175,7 +175,7 @@ export function Avatar(props) {
   }, []);
     // ⏱ Praćenje vremena boravka na Avatar stranici
   const startTimeRef = useRef(null);
-  
+
   useEffect(() => {
     startTimeRef.current = Date.now();
 
@@ -185,7 +185,7 @@ export function Avatar(props) {
       const minutes = Math.floor(durationMs / 60000);
 
       if (minutes > 0 && token) {
-        fetch("/api/users/me/usage-log", {
+        fetch(`${BACKEND_URL}/api/users/me/usage-log`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -208,13 +208,13 @@ export function Avatar(props) {
       const minutes = Math.floor(durationMs / 60000);
 
       if (minutes > 0 && token) {
-        navigator.sendBeacon(
-          "/api/users/me/usage-log",
-          new Blob(
-            [JSON.stringify({ timestamp: new Date().toISOString(), minutes })],
-            { type: "application/json" }
-          )
-        );
+          navigator.sendBeacon(
+            `${BACKEND_URL}/api/users/me/usage-log`,
+            new Blob(
+              [JSON.stringify({ timestamp: new Date().toISOString(), minutes })],
+              { type: "application/json" }
+            )
+          );
       }
     };
 
