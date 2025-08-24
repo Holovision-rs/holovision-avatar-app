@@ -390,6 +390,10 @@ body {
   padding: 12px 16px;
   z-index: 1000;
 }
+.text_xl{
+  font-size: 1,3rem;
+  line-height: 2rem;
+} 
 .table-and-sidebar {
   display: flex;
   align-items: flex-start;

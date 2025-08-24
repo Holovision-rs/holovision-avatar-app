@@ -237,7 +237,7 @@ const DesktopDashboard = () => {
                     <p className="text-xs text-gray-400">Subscription</p>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-2xl font-bold ${
+                        className={`text_xl font-bold ${
                           selectedUser.subscription === "gold"
                             ? "text-yellow-400"
                             : selectedUser.subscription === "silver"
