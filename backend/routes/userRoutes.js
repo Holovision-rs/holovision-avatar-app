@@ -52,7 +52,22 @@ router.get('/users/:id/usage-log', adminAuth, async (req, res) => {
     const user = await User.findById(req.params.id).select("usageLog");
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.json(user.usageLog);
+    const { month } = req.query;
+    if (month) {
+      const [year, monthStr] = month.split("-");
+      const monthIndex = parseInt(monthStr) - 1;
+      const start = new Date(year, monthIndex, 1);
+      const end = new Date(year, monthIndex + 1, 1);
+
+      const filtered = user.usageLog.filter((entry) => {
+        const ts = new Date(entry.timestamp);
+        return ts >= start && ts < end;
+      });
+
+      return res.json(filtered);
+    }
+
+    res.json(user.usageLog); // ako nema ?month
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
