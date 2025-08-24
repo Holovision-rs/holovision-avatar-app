@@ -4,6 +4,26 @@ import bcrypt from "bcryptjs";
 
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
+export const getUserUsageLog = async (req, res) => {
+  const { id } = req.params;
+  const { month } = req.query; // očekuješ: "2025-08"
+
+  try {
+    const user = await User.findById(id).select("usageLog");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const filteredLog = user.usageLog.filter((entry) => {
+      const entryMonth = entry.timestamp.toISOString().slice(0, 7);
+      return entryMonth === month;
+    });
+
+    res.json(filteredLog);
+  } catch (err) {
+    console.error("getUserUsageLog error:", err);
+    res.status(500).json({ message: "Server error while fetching usage log" });
+  }
+};
+
 export const registerUser = async (req, res) => {
   const { email, password } = req.body;
   const existingUser = await User.findOne({ email });

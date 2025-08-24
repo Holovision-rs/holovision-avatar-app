@@ -12,7 +12,6 @@ const router = express.Router();
 // 📌 Login i registracija
 router.post("/login", loginUser);
 router.post("/register", registerUser);
-
 // 📌 Dohvati informacije o trenutno ulogovanom korisniku
 router.get("/me", verifyToken, async (req, res) => {
   try {
