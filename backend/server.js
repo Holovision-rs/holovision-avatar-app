@@ -14,6 +14,10 @@ import { convertAudioToText } from "./modules/whisper.mjs";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
+const allowedOrigins = [
+  "https://holovision-avatar-app-1.onrender.com", // izmeni po potrebi
+];
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename); 
 
@@ -24,10 +28,6 @@ const app = express(); // ✅ prvo kreiraj instancu
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // CORS
-const allowedOrigins = [
-  "https://holovision-avatar-app-1.onrender.com", // izmeni po potrebi
-];
-
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
