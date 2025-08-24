@@ -4,6 +4,7 @@ import { loginUser, registerUser, updateSubscription } from "../controllers/user
 import { verifyToken } from "../middleware/auth.js";
 import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
 import { requireTier } from "../middleware/subscriptionAccess.js";
+import { authMiddleware } from "../middleware/Auth.js";
 
 const router = express.Router();
 
@@ -11,6 +12,25 @@ const router = express.Router();
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 
+router.post("/me/usage-log", authMiddleware, async (req, res) => {
+  const { timestamp, minutes } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.usageLog = user.usageLog || [];
+    user.usageLog.push({ timestamp, minutes });
+
+    user.monthlyUsageMinutes += minutes;
+
+    await user.save();
+
+    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 // 📌 Dohvati informacije o trenutno ulogovanom korisniku
 router.get("/me", verifyToken, async (req, res) => {
   try {
