@@ -235,13 +235,28 @@ const DesktopDashboard = () => {
                   {/* Subscription */}
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Subscription</p>
-                    <p className={`text-2xl font-bold ${
-                      selectedUser.subscription === "gold"
-                        ? "text-yellow-400"
-                        : selectedUser.subscription === "silver"
-                        ? "text-gray-300"
-                        : "text-green-400"
-                    }`}>{selectedUser.subscription}</p>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-2xl font-bold ${
+                          selectedUser.subscription === "gold"
+                            ? "text-yellow-400"
+                            : selectedUser.subscription === "silver"
+                            ? "bg-gradient-to-r from-gray-300 via-white to-gray-400 text-transparent bg-clip-text"
+                            : "text-green-400"
+                        }`}
+                      >
+                        {selectedUser.subscription}
+                      </span>
+                      {selectedUser.subscription === "gold" && (
+                        <span role="img" aria-label="star">⭐</span>
+                      )}
+                      {selectedUser.subscription === "silver" && (
+                        <span role="img" aria-label="medal">🥈</span>
+                      )}
+                      {selectedUser.subscription === "free" && (
+                        <span role="img" aria-label="leaf">🍃</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Used minutes */}
