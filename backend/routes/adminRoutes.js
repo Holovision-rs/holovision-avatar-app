@@ -15,31 +15,6 @@ router.get("/users", verifyToken, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 });
-router.get('/users/:id/usage-log', adminAuth, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select("usageLog");
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const { month } = req.query;
-    if (month) {
-      const [year, monthStr] = month.split("-");
-      const monthIndex = parseInt(monthStr) - 1;
-      const start = new Date(year, monthIndex, 1);
-      const end = new Date(year, monthIndex + 1, 1);
-
-      const filtered = user.usageLog.filter((entry) => {
-        const ts = new Date(entry.timestamp);
-        return ts >= start && ts < end;
-      });
-
-      return res.json(filtered);
-    }
-
-    res.json(user.usageLog); // ako nema ?month
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
 // Brisanje korisnika
 router.delete("/users/:id", verifyToken, requireAdmin, async (req, res) => {
   try {
@@ -72,7 +47,7 @@ router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Failed to update" });
   }
 });
-  
+
   router.patch("/users/:id/add-minutes", verifyToken, async (req, res) => {
     const { id } = req.params;
     const { minutes } = req.body;

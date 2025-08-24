@@ -30,7 +30,9 @@ const DesktopDashboard = () => {
     handleAddPaidMinutes,
     handleSubscriptionChange,
   } = useAdminUsers();
+
   const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+
   const getAvatarUrl = (user) => {
     let style = "pixel-art";
     if (user.email.toLowerCase().includes("admin")) {
@@ -44,7 +46,8 @@ const DesktopDashboard = () => {
     }
     return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
   };
-
+  const monthOptions = generateLast12Months();
+  const [selectedMonth, setSelectedMonth] = useState(monthOptions[0].value);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [userUsageLog, setUserUsageLog] = useState([]);
@@ -60,22 +63,39 @@ const DesktopDashboard = () => {
     }
   }, [users, selectedUser]);
 
-  useEffect(() => {
-    const fetchUsageLog = async () => {
-        if (selectedUser && selectedMonth) {
-          try {
-            const res = await fetch(
-             `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
-            );
-            const data = await res.json();
-            setUserUsageLog(data || []);
-          } catch (error) {
-            console.error("Error fetching usage log:", error);
+import { useEffect } from "react";
+
+const token = localStorage.getItem("token"); // preuzimanje tokena
+
+useEffect(() => {
+  const fetchUsageLog = async () => {
+    if (selectedUser && selectedMonth) {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // ⬅️ obavezno za pristup
+            },
           }
+        );
+
+        if (!res.ok) {
+          const error = await res.json();
+          console.error("Greška u fetchovanju:", error.message || res.statusText);
+          return;
         }
-      };
-      fetchUsageLog();
-    }, [selectedUser]);
+
+        const data = await res.json();
+        setUserUsageLog(data || []);
+      } catch (error) {
+        console.error("Error fetching usage log:", error);
+      }
+    }
+  };
+
+  fetchUsageLog();
+}, [selectedUser, selectedMonth]);
 
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
