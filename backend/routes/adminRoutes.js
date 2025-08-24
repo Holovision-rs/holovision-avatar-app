@@ -27,17 +27,11 @@ router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
 });
 // 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
 router.get("/users/:id/usage-log", authMiddleware, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { month } = req.query; // Očekuje se format "YYYY-MM"
-
   try {
-    const user = await User.findById(id).select("usageLog");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = await User.findById(req.params.id).select("usageLog");
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (!user.usageLog || user.usageLog.length === 0) {
-      return res.status(200).json([]); // Nema logova
-    }
-
+    const { month } = req.query;
     if (month) {
       const [year, monthStr] = month.split("-");
       const monthIndex = parseInt(monthStr) - 1;
@@ -49,13 +43,12 @@ router.get("/users/:id/usage-log", authMiddleware, requireAdmin, async (req, res
         return ts >= start && ts < end;
       });
 
-      return res.status(200).json(filtered);
+      return res.json(filtered);
     }
 
-    res.status(200).json(user.usageLog); // Ako nema meseca, vrati sve
-  } catch (error) {
-    console.error("Error fetching usage log:", error);
-    res.status(500).json({ message: "Server error while fetching usage log" });
+    res.json(user.usageLog); // ako nije prosleđen ?month parametar
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
   }
 });
 // 📌 Dodavanje plaćenih minuta (admin)
