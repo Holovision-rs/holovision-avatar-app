@@ -1,3 +1,6 @@
+import path from "path";
+import { fileURLToPath } from "url";
+
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -13,6 +16,9 @@ import { convertAudioToText } from "./modules/whisper.mjs";
 // ROUTES
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename); 
 
 dotenv.config();
 const app = express(); // ✅ prvo kreiraj instancu
@@ -101,6 +107,13 @@ app.post("/sts", async (req, res) => {
   }
 });
 
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, "frontend", "dist")));
+
+// Catch-all route: React SPA fallback
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "dist", "index.html"));
+});
 // START SERVER (na kraju!)
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
