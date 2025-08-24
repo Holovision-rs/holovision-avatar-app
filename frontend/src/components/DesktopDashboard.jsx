@@ -235,7 +235,7 @@ const DesktopDashboard = () => {
                   {/* Subscription */}
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Subscription</p>
-                    <p className="text-2xl font-bold text-purple-400">{selectedUser.subscription}</p>
+                    <p className="text-2xl font-bold text-yellow-400">{selectedUser.subscription}</p>
                   </div>
 
                   {/* Used minutes */}
@@ -247,22 +247,15 @@ const DesktopDashboard = () => {
                   {/* Paid minutes */}
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Paid</p>
-                    <p className="text-2xl font-bold text-blue-400">{selectedUser.monthlyPaidMinutes || 0} min</p>
+                    <p className="text-2xl font-bold text-purple-400">{selectedUser.monthlyPaidMinutes || 0} min</p>
                   </div>
 
                   {/* Month */}
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Month</p>
-                    <p className="text-2xl font-bold text-yellow-400">{selectedUser.usageMonth}</p>
+                    <p className="text-2xl font-bold text-blue-400">{selectedUser.usageMonth}</p>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="mt-6 bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded"
-                >
-                  Close
-                </button>
               </div>
             )}
         </div>
