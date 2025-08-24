@@ -11,8 +11,8 @@ export const adminAuth = async (req, res, next) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Proveri da li korisnik ima admin email
-    if (!user.email.toLowerCase().includes("admin")) {
+    // ✅ Prava admin provera
+    if (!user.isAdmin) {
       return res.status(403).json({ message: "Access denied. Admin only." });
     }
 
