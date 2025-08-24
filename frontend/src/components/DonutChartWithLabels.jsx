@@ -1,10 +1,39 @@
 import React, { useState } from "react";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell, Sector } from "recharts";
 
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
 const RADIAN = Math.PI / 180;
+const renderActiveShape = (props) => {
+  const {
+    cx, cy, innerRadius, outerRadius,
+    startAngle, endAngle, fill, percent,
+  } = props;
 
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 8}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <text
+        x={cx}
+        y={cy}
+        dy={8}
+        textAnchor="middle"
+        fill="#fff"
+        style={{ fontSize: "14px" }}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    </g>
+  );
+};
 const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => {
   const angle = -midAngle * RADIAN;
   const radius = outerRadius + 12;
@@ -75,20 +104,9 @@ const renderDonutLabel = ({ cx, cy, outerRadius, midAngle, percent, index }) => 
 const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
   const [activeIndex, setActiveIndex] = useState(null);
 
-  const handleMouseEnter = (_, index) => {
-    if (data[index].name === "Used") {
-      setActiveIndex(index);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setActiveIndex(null);
-  };
-
   return (
     <div style={{ textAlign: "center" }}>
       <PieChart width={400} height={220}>
-        {/* Definicije gradijenata i glow filtera */}
         <defs>
           {COLORS.map((color, index) => (
             <React.Fragment key={index}>
@@ -96,7 +114,6 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
                 <stop offset="0%" stopColor={color} stopOpacity="1" />
                 <stop offset="100%" stopColor={color} stopOpacity="1" />
               </linearGradient>
-
               <filter id={`glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur" />
                 <feColorMatrix
@@ -122,8 +139,8 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
           cy="50%"
           innerRadius={58}
           outerRadius={70}
-          activeOuterRadius={78}
           activeIndex={activeIndex}
+          activeShape={renderActiveShape}
           dataKey="value"
           label={labelRenderer}
           labelLine={false}
@@ -139,12 +156,12 @@ const DonutChartWithLabels = ({ data, labelRenderer, customLegend }) => {
               fill={`url(#grad-${index})`}
               filter={`url(#glow-${index})`}
               stroke="none"
+              cursor="pointer"
             />
           ))}
         </Pie>
       </PieChart>
 
-      {/* LEGEND */}
       <div className="chart-legend">
         {(customLegend || data).map((entry, index) => {
           const color = customLegend ? entry.color : COLORS[index % COLORS.length];
