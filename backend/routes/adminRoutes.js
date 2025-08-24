@@ -48,6 +48,7 @@ router.post("/users/:id/add-paid", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Failed to update" });
   }
 });
+  
   router.patch("/users/:id/add-minutes", verifyToken, async (req, res) => {
     const { id } = req.params;
     const { minutes } = req.body;

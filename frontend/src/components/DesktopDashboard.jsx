@@ -5,6 +5,8 @@ import DonutChartWithLabels, {
 } from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
+  BarChart, 
+  Bar, 
   LineChart,
   Line,
   XAxis,
@@ -45,6 +47,7 @@ const DesktopDashboard = () => {
 
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userUsageLog, setUserUsageLog] = useState([]);
 
   useEffect(() => {
     if (!selectedUser && users.length > 0) {
@@ -57,6 +60,21 @@ const DesktopDashboard = () => {
     }
   }, [users, selectedUser]);
 
+  useEffect(() => {
+    const fetchUsageLog = async () => {
+        if (selectedUser && selectedMonth) {
+          try {
+            const res = await fetch(`/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`);
+            const data = await res.json();
+            setUserUsageLog(data || []);
+          } catch (error) {
+            console.error("Error fetching usage log:", error);
+          }
+        }
+      };
+      fetchUsageLog();
+    }, [selectedUser]);
+
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -65,6 +83,8 @@ const DesktopDashboard = () => {
     (acc, u) => acc + (u.monthlyUsageMinutes || 0),
     0
   );
+  
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // format: 2025-08
 
   const totalQuota = users.reduce((acc, u) => {
     if (u.subscription === "silver") return acc + 300;
@@ -86,6 +106,24 @@ const DesktopDashboard = () => {
     name: u.email,
     minutes: u.monthlyUsageMinutes || 0,
   }));
+
+  const formatUsageDataForChart = () => {
+    const usagePerHour = {};
+
+    userUsageLog.forEach(entry => {
+      const dateObj = new Date(entry.timestamp);
+      const day = dateObj.toLocaleDateString("en-GB"); // npr. 22/08/2025
+      const hour = dateObj.getHours(); // 0–23
+      const label = `${day} ${hour}h`;
+
+      usagePerHour[label] = (usagePerHour[label] || 0) + entry.minutes;
+    });
+
+    return Object.entries(usagePerHour).map(([label, minutes]) => ({
+      label,
+      minutes,
+    }));
+  };
 
   return (
     <div className="dashboard-container">
@@ -263,6 +301,30 @@ const DesktopDashboard = () => {
                   <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
                     <p className="text-xs text-gray-400">Used</p>
                     <p className="text-2xl font-bold text-pink-400">{selectedUser.monthlyUsageMinutes || 0} min</p>
+                    <div className="h-24 mt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                      <select className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
+                          value={selectedMonth}
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                          {["2025-08", "2025-07", "2025-06"].map(month => (
+                            <option key={month} value={month}>{month}</option>
+                          ))}
+                        </select>
+                        <BarChart data={formatUsageDataForChart()}>
+                         <XAxis dataKey="label" hide={false} angle={-45} textAnchor="end" fontSize={10} />
+                          <YAxis hide />
+                          <Tooltip />
+                          <Bar
+                            dataKey="minutes"
+                            fill="#ec4899"
+                            radius={[4, 4, 0, 0]}
+                            isAnimationActive={true}
+                            animationDuration={1000}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
 
                   {/* Paid minutes */}

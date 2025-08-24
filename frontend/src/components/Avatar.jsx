@@ -8,8 +8,10 @@ import { useSpeech } from "../context/SpeechContext";
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
+import useAuth from "../hooks/useAuth";
 
 export function Avatar(props) {
+  const { token, user, isAuthenticated, logout } = useAuth(); // ⬅️ IDE OVDE 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
   const { message, onMessagePlayed } = useSpeech();
@@ -170,6 +172,55 @@ export function Avatar(props) {
     };
     nextBlink();
     return () => clearTimeout(blinkTimeout);
+  }, []);
+    // ⏱ Praćenje vremena boravka na Avatar stranici
+  const startTimeRef = useRef(null);
+  const token = localStorage.getItem("token"); // možeš i iz contexta ako koristiš
+
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+
+    return () => {
+      const now = Date.now();
+      const durationMs = now - startTimeRef.current;
+      const minutes = Math.floor(durationMs / 60000);
+
+      if (minutes > 0 && token) {
+        fetch("/api/users/me/usage-log", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            minutes,
+          }),
+        }).catch((err) => {
+          console.error("Greška pri slanju usage log:", err);
+        });
+      }
+    };
+  }, []);
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const now = Date.now();
+      const durationMs = now - startTimeRef.current;
+      const minutes = Math.floor(durationMs / 60000);
+
+      if (minutes > 0 && token) {
+        navigator.sendBeacon(
+          "/api/users/me/usage-log",
+          new Blob(
+            [JSON.stringify({ timestamp: new Date().toISOString(), minutes })],
+            { type: "application/json" }
+          )
+        );
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   return (

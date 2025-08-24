@@ -9,6 +9,12 @@ const userSchema = new mongoose.Schema(
       enum: ['free', 'silver', 'gold'],
       default: 'free',
     },
+    usageLog: [
+      {
+        timestamp: { type: Date, required: true },
+        minutes: { type: Number, required: true },
+      },
+    ],
     monthlyUsageMinutes: {
 	  type: Number,
   	  default: 0,

@@ -19,15 +19,19 @@ export const registerUser = async (req, res) => {
 
   const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
 
-  res.status(201).json({
-    token,
-    email: newUser.email,
-    subscription: newUser.subscription,
-    isAdmin: newUser.isAdmin,
-    usageMonth: newUser.usageMonth,
-    monthlyUsageMinutes: newUser.monthlyUsageMinutes,
-  });
-};
+    res.status(201).json({
+      token,
+      user: {
+        _id: newUser._id,
+        email: newUser.email,
+        subscription: newUser.subscription,
+        isAdmin: newUser.isAdmin,
+        usageMonth: newUser.usageMonth,
+        monthlyUsageMinutes: newUser.monthlyUsageMinutes,
+        monthlyPaidMinutes: newUser.monthlyPaidMinutes,
+      }
+    });
+  };
 
 export const loginUser = async (req, res) => {
   try {
@@ -54,12 +58,15 @@ export const loginUser = async (req, res) => {
 
     res.status(200).json({
       token,
-      _id: user._id,
-      email: user.email,
-      subscription: user.subscription,
-      monthlyUsageMinutes: user.monthlyUsageMinutes,
-      usageMonth: user.usageMonth,
-      isAdmin: user.isAdmin,
+      user: {
+        _id: user._id,
+        email: user.email,
+        subscription: user.subscription,
+        monthlyUsageMinutes: user.monthlyUsageMinutes,
+        monthlyPaidMinutes: user.monthlyPaidMinutes,
+        usageMonth: user.usageMonth,
+        isAdmin: user.isAdmin,
+      },
     });
   } catch (error) {
     console.error("❌ Login error:", error);
