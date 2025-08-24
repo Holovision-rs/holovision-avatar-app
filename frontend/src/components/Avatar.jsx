@@ -175,8 +175,7 @@ export function Avatar(props) {
   }, []);
     // ⏱ Praćenje vremena boravka na Avatar stranici
   const startTimeRef = useRef(null);
-  const token = localStorage.getItem("token"); // možeš i iz contexta ako koristiš
-
+  
   useEffect(() => {
     startTimeRef.current = Date.now();
 
