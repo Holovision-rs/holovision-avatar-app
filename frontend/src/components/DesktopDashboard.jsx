@@ -30,7 +30,7 @@ const DesktopDashboard = () => {
     handleAddPaidMinutes,
     handleSubscriptionChange,
   } = useAdminUsers();
-
+  const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
   const getAvatarUrl = (user) => {
     let style = "pixel-art";
     if (user.email.toLowerCase().includes("admin")) {
@@ -64,7 +64,9 @@ const DesktopDashboard = () => {
     const fetchUsageLog = async () => {
         if (selectedUser && selectedMonth) {
           try {
-            const res = await fetch(`/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`);
+            const res = await fetch(
+             `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+            );
             const data = await res.json();
             setUserUsageLog(data || []);
           } catch (error) {

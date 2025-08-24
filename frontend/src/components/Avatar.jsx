@@ -9,7 +9,7 @@ import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 import useAuth from "../hooks/useAuth";
-const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+
 export function Avatar(props) {
   const { token, user, isAuthenticated, logout } = useAuth(); // ⬅️ IDE OVDE 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
@@ -17,7 +17,8 @@ export function Avatar(props) {
   const { message, onMessagePlayed } = useSpeech();
   const [lipsync, setLipsync] = useState();
   const [setupMode, setSetupMode] = useState(false);
-
+  const BACKEND_URL = "https://holovision-avatar-app.onrender.com";
+  
   useEffect(() => {
     if (!message) {
       setAnimation("Idle");
@@ -208,13 +209,13 @@ export function Avatar(props) {
       const minutes = Math.floor(durationMs / 60000);
 
       if (minutes > 0 && token) {
-          navigator.sendBeacon(
-            `${BACKEND_URL}/api/users/me/usage-log`,
-            new Blob(
-              [JSON.stringify({ timestamp: new Date().toISOString(), minutes })],
-              { type: "application/json" }
-            )
-          );
+        navigator.sendBeacon(
+          `${BACKEND_URL}/api/users/me/usage-log`,
+          new Blob(
+            [JSON.stringify({ timestamp: new Date().toISOString(), minutes })],
+            { type: "application/json" }
+          )
+        );
       }
     };
 
