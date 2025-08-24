@@ -9,7 +9,7 @@ export const getUserUsageLog = async (req, res) => {
   const { month } = req.query; // očekuješ: "2025-08"
 
   try {
-    const user = await User.findById(id).select("usageLog");
+    const user = await User.findById(id).select("usageMonth");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const filteredLog = user.usageLog.filter((entry) => {
