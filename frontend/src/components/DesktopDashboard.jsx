@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
-import DonutChartWithLabels, {
-  renderDonutLabel,
-  renderQuotaLabel,
-} from "./DonutChartWithLabels";
+import DonutChartWithLabels from "./DonutChartWithLabels";
 import "../styles/admin.css";
 import {
-  BarChart, 
-  Bar, 
+  BarChart,
+  Bar,
   LineChart,
   Line,
   XAxis,
@@ -14,11 +11,20 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Area,
 } from "recharts";
 import { useAdminUsers } from "../hooks/useAdminUsers";
 
 const COLORS = ["#ef00ff", "#876efe", "#00fffd"];
+
+const generateLast12Months = () => {
+  const now = new Date();
+  return Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const value = d.toISOString().slice(0, 7);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    return { value, label };
+  });
+};
 
 const DesktopDashboard = () => {
   const {
@@ -35,67 +41,55 @@ const DesktopDashboard = () => {
 
   const getAvatarUrl = (user) => {
     let style = "pixel-art";
-    if (user.email.toLowerCase().includes("admin")) {
-      style = "croodles";
-    } else if (user.subscription === "gold") {
-      style = "bottts";
-    } else if (user.subscription === "silver") {
-      style = "adventurer";
-    } else if (user.subscription === "free") {
-      style = "pixel-art";
-    }
+    if (user.email.toLowerCase().includes("admin")) style = "croodles";
+    else if (user.subscription === "gold") style = "bottts";
+    else if (user.subscription === "silver") style = "adventurer";
     return `https://api.dicebear.com/7.x/${style}/svg?seed=${user._id}`;
   };
+
   const monthOptions = generateLast12Months();
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0].value);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [userUsageLog, setUserUsageLog] = useState([]);
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     if (!selectedUser && users.length > 0) {
       const defaultAdmin = users.find((u) =>
         u.email.toLowerCase().includes("admin")
       );
-      if (defaultAdmin) {
-        setSelectedUser(defaultAdmin);
-      }
+      if (defaultAdmin) setSelectedUser(defaultAdmin);
     }
   }, [users, selectedUser]);
 
-import { useEffect } from "react";
-
-const token = localStorage.getItem("token"); // preuzimanje tokena
-
-useEffect(() => {
-  const fetchUsageLog = async () => {
-    if (selectedUser && selectedMonth) {
-      try {
-        const res = await fetch(
-          `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`, // ⬅️ obavezno za pristup
-            },
+  useEffect(() => {
+    const fetchUsageLog = async () => {
+      if (selectedUser && selectedMonth) {
+        try {
+          const res = await fetch(
+            `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const data = await res.json();
+          if (res.ok) {
+            setUserUsageLog(data || []);
+          } else {
+            console.error("Greška:", data.message || res.statusText);
           }
-        );
-
-        if (!res.ok) {
-          const error = await res.json();
-          console.error("Greška u fetchovanju:", error.message || res.statusText);
-          return;
+        } catch (err) {
+          console.error("Fetch error:", err);
         }
-
-        const data = await res.json();
-        setUserUsageLog(data || []);
-      } catch (error) {
-        console.error("Error fetching usage log:", error);
       }
-    }
-  };
+    };
 
-  fetchUsageLog();
-}, [selectedUser, selectedMonth]); 
+    fetchUsageLog();
+  }, [selectedUser, selectedMonth]);
 
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
@@ -105,8 +99,6 @@ useEffect(() => {
     (acc, u) => acc + (u.monthlyUsageMinutes || 0),
     0
   );
-  
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // format: 2025-08
 
   const totalQuota = users.reduce((acc, u) => {
     if (u.subscription === "silver") return acc + 300;
@@ -131,13 +123,11 @@ useEffect(() => {
 
   const formatUsageDataForChart = () => {
     const usagePerHour = {};
-
-    userUsageLog.forEach(entry => {
+    userUsageLog.forEach((entry) => {
       const dateObj = new Date(entry.timestamp);
-      const day = dateObj.toLocaleDateString("en-GB"); // npr. 22/08/2025
-      const hour = dateObj.getHours(); // 0–23
+      const day = dateObj.toLocaleDateString("en-GB");
+      const hour = dateObj.getHours();
       const label = `${day} ${hour}h`;
-
       usagePerHour[label] = (usagePerHour[label] || 0) + entry.minutes;
     });
 
@@ -325,341 +315,15 @@ useEffect(() => {
                     <p className="text-2xl font-bold text-pink-400">{selectedUser.monthlyUsageMinutes || 0} min</p>
                     <div className="h-24 mt-2">
                       <ResponsiveContainer width="100%" height="100%">
-                         <select
-                              className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
-                              value={selectedMonth}
-                              onChange={(e) => setSelectedMonth(e.target.value)}
-                            >
-                              {monthOptions.map(({ value, label }) => (
-                                <option key={value} value={value}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
-                        <BarChart data={formatUsageDataForChart()}>
-                         <XAxis dataKey="label" hide={false} angle={-45} textAnchor="end" fontSize={10} />
-                          <YAxis hide />
-                          <Tooltip />
-                          <Bar
-                            dataKey="minutes"
-                            fill="#ec4899"
-                            radius={[4, 4, 0, 0]}
-                            isAnimationActive={true}
-                            animationDuration={1000}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Paid minutes */}
-                  <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
-                    <p className="text-xs text-gray-400">Paid</p>
-                    <p className="text-2xl font-bold text-purple-400">{selectedUser.monthlyPaidMinutes || 0} min</p>
-                  </div>
-
-                  {/* Month */}
-                  <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
-                    <p className="text-xs text-gray-400">Month</p>
-                    <p className="text-2xl font-bold text-blue-400">{selectedUser.usageMonth}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-        </div>
-
-        <div className="mt-6">
-          <table className="user-table">
-            <thead>
-              <tr>
-                <th>Avatar</th>
-                <th>Email</th>
-                <th>Subscription</th>
-                <th>Used</th>
-                <th>Paid</th>
-                <th>Month</th>
-                <th>Add Used</th>
-                <th>Add Paid</th>
-                <th>Change</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => (
-                <tr
-                  key={u._id}
-                  onClick={() => setSelectedUser(u)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <td>
-                    <img
-                      src={getAvatarUrl(u)}
-                      alt="avatar"
-                      className="w-8 h-8 rounded-full border border-purple-600"
-                    />
-                  </td>
-                  <td>{u.email}</td>
-                  <td>{u.subscription}</td>
-                  <td>{u.monthlyUsageMinutes || 0}</td>
-                  <td>{u.monthlyPaidMinutes || 0}</td>
-                  <td>{u.usageMonth}</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="min"
-                      className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const minutes = parseInt(e.target.value, 10);
-                          if (!isNaN(minutes)) {
-                            handleAddMinutes(u._id, minutes);
-                            e.target.value = "";
-                          }
-                        }
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="min"
-                      className="w-[60px] px-2 py-1 rounded-md border border-gray-300 text-black bg-white"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const minutes = parseInt(e.target.value, 10);
-                          if (!isNaN(minutes)) {
-                            handleAddPaidMinutes(u._id, minutes);
-                            e.target.value = "";
-                          }
-                        }
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={u.subscription}
-                      onChange={(e) =>
-                        handleSubscriptionChange(u._id, e.target.value)
-                      }
-                      className="px-2 py-1 rounded-md border border-gray-300 bg-white text-black text-sm"
-                    >
-                      <option value="free">Free</option>
-                      <option value="silver">Silver</option>
-                      <option value="gold">Gold</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => handleDelete(u._id)}
-                      style={{
-                        borderRadius: "2px",
-                        backgroundColor: "#751ae0",
-                        color: "white",
-                        border: "none",
-                        padding: "4px 8px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      X
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-export default DesktopDashboard;
-  return (
-    <div className="dashboard-container">
-      <aside className="sidebar">
-        <h2 className="logo">HOLOVISION</h2>
-        <nav>
-          <ul>
-            <li className="active">Dashboard</li>
-            <li>Users</li>
-            <li>Usage</li>
-            <li>Settings</li>
-          </ul>
-        </nav>
-        <button
-          className="logout-btn"
-          onClick={() => {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-          }}
-        >
-          Logout
-        </button>
-      </aside>
-
-      <main className="dashboard-content">
-        <h1>Admin Dashboard</h1>
-
-        <div className="flex flex-col md:flex-row gap-6 mb-8">
-          {/* Leva kolona */}
-          <div className="flex-1 flex flex-col gap-6">
-            <div className="top-charts">
-              <div className="chart-wrapper">
-                <h3>Subscriptions</h3>
-                <DonutChartWithLabels
-                  data={subsData}
-                  labelRenderer={renderDonutLabel}
-                />
-              </div>
-              <div className="chart-wrapper">
-                <h3>Quota</h3>
-                <DonutChartWithLabels
-                  data={usageDonut}
-                  labelRenderer={renderQuotaLabel}
-                  customLegend={[
-                    { name: "Remaining", color: COLORS[1] },
-                    { name: "Used", color: COLORS[0] },
-                  ]}
-                />
-              </div>
-              <div className="chart-wrapper">
-                <h3>Usage per User</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={usageChartData}>
-                    <defs>
-                      <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#fc00ff" />
-                        <stop offset="100%" stopColor="#00dbde" />
-                      </linearGradient>
-                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#fc00ff" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#1b1b1b" stopOpacity={0} />
-                      </linearGradient>
-                      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="4" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="name" stroke="#aaa" />
-                    <YAxis stroke="#aaa" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1b1b1b",
-                        border: "none",
-                        borderRadius: "4px",
-                        boxShadow: "0 0 8px #751ae07d",
-                        color: "#fff",
-                      }}
-                      labelStyle={{ color: "#fff" }}
-                      itemStyle={{ color: "#fff" }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="minutes"
-                      fill="url(#areaGradient)"
-                      stroke="none"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="minutes"
-                      stroke="url(#lineGradient)"
-                      strokeWidth={3}
-                      dot={{
-                        r: 6,
-                        stroke: "#fff",
-                        strokeWidth: 2,
-                        fill: "#1b1b1b",
-                        filter: "url(#glow)",
-                      }}
-                      isAnimationActive={true}
-                      animationBegin={0}
-                      animationDuration={1000}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="cards">
-              <div className="card">
-                <h3>Total Users</h3>
-                <p>{users.length}</p>
-              </div>
-              <div className="card">
-                <h3>Total Minutes Used</h3>
-                <p>{totalMinutes}</p>
-                <h3>Total Minutes Paid</h3>
-                <p>{totalQuota}</p>
-              </div>
-            </div>
-
-            <input
-              className="search-input"
-              placeholder="Search users by email"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {message && <p className="message">{message}</p>}
-          </div>
-
-          {/* Desna kolona */}
-            {selectedUser && (
-              <div className="w-full md:w-[320px] bg-[#1c1c2b] text-white p-4 margin-16 shadow-purple rounded-xl">
-                <div className="flex flex-col items-center mb-4">
-                  <img
-                    src={getAvatarUrl(selectedUser)}
-                    alt="Avatar"
-                    className="w-16 h-16 rounded-full border border-purple-500 mb-2 bg-[#2c2c3b] p-1"
-                  />
-                  <h3 className="text-lg font-semibold text-purple-400">User</h3>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  {/* Subscription */}
-                  <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
-                    <p className="text-xs text-gray-400">Subscription</p>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text_xl font-bold ${
-                          selectedUser.subscription === "gold"
-                            ? "text-yellow-400"
-                            : selectedUser.subscription === "silver"
-                            ? "bg-gradient-to-r from-gray-300 via-white to-gray-400 text-transparent bg-clip-text"
-                            : "text-green-400"
-                        }`}
-                      >
-                        {selectedUser.subscription}
-                      </span>
-                      {selectedUser.subscription === "gold" && (
-                        <span role="img" aria-label="star">⭐</span>
-                      )}
-                      {selectedUser.subscription === "silver" && (
-                        <span role="img" aria-label="medal">🥈</span>
-                      )}
-                      {selectedUser.subscription === "free" && (
-                        <span role="img" aria-label="leaf">🍃</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Used minutes */}
-                  <div className="bg-[#2a2a3b] p-4 rounded-xl shadow-inner">
-                    <p className="text-xs text-gray-400">Used</p>
-                    <p className="text-2xl font-bold text-pink-400">{selectedUser.monthlyUsageMinutes || 0} min</p>
-                    <div className="h-24 mt-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                      <select className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
+                        <select
+                          className="mb-2 p-1 rounded bg-[#2a2a3b] text-white text-xs"
                           value={selectedMonth}
                           onChange={(e) => setSelectedMonth(e.target.value)}
                         >
-                          {["2025-08", "2025-07", "2025-06"].map(month => (
-                            <option key={month} value={month}>{month}</option>
+                          {monthOptions.map(({ value, label }) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
                           ))}
                         </select>
                         <BarChart data={formatUsageDataForChart()}>
