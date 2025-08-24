@@ -25,7 +25,6 @@ router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to delete user" });
   }
 });
-// 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
 router.get("/users/:id/usage-log", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("usageLog");
@@ -46,7 +45,7 @@ router.get("/users/:id/usage-log", authMiddleware, requireAdmin, async (req, res
       return res.json(filtered);
     }
 
-    res.json(user.usageLog); // ako nije prosleđen ?month parametar
+    res.json(user.usageLog);
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
