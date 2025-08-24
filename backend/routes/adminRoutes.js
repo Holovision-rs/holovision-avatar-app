@@ -6,7 +6,7 @@ import { requireAdmin } from "../middleware/adminOnly.js";
 
 const router = express.Router();
 
-// Lista svih korisnika
+// 📌 Lista svih korisnika (admin only)
 router.get("/users", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -15,7 +15,8 @@ router.get("/users", authMiddleware, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch users" });
   }
 });
-// Brisanje korisnika
+
+// 📌 Brisanje korisnika (admin only)
 router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -24,6 +25,8 @@ router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to delete user" });
   }
 });
+
+// 📌 Dodavanje plaćenih minuta (admin)
 router.post("/users/:id/add-paid", authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { paidMinutes } = req.body;
@@ -41,45 +44,47 @@ router.post("/users/:id/add-paid", authMiddleware, async (req, res) => {
 
     res.status(200).json({
       message: "Paid minutes added",
-      monthlyPaidMinutes: user.monthlyPaidMinutes
+      monthlyPaidMinutes: user.monthlyPaidMinutes,
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to update" });
   }
 });
 
-  router.patch("/users/:id/add-minutes", authMiddleware, async (req, res) => {
-    const { id } = req.params;
-    const { minutes } = req.body;
+// 📌 Ručno dodavanje minuta (admin)
+router.patch("/users/:id/add-minutes", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { minutes } = req.body;
 
-    if (!Number.isInteger(minutes) || minutes <= 0) {
-      return res.status(400).json({ message: "Invalid minutes" });
-    }
+  if (!Number.isInteger(minutes) || minutes <= 0) {
+    return res.status(400).json({ message: "Invalid minutes" });
+  }
 
-    try {
-      const user = await User.findById(id);
-      if (!user) return res.status(404).json({ message: "User not found" });
-
-      user.monthlyUsageMinutes += minutes;
-      await user.save();
-
-      res.status(200).json({
-        message: "Minutes added",
-        monthlyUsageMinutes: user.monthlyUsageMinutes
-      });
-    } catch (err) {
-      res.status(500).json({ message: "Failed to update" });
-    }
-  });
-// Izmena pretplate
-router.patch("/users/:id/subscription", authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const { subscription } = req.body;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!["free", "silver", "gold"].includes(subscription)) {
-      return res.status(400).json({ message: "Invalid subscription type" });
-    }
+    user.monthlyUsageMinutes += minutes;
+    await user.save();
 
+    res.status(200).json({
+      message: "Minutes added",
+      monthlyUsageMinutes: user.monthlyUsageMinutes,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update" });
+  }
+});
+
+// 📌 Izmena pretplate (admin only)
+router.patch("/users/:id/subscription", authMiddleware, requireAdmin, async (req, res) => {
+  const { subscription } = req.body;
+
+  if (!["free", "silver", "gold"].includes(subscription)) {
+    return res.status(400).json({ message: "Invalid subscription type" });
+  }
+
+  try {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { subscription },

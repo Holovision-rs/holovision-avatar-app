@@ -12,7 +12,7 @@ const router = express.Router();
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 
-// 📌 Dohvati informacije o trenutno ulogovanom korisniku
+// 📌 Informacije o trenutno ulogovanom korisniku
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     res.status(200).json(req.user);
@@ -24,7 +24,7 @@ router.get("/me", authMiddleware, async (req, res) => {
 // 📌 Izmena pretplate
 router.put("/subscription", authMiddleware, updateSubscription);
 
-// 📌 Korišćenje avatara — samo za silver/gold korisnike
+// 📌 Pristup avatar funkciji — samo silver/gold korisnici
 router.get("/avatar/use", authMiddleware, requireTier(["silver", "gold"]), (req, res) => {
   res.json({ message: "You have access to avatar usage!" });
 });
@@ -51,7 +51,7 @@ router.post("/me/usage-log", authMiddleware, async (req, res) => {
   }
 });
 
-// 📌 Dodavanje usage log za bilo kog korisnika (koristi admin dashboard)
+// 📌 Admin: Dodavanje usage log-a za bilo kog korisnika
 router.post("/:id/usage-log", adminAuth, async (req, res) => {
   const userId = req.params.id;
   const { timestamp, minutes } = req.body;
@@ -71,7 +71,7 @@ router.post("/:id/usage-log", adminAuth, async (req, res) => {
   }
 });
 
-// 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
+// 📌 Admin: Dohvatanje usage logova sa filterom po mesecu
 router.get("/:id/usage-log", adminAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("usageLog");
@@ -92,13 +92,13 @@ router.get("/:id/usage-log", adminAuth, async (req, res) => {
       return res.json(filtered);
     }
 
-    res.json(user.usageLog); // ako nije prosleđen ?month parametar
+    res.json(user.usageLog); // ako nije prosleđen `?month`
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// 📌 Kraj sesije — dodaj minutažu (računa se iz trajanja)
+// 📌 Kraj sesije — dodavanje minutaže
 router.post("/session-end", authMiddleware, checkMonthlyUsage, async (req, res) => {
   const { durationInSeconds } = req.body;
   const durationInMinutes = Math.ceil(durationInSeconds / 60);
