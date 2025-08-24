@@ -1,7 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
 import { loginUser, registerUser, updateSubscription } from "../controllers/userController.js";
-import { verifyToken } from "../middleware/auth.js";
 import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
 import { requireTier } from "../middleware/subscriptionAccess.js";
 import { authMiddleware } from "../middleware/Auth.js";
@@ -12,20 +11,21 @@ const router = express.Router();
 // 📌 Login i registracija
 router.post("/login", loginUser);
 router.post("/register", registerUser);
+
 // 📌 Dohvati informacije o trenutno ulogovanom korisniku
-router.get("/me", verifyToken, async (req, res) => {
+router.get("/me", authMiddleware, async (req, res) => {
   try {
-    res.status(200).json(req.user); // `req.user` već očišćen od lozinke u `verifyToken`
+    res.status(200).json(req.user);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
 // 📌 Izmena pretplate
-router.put("/subscription", verifyToken, updateSubscription);
+router.put("/subscription", authMiddleware, updateSubscription);
 
 // 📌 Korišćenje avatara — samo za silver/gold korisnike
-router.get("/avatar/use", verifyToken, requireTier(["silver", "gold"]), (req, res) => {
+router.get("/avatar/use", authMiddleware, requireTier(["silver", "gold"]), (req, res) => {
   res.json({ message: "You have access to avatar usage!" });
 });
 
@@ -99,7 +99,7 @@ router.get("/:id/usage-log", adminAuth, async (req, res) => {
 });
 
 // 📌 Kraj sesije — dodaj minutažu (računa se iz trajanja)
-router.post("/session-end", verifyToken, checkMonthlyUsage, async (req, res) => {
+router.post("/session-end", authMiddleware, checkMonthlyUsage, async (req, res) => {
   const { durationInSeconds } = req.body;
   const durationInMinutes = Math.ceil(durationInSeconds / 60);
 
