@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// 👇 Backend URL iz .env ili fallback
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
 const LoginRegister = () => {
@@ -13,8 +12,9 @@ const LoginRegister = () => {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  login(data.token, user);
-  navigate(user.isAdmin ? "/admin" : "/");
+  useEffect(() => {
+    console.log("🟢 LoginRegister komponenta učitana");
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,11 +40,7 @@ const LoginRegister = () => {
       if (!response.ok) throw new Error(data.message);
       if (!data.token) throw new Error("No token received");
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("userId", user._id);
-      localStorage.setItem("isAdmin", user.isAdmin);
-      console.log("✅ Token saved:", data.token);
-
+      // Fetch user data
       const meRes = await fetch(`${BACKEND_URL}/api/me`, {
         headers: {
           Authorization: `Bearer ${data.token}`,
@@ -52,18 +48,15 @@ const LoginRegister = () => {
       });
 
       const user = await meRes.json();
-      console.log("🧪 User object:", user);
-
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
-      // 🔁 Redirekcija
-      if (user.isAdmin) {
-        console.log("✅ Redirecting to /admin");
-        navigate("/admin");
-      } else {
-        console.log("✅ Redirecting to /");
-        navigate("/");
-      }
+      console.log("🧪 User object:", user);
+
+      // ✅ Login & save to context + localStorage
+      login(data.token, user);
+
+      // 🔁 Redirect
+      navigate(user.isAdmin ? "/admin" : "/");
 
     } catch (err) {
       setMessage(`❌ ${err.message}`);
