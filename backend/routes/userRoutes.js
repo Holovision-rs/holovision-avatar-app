@@ -103,17 +103,30 @@ router.post("/login", loginUser);
 router.post("/register", registerUser);
 // 📌 Izmena pretplate
 router.put("/subscription", authMiddleware, updateSubscription);
+
 // 📌 Kraj sesije — dodavanje minutaže
 router.post("/session-end", authMiddleware, checkMonthlyUsage, async (req, res) => {
   const { durationInSeconds } = req.body;
   const durationInMinutes = Math.ceil(durationInSeconds / 60);
 
   try {
-    req.currentUser.monthlyUsageMinutes = req.currentUser.monthlyUsageMinutes || 0;
-    req.currentUser.monthlyUsageMinutes += durationInMinutes;
-    await req.currentUser.save();
+    req.user.monthlyUsageMinutes = req.user.monthlyUsageMinutes || 0;
+    req.user.usageLog = req.user.usageLog || [];
 
-    res.status(200).json({ message: "Usage updated", used: req.currentUser.monthlyUsageMinutes });
+    req.user.usageLog.push({
+      timestamp: new Date(),
+      minutes: durationInMinutes,
+    });
+
+    req.user.monthlyUsageMinutes += durationInMinutes;
+
+    await req.user.save();
+
+    res.status(200).json({
+      message: "Usage updated",
+      addedMinutes: durationInMinutes,
+      totalThisMonth: req.user.monthlyUsageMinutes,
+    });
   } catch (err) {
     res.status(500).json({ message: "Failed to update usage" });
   }

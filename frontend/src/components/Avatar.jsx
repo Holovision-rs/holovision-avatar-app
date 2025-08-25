@@ -9,15 +9,20 @@ import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 import useAuth from "../hooks/useAuth";
+import { useSessionTimer } from "./hooks/useSessionTimer";
 
 export function Avatar(props) {
+  const isAvatarActive = true; // ili neka druga logika: user je pokrenuo avatara
   const { token, user, isAuthenticated, logout } = useAuth(); // ⬅️ IDE OVDE 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
   const { message, onMessagePlayed } = useSpeech();
   const [lipsync, setLipsync] = useState();
   const [setupMode, setSetupMode] = useState(false);
+
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+  useSessionTimer({ enabled: isAvatarActive });
   
   useEffect(() => {
     if (!message) {
