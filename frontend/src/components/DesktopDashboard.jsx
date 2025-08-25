@@ -75,7 +75,7 @@ useEffect(() => {
     if (selectedUser && selectedMonth) {
       try {
         const res = await fetch(
-          `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+          `${BACKEND_URL}/api/admin/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
