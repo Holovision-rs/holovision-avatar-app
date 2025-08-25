@@ -77,6 +77,7 @@ router.post("/:id/usage-log", authMiddleware, async (req, res) => {
 
   try {
     const user = await User.findById(userId);
+    console.log("👤 Target user for usageLog update:", user?._id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     user.usageLog = user.usageLog || [];
