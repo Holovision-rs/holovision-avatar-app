@@ -74,12 +74,9 @@ const DesktopDashboard = () => {
     const token = localStorage.getItem("token");
     if (selectedUser && selectedMonth) {
       try {
-        const res = await fetch(
-          `${BACKEND_URL}/api/admin/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const res = await fetch(`${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
         if (!res.ok) {
           const error = await res.json();
           console.error("Greška u fetchovanju:", error.message || res.statusText);
