@@ -2,7 +2,7 @@
 import express from "express";
 import User from "../models/User.js";
 import { getUserUsageLog } from "../controllers/userController.js";
-import { authMiddleware } from "../middleware/Auth.js";
+import { authMiddleware } from "../middleware/auth.js";
 import { requireAdmin } from "../middleware/adminOnly.js";
 
 const router = express.Router();

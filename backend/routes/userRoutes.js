@@ -3,7 +3,7 @@ import User from "../models/User.js";
 import { loginUser, registerUser, updateSubscription } from "../controllers/userController.js";
 import { checkMonthlyUsage } from "../middleware/checkMonthlyUsage.js";
 import { requireTier } from "../middleware/subscriptionAccess.js";
-import { authMiddleware } from "../middleware/Auth.js";
+import { authMiddleware } from "../middleware/auth.js";
 import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
