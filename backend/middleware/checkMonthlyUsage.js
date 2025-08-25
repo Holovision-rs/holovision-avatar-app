@@ -3,17 +3,13 @@ import { subscriptionLimits } from "./subscriptionAccess.js";
 
 export const checkMonthlyUsage = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = req.user;
+    const nowMonth = new Date().toISOString().slice(0, 7); // "2025-08"
 
-    const nowMonth = new Date().toISOString().slice(0, 7); // npr. "2025-08"
-    const userMonth = user.usageMonth || nowMonth;
-
-    // Reset ako je novi mesec
-    if (userMonth !== nowMonth) {
+    if (!user.usageMonth || user.usageMonth !== nowMonth) {
       user.monthlyUsageMinutes = 0;
       user.usageMonth = nowMonth;
-      await user.save();
+      await user.save(); // samo ako se nešto menja
     }
 
     const limit = subscriptionLimits[user.subscription || "free"] || 0;
@@ -24,7 +20,6 @@ export const checkMonthlyUsage = async (req, res, next) => {
       });
     }
 
-    req.currentUser = user; // Dostupan u narednim handlerima
     next();
   } catch (err) {
     res.status(500).json({ message: "Failed to check usage limit" });
