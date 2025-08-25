@@ -1,33 +1,27 @@
 import { useEffect, useRef } from "react";
 
-export function useSessionTimer({ enabled }) {
-  const startTimeRef = useRef(null);
-
+export const useSessionTimer = (enabled = true) => {
   useEffect(() => {
     if (!enabled) return;
 
-    // Zabeleži početak
-    startTimeRef.current = Date.now();
+    const startTime = Date.now();
+
+    const handleBeforeUnload = () => {
+      const durationInSeconds = Math.floor((Date.now() - startTime) / 1000);
+
+      const payload = JSON.stringify({ durationInSeconds });
+
+      navigator.sendBeacon(
+        "/api/session-end",
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
-      if (!startTimeRef.current) return;
-
-      const endTime = Date.now();
-      const durationInSeconds = Math.round((endTime - startTimeRef.current) / 1000);
-
-      // Automatski pošalji trajanje sesije
-      const token = localStorage.getItem("token");
-      fetch("/api/session-end", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ durationInSeconds }),
-      })
-        .then((res) => res.json())
-        .then((data) => console.log("📤 Sent session duration:", data))
-        .catch((err) => console.error("❌ Error sending session duration:", err));
+      handleBeforeUnload(); // fallback ako komponenta bude unmountovana
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [enabled]);
-}
+};
