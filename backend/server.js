@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -19,7 +21,7 @@ const allowedOrigins = [
 ];
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename); 
+const __dirname = dirname(__filename);
 
 dotenv.config();
 const app = express(); // ✅ prvo kreiraj instancu
