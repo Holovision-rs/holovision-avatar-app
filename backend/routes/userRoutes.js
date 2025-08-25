@@ -8,27 +8,6 @@ import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-// 📌 Login i registracija
-router.post("/login", loginUser);
-router.post("/register", registerUser);
-
-// 📌 Informacije o trenutno ulogovanom korisniku
-router.get("/me", authMiddleware, async (req, res) => {
-  try {
-    res.status(200).json(req.user);
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// 📌 Izmena pretplate
-router.put("/subscription", authMiddleware, updateSubscription);
-
-// 📌 Pristup avatar funkciji — samo silver/gold korisnici
-router.get("/avatar/use", authMiddleware, requireTier(["silver", "gold"]), (req, res) => {
-  res.json({ message: "You have access to avatar usage!" });
-});
-
 /// 📌 Dohvatanje usage logova za datog korisnika (samo za admina)
 router.get("/users/:id/usage-log", async (req, res) => {
    console.log("Admin korisnik:", req.user); // ovo će pokazati ID i email logovanog admina
@@ -56,6 +35,21 @@ router.get("/users/:id/usage-log", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// 📌 Pristup avatar funkciji — samo silver/gold korisnici
+router.get("/avatar/use", authMiddleware, requireTier(["silver", "gold"]), (req, res) => {
+  res.json({ message: "You have access to avatar usage!" });
+});
+
+// 📌 Informacije o trenutno ulogovanom korisniku
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    res.status(200).json(req.user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // 📌 Admin: Dodavanje usage log-a za bilo kog korisnika
 router.post("/:id/usage-log", async (req, res) => {
   const userId = req.params.id;
@@ -97,7 +91,11 @@ router.post("/me/usage-log", authMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+// 📌 Login i registracija
+router.post("/login", loginUser);
+router.post("/register", registerUser);
+// 📌 Izmena pretplate
+router.put("/subscription", authMiddleware, updateSubscription);
 // 📌 Kraj sesije — dodavanje minutaže
 router.post("/session-end", authMiddleware, checkMonthlyUsage, async (req, res) => {
   const { durationInSeconds } = req.body;
