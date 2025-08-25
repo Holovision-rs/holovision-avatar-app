@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // 👇 Backend URL iz .env ili fallback
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
 const LoginRegister = () => {
+  const { login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  // 🟢 Učitavanje komponente
-  useEffect(() => {
-    console.log("🟢 LoginRegister komponenta učitana");
-  }, []);
+  login(data.token, user);
+  navigate(user.isAdmin ? "/admin" : "/");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,6 +41,8 @@ const LoginRegister = () => {
       if (!data.token) throw new Error("No token received");
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", user._id);
+      localStorage.setItem("isAdmin", user.isAdmin);
       console.log("✅ Token saved:", data.token);
 
       const meRes = await fetch(`${BACKEND_URL}/api/me`, {
