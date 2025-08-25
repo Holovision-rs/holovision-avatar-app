@@ -71,10 +71,11 @@ const DesktopDashboard = () => {
 
   useEffect(() => {
   const fetchUsageLog = async () => {
+   console.error("Error fetching odavde br 1");
     const token = localStorage.getItem("token");
     if (selectedUser && selectedMonth) {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`, {
+        const res = await fetch(`${BACKEND_URL}/api/${selectedUser._id}/usage-log?month=${selectedMonth}`, {
               headers: { Authorization: `Bearer ${token}` }
             })
         if (!res.ok) {
