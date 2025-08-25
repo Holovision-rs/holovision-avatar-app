@@ -44,8 +44,9 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // API rute
-app.use("/api", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api", userRoutes);
+
 
 // ElevenLabs API Key
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;

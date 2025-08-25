@@ -69,24 +69,32 @@ const DesktopDashboard = () => {
     }
   }, [users, selectedUser]);
 
-  useEffect(() => {
+useEffect(() => {
   const fetchUsageLog = async () => {
-   console.error("Error fetching odavde br 1");
     const token = localStorage.getItem("token");
     if (selectedUser && selectedMonth) {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`, {
-              headers: { Authorization: `Bearer ${token}` }
-            })
+        const res = await fetch(
+          `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
         if (!res.ok) {
           const error = await res.json();
-          console.error("Greška u fetchovanju:", error.message || res.statusText);
+          console.error("❌ Greška u fetchovanju:", error.message || res.statusText);
           return;
         }
+
         const data = await res.json();
+        console.log("✅ Usage log data:", data);
         setUserUsageLog(data || []);
       } catch (error) {
-        console.error("Error fetching usage log:", error);
+        console.error("❌ Error fetching usage log:", error);
       }
     }
   };

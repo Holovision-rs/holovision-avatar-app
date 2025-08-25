@@ -29,50 +29,9 @@ router.get("/avatar/use", authMiddleware, requireTier(["silver", "gold"]), (req,
   res.json({ message: "You have access to avatar usage!" });
 });
 
-// 📌 Dodavanje usage za trenutnog korisnika (koristi se u Avatar.js)
-router.post("/me/usage-log", authMiddleware, async (req, res) => {
-  const { timestamp, minutes } = req.body;
-
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    user.usageLog = user.usageLog || [];
-    user.monthlyUsageMinutes = user.monthlyUsageMinutes || 0;
-
-    user.usageLog.push({ timestamp, minutes });
-    user.monthlyUsageMinutes += minutes;
-
-    await user.save();
-
-    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 📌 Admin: Dodavanje usage log-a za bilo kog korisnika
-router.post("/:id/usage-log", async (req, res) => {
-  const userId = req.params.id;
-  const { timestamp, minutes } = req.body;
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    user.usageLog = user.usageLog || [];
-    user.usageLog.push({ timestamp, minutes });
-
-    await user.save();
-
-    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 /// 📌 Dohvatanje usage logova za datog korisnika (samo za admina)
 router.get("/users/:id/usage-log", async (req, res) => {
+   console.log("Admin korisnik:", req.user); // ovo će pokazati ID i email logovanog admina
   try {
     const user = await User.findById(req.params.id).select("usageLog");
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -95,6 +54,47 @@ router.get("/users/:id/usage-log", async (req, res) => {
     res.json(user.usageLog); // ako nije prosleđen ?month parametar
   } catch (err) {
     res.status(500).json({ error: "Server error" });
+  }
+});
+// 📌 Admin: Dodavanje usage log-a za bilo kog korisnika
+router.post("/:id/usage-log", async (req, res) => {
+  const userId = req.params.id;
+  const { timestamp, minutes } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.usageLog = user.usageLog || [];
+    user.usageLog.push({ timestamp, minutes });
+
+    await user.save();
+
+    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 📌 Dodavanje usage za trenutnog korisnika (koristi se u Avatar.js)
+router.post("/me/usage-log", authMiddleware, async (req, res) => {
+  const { timestamp, minutes } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.usageLog = user.usageLog || [];
+    user.monthlyUsageMinutes = user.monthlyUsageMinutes || 0;
+
+    user.usageLog.push({ timestamp, minutes });
+    user.monthlyUsageMinutes += minutes;
+
+    await user.save();
+
+    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

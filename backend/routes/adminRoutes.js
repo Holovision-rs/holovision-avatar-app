@@ -7,6 +7,8 @@ import { requireAdmin } from "../middleware/adminOnly.js";
 
 const router = express.Router();
 
+// 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
+router.get("/users/:id/usage-log", authMiddleware, requireAdmin, getUserUsageLog);
 // 📌 Lista svih korisnika (admin only)
 router.get("/users", authMiddleware, requireAdmin, async (req, res) => {
   try {
@@ -26,8 +28,6 @@ router.delete("/users/:id", authMiddleware, requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Failed to delete user" });
   }
 });
-// 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
-router.get("/users/:id/usage-log", authMiddleware, requireAdmin, getUserUsageLog);
 // 📌 Dodavanje plaćenih minuta (admin)
 router.post("/users/:id/add-paid", authMiddleware, async (req, res) => {
   const { id } = req.params;
