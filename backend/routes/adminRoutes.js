@@ -6,7 +6,7 @@ import { authMiddleware } from "../middleware/Auth.js";
 import { requireAdmin } from "../middleware/adminOnly.js";
 
 const router = express.Router();
-
+console.log("🛡️ adminRoutes loaded");
 // 📌 Dohvatanje usage logova za datog korisnika (admin funkcionalnost sa mesečnim filterom)
 router.get("/users/:id/usage-log", authMiddleware, requireAdmin, getUserUsageLog);
 // 📌 Lista svih korisnika (admin only)
