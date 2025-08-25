@@ -70,31 +70,31 @@ const DesktopDashboard = () => {
   }, [users, selectedUser]);
 
   useEffect(() => {
-    const fetchUsageLog = async () => {
-      const token = localStorage.getItem("token");
-      if (selectedUser && selectedMonth) {
-        try {
-          const res = await fetch(
-            `${BACKEND_URL}/api/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          if (!res.ok) {
-            const error = await res.json();
-            console.error("Greška u fetchovanju:", error.message || res.statusText);
-            return;
+  const fetchUsageLog = async () => {
+    const token = localStorage.getItem("token");
+    if (selectedUser && selectedMonth) {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/api/admin/users/${selectedUser._id}/usage-log?month=${selectedMonth}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
           }
-          const data = await res.json();
-          setUserUsageLog(data || []);
-        } catch (error) {
-          console.error("Error fetching usage log:", error);
+        );
+        if (!res.ok) {
+          const error = await res.json();
+          console.error("Greška u fetchovanju:", error.message || res.statusText);
+          return;
         }
+        const data = await res.json();
+        setUserUsageLog(data || []);
+      } catch (error) {
+        console.error("Error fetching usage log:", error);
       }
-    };
+    }
+  };
 
-    fetchUsageLog();
-  }, [selectedUser, selectedMonth]);
+  fetchUsageLog();
+}, [selectedUser, selectedMonth]);
 
   const filtered = users.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())

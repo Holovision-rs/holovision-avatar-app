@@ -6,21 +6,30 @@ const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expires
 
 export const getUserUsageLog = async (req, res) => {
   const { id } = req.params;
-  const { month } = req.query; // očekuješ: "2025-08"
+  const { month } = req.query;
 
   try {
     const user = await User.findById(id).select("usageLog");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    const filteredLog = user.usageLog.filter((entry) => {
-      const entryMonth = entry.timestamp.toISOString().slice(0, 7);
-      return entryMonth === month;
-    });
+    if (month) {
+      const [year, monthStr] = month.split("-");
+      const monthIndex = parseInt(monthStr) - 1;
+      const start = new Date(year, monthIndex, 1);
+      const end = new Date(year, monthIndex + 1, 1);
 
-    res.json(filteredLog);
+      const filtered = user.usageLog.filter((entry) => {
+        const ts = new Date(entry.timestamp);
+        return ts >= start && ts < end;
+      });
+
+      return res.json(filtered);
+    }
+
+    res.json(user.usageLog);
   } catch (err) {
     console.error("getUserUsageLog error:", err);
-    res.status(500).json({ message: "Server error while fetching usage log" });
+    res.status(500).json({ error: "Server error" });
   }
 };
 
