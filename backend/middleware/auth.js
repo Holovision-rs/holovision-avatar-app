@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+
 export const authMiddleware = async (req, res, next) => {
-    console.log("Auth.js midelvare radi:", req.user); // ovo će pokazati ID i email logovanog admina
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -17,9 +17,13 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     req.user = user;
+
+    // ✅ Tek sad postoji req.user
+    console.log("✅ Auth.js middleware - korisnik:", req.user);
+
     next();
   } catch (err) {
+    console.error("❌ Token error:", err.message);
     return res.status(401).json({ message: "Invalid token" });
   }
 };
-
