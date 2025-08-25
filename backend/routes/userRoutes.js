@@ -76,18 +76,25 @@ router.post("/:id/usage-log", authMiddleware, async (req, res) => {
   const { timestamp, minutes } = req.body;
 
   try {
-    const user = await User.findById(userId);
-    console.log("👤 Target user for usageLog update:", user?._id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const result = await User.updateOne(
+      { _id: userId },
+      {
+        $push: { usageLog: { timestamp, minutes } },
+        $inc: { monthlyUsageMinutes: minutes }
+      }
+    );
 
-    user.usageLog = user.usageLog || [];
-    user.usageLog.push({ timestamp, minutes });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    await user.save();
-
-    res.status(201).json({ message: "Usage added", usage: { timestamp, minutes } });
+    res.status(201).json({
+      message: "Usage added",
+      usage: { userId, timestamp, minutes }
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Greška u /:id/usage-log:", error.message);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
