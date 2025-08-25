@@ -7,25 +7,24 @@ import { useMediaQuery } from "react-responsive";
 import MobileDashboard from "./components/MobileDashboard";
 import DesktopDashboard from "./components/DesktopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute"; // ⬅️ dodato
+import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<LoginRegister />} />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<LoginRegister />} />
+          <Route
+            path="/admin"
+            element={<ProtectedRoute adminOnly>{isMobile ? <MobileDashboard /> : <DesktopDashboard />}</ProtectedRoute>}
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 
