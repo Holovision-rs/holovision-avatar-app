@@ -52,7 +52,7 @@ router.post("/me/usage-log", authMiddleware, async (req, res) => {
 });
 
 // 📌 Admin: Dodavanje usage log-a za bilo kog korisnika
-router.post("/:id/usage-log", adminAuth, async (req, res) => {
+router.post("/:id/usage-log", async (req, res) => {
   const userId = req.params.id;
   const { timestamp, minutes } = req.body;
 
@@ -72,7 +72,7 @@ router.post("/:id/usage-log", adminAuth, async (req, res) => {
 });
 
 /// 📌 Dohvatanje usage logova za datog korisnika (samo za admina)
-router.get("/users/:id/usage-log", adminAuth, async (req, res) => {
+router.get("/users/:id/usage-log", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("usageLog");
     if (!user) return res.status(404).json({ error: "User not found" });
