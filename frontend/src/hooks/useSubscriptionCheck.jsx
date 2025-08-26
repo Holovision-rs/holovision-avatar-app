@@ -8,30 +8,27 @@ export function useSubscriptionCheck() {
   const location = useLocation();
   const { user, token, logout, refreshUser } = useAuth();
 
-  // ⚡ Provera lokalnog user stanja kad se promeni
   useEffect(() => {
     if (user?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
       navigate("/upgrade");
     }
   }, [user?.monthlyPaidMinutes, location.pathname, navigate]);
 
-  // 🔁 Intervalna provera pretplate (throttle + refresh)
   useEffect(() => {
     if (!token || !refreshUser) return;
 
-    let cancelled = false;
+    let isCancelled = false;
 
     const throttledCheck = throttle(async () => {
       try {
         const freshUser = await refreshUser();
-        if (!cancelled && freshUser?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
+        if (!isCancelled && freshUser?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
           navigate("/upgrade");
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!isCancelled) {
           console.error("❌ Subscription check error:", err);
 
-          // ⛔ Ako token nije validan
           if (err.status === 401 || err.status === 403) {
             logout?.();
             if (location.pathname !== "/login") {
@@ -40,15 +37,18 @@ export function useSubscriptionCheck() {
           }
         }
       }
-    }, 30000); // throttle: najviše jednom u 30 sekundi
+    }, 60000); // throttle na 60s
 
-    throttledCheck(); // odmah pozovi
-    const interval = setInterval(throttledCheck, 5000); // pokušaj svakih 5s
+    const interval = setInterval(() => {
+      throttledCheck();
+    }, 15000); // pokuša svakih 15s, throttled blokira višak
+
+    throttledCheck(); // odmah prva provera
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
       clearInterval(interval);
-      throttledCheck.cancel();
+      throttledCheck.cancel(); // prekid throttle state-a
     };
-  }, [token, refreshUser, logout, navigate, location.pathname]);
+  }, [token, refreshUser, logout, location.pathname, navigate]);
 }
