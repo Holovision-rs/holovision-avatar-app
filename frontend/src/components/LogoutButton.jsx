@@ -19,7 +19,7 @@ const LogoutButton = () => {
       }}
       title="Logout"
     >
-      <LogOut color="white" size={24} />
+      <Power color="white" size={24} />
     </button>
   );
 };
