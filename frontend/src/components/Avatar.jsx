@@ -36,9 +36,9 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
 
   useSessionTimer(true, token);
-  // ✅ SUBSCRIPTION CHECK
+    // ✅ SUBSCRIPTION CHECK
   useSubscriptionCheck();
-
+ 
   // ✅ SESSION TIME LOG
   useEffect(() => {
     const startTime = Date.now();

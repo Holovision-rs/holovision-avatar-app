@@ -9,6 +9,10 @@ export function useSubscriptionCheck() {
 
   const intervalRef = useRef(null); // ✅ sprečava više intervala
 
+  useEffect(() => {
+    console.log("✅ useSubscriptionCheck mounted in", location.pathname);
+  }, []);
+  
   // Lokalna provera odmah
   useEffect(() => {
     if (user?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
