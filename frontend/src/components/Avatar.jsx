@@ -190,7 +190,7 @@ export function Avatar(props) {
       const minutes = Math.floor(durationMs / 60000);
 
       if (minutes > 0 && token) {
-        fetch(`${BACKEND_URL}/api/users/me/usage-log`, {
+        fetch(`${BACKEND_URL}/api/me/usage-log`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
