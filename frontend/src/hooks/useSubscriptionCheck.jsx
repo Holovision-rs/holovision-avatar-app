@@ -41,7 +41,7 @@ export function useSubscriptionCheck() {
     checkSubscription(); // odmah
 
     // ✅ stabilan interval — samo jedan
-    intervalRef.current = setInterval(checkSubscription, 60000);
+    intervalRef.current = setInterval(checkSubscription, 160000);
 
     return () => clearInterval(intervalRef.current);
   }, [token, refreshUser, logout, location.pathname, navigate]);
