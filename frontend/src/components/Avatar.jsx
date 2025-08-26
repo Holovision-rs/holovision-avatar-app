@@ -54,7 +54,7 @@ export function Avatar(props) {
         });
 
         navigator.sendBeacon(
-          `${BACKEND_URL}/api/users/me/usage-log`,
+          `${BACKEND_URL}/api/me/usage-log`,
           new Blob([data], { type: "application/json" })
         );
 
