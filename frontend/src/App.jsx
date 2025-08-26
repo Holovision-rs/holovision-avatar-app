@@ -7,6 +7,7 @@ import MobileDashboard from "./components/MobileDashboard";
 import DesktopDashboard from "./components/DesktopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import Upgrade from "./pages/Upgrade";
 
 const App = () => {
   const isMobile = useMediaQuery({ maxWidth: 767 });
@@ -23,6 +24,14 @@ const App = () => {
                 <Home />
               </ProtectedRoute>
             }
+          />
+          <Route
+                path="/upgrade"
+                element={
+                  <ProtectedRoute>
+                    <Upgrade />
+                  </ProtectedRoute>
+                }
           />
           <Route
             path="/admin"

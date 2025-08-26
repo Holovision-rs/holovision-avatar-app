@@ -7,7 +7,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 console.log("🔒 ProtectedRoute:", user);
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !user.isAdmin) return <Navigate to="/" replace />;
-
+  if (!adminOnly && user.monthlyPaidMinutes === 0) {
+    return <Navigate to="/upgrade" replace />;
+  }
   return children;
 };
 

@@ -2,13 +2,13 @@ import { useAnimations, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { button, useControls } from "leva";
 import React, { useEffect, useRef, useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import { useSpeech } from "../context/SpeechContext";
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
-import useAuth from "../hooks/useAuth";
+import { useAuth } from "../context/AuthContext";
 import { useSessionTimer } from "../hooks/useSessionTimer";
 
 export function Avatar(props) {
@@ -18,7 +18,7 @@ export function Avatar(props) {
   const { message, onMessagePlayed } = useSpeech();
   const [lipsync, setLipsync] = useState();
   const [setupMode, setSetupMode] = useState(false);
-
+  const navigate = useNavigate();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
  
@@ -222,11 +222,16 @@ export function Avatar(props) {
         );
       }
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+          return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
 
+    useEffect(() => {
+        if (user && user.monthlyPaidMinutes === 0) {
+          navigate("/upgrade");
+        }
+    }, [user]);
+    
   return (
     <group {...props} dispose={null} ref={group} position={[0, -0.5, 0]}>
       <primitive object={nodes.Hips} />
