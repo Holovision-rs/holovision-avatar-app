@@ -1,42 +1,54 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import throttle from "lodash.throttle";
 
 export function useSubscriptionCheck() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, logout, refreshUser } = useAuth();
 
-  // ⚡ Reakcija na lokalno stanje korisnika
+  // ⚡ Provera lokalnog user stanja kad se promeni
   useEffect(() => {
-    if (user?.monthlyPaidMinutes === 0) {
+    if (user?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
       navigate("/upgrade");
     }
-  }, [user?.monthlyPaidMinutes]);
+  }, [user?.monthlyPaidMinutes, location.pathname, navigate]);
 
-  // 🔁 Proverava svakih 60 sekundi i osvežava korisnika
+  // 🔁 Intervalna provera pretplate (throttle + refresh)
   useEffect(() => {
     if (!token || !refreshUser) return;
 
-    const checkSubscription = async () => {
+    let cancelled = false;
+
+    const throttledCheck = throttle(async () => {
       try {
         const freshUser = await refreshUser();
-        if (freshUser?.monthlyPaidMinutes === 0) {
+        if (!cancelled && freshUser?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
           navigate("/upgrade");
         }
       } catch (err) {
-        // ⛔ Ako token nije validan (npr. 401), izloguj korisnika
-        if (err.status === 401 || err.status === 403) {
-          console.warn("Token više nije validan. Logout...");
-          logout?.();
-          navigate("/login");
-        } else {
+        if (!cancelled) {
           console.error("❌ Subscription check error:", err);
+
+          // ⛔ Ako token nije validan
+          if (err.status === 401 || err.status === 403) {
+            logout?.();
+            if (location.pathname !== "/login") {
+              navigate("/login");
+            }
+          }
         }
       }
-    };
+    }, 30000); // throttle: najviše jednom u 30 sekundi
 
-    checkSubscription(); // Odmah na mount
-    const interval = setInterval(checkSubscription, 60000); // Svakih 1 minut
-    return () => clearInterval(interval);
-  }, [token, refreshUser, logout, navigate]);
+    throttledCheck(); // odmah pozovi
+    const interval = setInterval(throttledCheck, 5000); // pokušaj svakih 5s
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      throttledCheck.cancel();
+    };
+  }, [token, refreshUser, logout, navigate, location.pathname]);
 }

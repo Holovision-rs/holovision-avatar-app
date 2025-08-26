@@ -32,7 +32,11 @@ export const AuthProvider = ({ children }) => {
       },
     });
 
-    if (!res.ok) throw res;
+    if (!res.ok) {
+      const error = new Error("Failed to refresh user");
+      error.status = res.status;
+      throw error;
+    }
 
     const updatedUser = await res.json();
     setUser(updatedUser);
@@ -61,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 }), [token, user]);
 
   return (
-    <AuthContext.Provider value={token, user, login, logout, refreshUser }>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
