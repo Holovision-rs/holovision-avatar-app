@@ -5,9 +5,10 @@ import { button, useControls } from "leva";
 import * as THREE from "three";
 
 import { useSpeech } from "../context/SpeechContext";
-import { useAuth } from "../context/AuthContext";         // ✔️ koristi context, ne hooks
-import { useNavigate } from "react-router-dom";            // ✔️ za redirect na /upgrade
+import { useAuth } from "../context/AuthContext";        
+import { useNavigate } from "react-router-dom";          
 import { useSessionTimer } from "../hooks/useSessionTimer";
+import { useSubscriptionCheck } from "../hooks/useSubscriptionCheck";
 
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
@@ -35,19 +36,7 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
 
   // ✅ SUBSCRIPTION CHECK
-  useEffect(() => {
-    const checkSubscription = () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.monthlyPaidMinutes === 0) {
-          navigate("/upgrade");
-        }
-      }
-    };
-
-    checkSubscription();
-  }, []);
+  useSubscriptionCheck();
 
   // ✅ SESSION TIME LOG
   useEffect(() => {
