@@ -5,7 +5,7 @@ import LoginRegister from "./pages/LoginRegister";
 import { useMediaQuery } from "react-responsive";
 import MobileDashboard from "./components/MobileDashboard";
 import DesktopDashboard from "./components/DesktopDashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
+//import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
