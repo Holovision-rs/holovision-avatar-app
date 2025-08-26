@@ -56,6 +56,8 @@ export const useSessionTimer = (enabled = true, token = null) => {
       const tabCount = decrementTabCount();
 
       if (tabCount === 0) {
+        if (!token) return; // ⛔ token ne postoji - ne šalji ništa
+
         const now = Date.now();
         const totalMinutes = Math.floor((now - startTime) / 60000);
         const newMinutes = totalMinutes - minutesSentRef.current;
@@ -68,7 +70,9 @@ export const useSessionTimer = (enabled = true, token = null) => {
 
           navigator.sendBeacon(
             `${import.meta.env.VITE_BACKEND_URL}/api/users/me/usage-log`,
-            new Blob([payload], { type: "application/json" })
+            new Blob([payload], {
+              type: "application/json",
+            })
           );
         }
 
