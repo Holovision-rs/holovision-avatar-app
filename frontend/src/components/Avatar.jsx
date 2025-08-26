@@ -34,7 +34,8 @@ export function Avatar(props) {
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
 
- useEffect(() => {
+  // ✅ SUBSCRIPTION CHECK
+  useEffect(() => {
     const checkSubscription = () => {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
@@ -45,56 +46,52 @@ export function Avatar(props) {
       }
     };
 
-    // Proveri odmah
     checkSubscription();
+  }, []);
 
-useEffect(() => {
-  const startTime = Date.now();
+  // ✅ SESSION TIME LOG
+  useEffect(() => {
+    const startTime = Date.now();
 
-  const sendUsageData = () => {
-    const now = Date.now();
-    const durationMs = now - startTime;
-    const minutes = Math.floor(durationMs / 60000);
+    const sendUsageData = () => {
+      const now = Date.now();
+      const durationMs = now - startTime;
+      const minutes = Math.floor(durationMs / 60000);
 
-    if (minutes > 0 && token) {
-      const data = JSON.stringify({
-        timestamp: new Date().toISOString(),
-        minutes,
-      });
+      if (minutes > 0 && token) {
+        const data = JSON.stringify({
+          timestamp: new Date().toISOString(),
+          minutes,
+        });
 
-      // 1. `sendBeacon` ako zatvori tab ili refresh
-      navigator.sendBeacon(
-        `${BACKEND_URL}/api/users/me/usage-log`,
-        new Blob([data], { type: "application/json" })
-      );
+        navigator.sendBeacon(
+          `${BACKEND_URL}/api/users/me/usage-log`,
+          new Blob([data], { type: "application/json" })
+        );
 
-      // 2. `fetch` ako samo napusti stranicu (unmount)
-      fetch(`${BACKEND_URL}/api/me/usage-log`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: data,
-      }).catch((err) => {
-        console.error("Greška pri slanju usage log:", err);
-      });
-    }
-  };
+        fetch(`${BACKEND_URL}/api/me/usage-log`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: data,
+        }).catch((err) => {
+          console.error("Greška pri slanju usage log:", err);
+        });
+      }
+    };
 
-  // Event za zatvaranje taba/refresha
-  const handleBeforeUnload = () => {
-    sendUsageData();
-  };
+    const handleBeforeUnload = () => {
+      sendUsageData();
+    };
 
-  window.addEventListener("beforeunload", handleBeforeUnload);
-
-  // Cleanup i fallback ako samo napusti komponentu
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    sendUsageData();
-  };
-}, []);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      sendUsageData();
+    };
+  }, []);
 
   // ⏯️ Promena animacija kada dođe poruka
   useEffect(() => {
