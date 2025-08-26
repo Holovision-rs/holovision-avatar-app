@@ -19,19 +19,11 @@ const App = () => {
           <Route path="/login" element={<LoginRegister />} />
           <Route
             path="/"
-            element={
-             //<ProtectedRoute>
-                <Home />
-              //</ProtectedRoute>
-            }
+            element={<Home /> }
           />
           <Route
             path="/admin"
-            element={
-              //<ProtectedRoute adminOnly>
-                {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
-              //</ProtectedRoute>
-            }
+            element= {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
           />
         </Routes>
       </AuthProvider>
