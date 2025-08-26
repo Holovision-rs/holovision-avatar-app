@@ -12,29 +12,31 @@ const App = () => {
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
   return (
-    <AuthProvider>
+   
       <Router>
+       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginRegister />} />
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+             //<ProtectedRoute>
                 <Home />
-              </ProtectedRoute>
+              //</ProtectedRoute>
             }
           />
           <Route
             path="/admin"
             element={
-              <ProtectedRoute adminOnly>
+              //<ProtectedRoute adminOnly>
                 {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
-              </ProtectedRoute>
+              //</ProtectedRoute>
             }
           />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
+   
   );
 };
 
