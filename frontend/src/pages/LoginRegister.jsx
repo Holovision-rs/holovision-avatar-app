@@ -53,7 +53,7 @@ const LoginRegister = () => {
       console.log("🧪 User object:", user);
 
       // ✅ Login & save to context + localStorage
-      login(data.token, user);
+     // login(data.token, user);
 
       // 🔁 Redirect
       navigate(user.isAdmin ? "/admin" : "/");
