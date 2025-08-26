@@ -49,6 +49,14 @@ router.get("/me", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get("/users/me", authMiddleware, async (req, res) => {
+  try {
+    res.status(200).json(req.user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 // 📌 Dodavanje usage za trenutnog korisnika (koristi se u Avatar.js)
 router.post("/me/usage-log", authMiddleware, async (req, res) => {
   const { timestamp, minutes } = req.body;

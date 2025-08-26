@@ -19,7 +19,7 @@ export function useSubscriptionCheck() {
       if (!token) return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
