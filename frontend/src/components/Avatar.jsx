@@ -35,6 +35,7 @@ export function Avatar(props) {
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
 
+  useSessionTimer(true, token);
   // ✅ SUBSCRIPTION CHECK
   useSubscriptionCheck();
 

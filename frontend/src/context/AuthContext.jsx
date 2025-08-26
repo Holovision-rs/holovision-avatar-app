@@ -1,6 +1,5 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -25,6 +24,24 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     navigate("/login");
   };
+  const refreshUser = async () => {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw res;
+
+    const updatedUser = await res.json();
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    return updatedUser;
+    } catch (err) {
+      throw err;
+    }
+  };
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -34,12 +51,20 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  const value = useMemo(() => ({
+  token,
+  user,
+  login,
+  logout,
+  refreshUser,
+}), [token, user]);
+
   return (
-    <AuthContext.Provider value={{ token, user, login, logout }}>
+    <AuthContext.Provider value={token, user, login, logout, refreshUser }>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook
 export const useAuth = () => useContext(AuthContext);

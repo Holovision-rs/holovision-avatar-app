@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-export const useSessionTimer = (enabled = true) => {
+export const useSessionTimer = (enabled = true, token = null) => {
+  const minutesSentRef = useRef(0);
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !token) return;
 
     const SESSION_KEY = "holovision-active-tabs";
     const LAST_SESSION_KEY = "holovision-last-sent";
@@ -18,24 +20,59 @@ export const useSessionTimer = (enabled = true) => {
       return newCount;
     };
 
+    const sendUsage = (minutes) => {
+      const payload = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        minutes,
+      });
+
+      // ⬇️ Slanje ka backendu
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me/usage-log`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: payload,
+      }).catch((err) => {
+        console.error("Greška pri slanju usage log:", err);
+      });
+    };
+
+    // 🔁 Slanje svakih 30s ako ima novih minuta
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const totalMinutes = Math.floor((now - startTime) / 60000);
+      const newMinutes = totalMinutes - minutesSentRef.current;
+
+      if (newMinutes > 0) {
+        minutesSentRef.current += newMinutes;
+        sendUsage(newMinutes);
+      }
+    }, 60000);
+
+    // 📤 Kad user zatvara tab
     const handleBeforeUnload = () => {
       const tabCount = decrementTabCount();
 
-      // Samo poslednji tab šalje trajanje
       if (tabCount === 0) {
-        const durationInSeconds = Math.floor((Date.now() - startTime) / 1000);
-
-        // Spreči dupli slanje u slučaju race condition
-        const lastSent = localStorage.getItem(LAST_SESSION_KEY);
         const now = Date.now();
-        if (!lastSent || now - parseInt(lastSent, 10) > 2000) {
-          localStorage.setItem(LAST_SESSION_KEY, now.toString());
+        const totalMinutes = Math.floor((now - startTime) / 60000);
+        const newMinutes = totalMinutes - minutesSentRef.current;
 
-          const payload = JSON.stringify({ durationInSeconds });
-          const blob = new Blob([payload], { type: "application/json" });
+        if (newMinutes > 0) {
+          const payload = JSON.stringify({
+            timestamp: new Date().toISOString(),
+            minutes: newMinutes,
+          });
 
-          navigator.sendBeacon("/api/session-end", blob);
+          navigator.sendBeacon(
+            `${import.meta.env.VITE_BACKEND_URL}/api/users/me/usage-log`,
+            new Blob([payload], { type: "application/json" })
+          );
         }
+
+        localStorage.setItem(LAST_SESSION_KEY, now.toString());
       }
     };
 
@@ -43,8 +80,9 @@ export const useSessionTimer = (enabled = true) => {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
+      clearInterval(interval);
       handleBeforeUnload();
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [enabled]);
+  }, [enabled, token]);
 };
