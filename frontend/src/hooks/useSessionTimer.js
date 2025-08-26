@@ -1,12 +1,10 @@
 import { useEffect, useRef } from "react";
-import { useAuth } from "../context/AuthContext";
 
-export const useSessionTimer = (enabled = true) => {
-  const { token, isAuthenticated } = useAuth();
+export const useSessionTimer = (enabled = true, token = null) => {
   const minutesSentRef = useRef(0);
 
   useEffect(() => {
-    if (!enabled || !isAuthenticated || !token) return;
+    if (!enabled || !token) return;
 
     const SESSION_KEY = "holovision-active-tabs";
     const LAST_SESSION_KEY = "holovision-last-sent";
@@ -22,34 +20,26 @@ export const useSessionTimer = (enabled = true) => {
       return newCount;
     };
 
-    const sendUsage = async (minutes) => {
+    const sendUsage = (minutes) => {
       const payload = JSON.stringify({
         timestamp: new Date().toISOString(),
         minutes,
       });
 
-      try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me/usage-log`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: payload,
-        });
-
-        if (!res.ok) {
-          console.warn("⚠️ fetch nije uspeo, pokušavam sendBeacon...");
-          navigator.sendBeacon(
-            `${import.meta.env.VITE_BACKEND_URL}/api/users/me/usage-log`,
-            new Blob([payload], { type: "application/json" })
-          );
-        }
-      } catch (err) {
-        console.error("❌ Greška pri slanju usage log (fetch):", err);
-      }
+      // ⬇️ Slanje ka backendu
+      fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me/usage-log`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: payload,
+      }).catch((err) => {
+        console.error("Greška pri slanju usage log:", err);
+      });
     };
 
+    // 🔁 Slanje svakih 30s ako ima novih minuta
     const interval = setInterval(() => {
       const now = Date.now();
       const totalMinutes = Math.floor((now - startTime) / 60000);
@@ -61,9 +51,13 @@ export const useSessionTimer = (enabled = true) => {
       }
     }, 60000);
 
+    // 📤 Kad user zatvara tab
     const handleBeforeUnload = () => {
       const tabCount = decrementTabCount();
-      if (tabCount === 0 && token) {
+
+      if (tabCount === 0) {
+        if (!token) return; // ⛔ token ne postoji - ne šalji ništa
+
         const now = Date.now();
         const totalMinutes = Math.floor((now - startTime) / 60000);
         const newMinutes = totalMinutes - minutesSentRef.current;
@@ -76,10 +70,13 @@ export const useSessionTimer = (enabled = true) => {
 
           navigator.sendBeacon(
             `${import.meta.env.VITE_BACKEND_URL}/api/users/me/usage-log`,
-            new Blob([payload], { type: "application/json" })
+            new Blob([payload], {
+              type: "application/json",
+            })
           );
-          localStorage.setItem(LAST_SESSION_KEY, now.toString());
         }
+
+        localStorage.setItem(LAST_SESSION_KEY, now.toString());
       }
     };
 
@@ -91,5 +88,5 @@ export const useSessionTimer = (enabled = true) => {
       handleBeforeUnload();
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [enabled, isAuthenticated, token]);
+  }, [enabled, token]);
 };
