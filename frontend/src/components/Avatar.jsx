@@ -9,7 +9,7 @@ import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 import useAuth from "../hooks/useAuth";
-import { useSessionTimer } from "./hooks/useSessionTimer";
+import { useSessionTimer } from "../hooks/useSessionTimer";
 
 export function Avatar(props) {
   const { token, user, isAuthenticated, logout } = useAuth(); // ⬅️ IDE OVDE 
