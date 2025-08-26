@@ -5,30 +5,36 @@ import LoginRegister from "./pages/LoginRegister";
 import { useMediaQuery } from "react-responsive";
 import MobileDashboard from "./components/MobileDashboard";
 import DesktopDashboard from "./components/DesktopDashboard";
-//import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
 const App = () => {
   const isMobile = useMediaQuery({ maxWidth: 767 });
-
-  return (
    
-      <Router>
-       <AuthProvider>
+  return (
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginRegister />} />
           <Route
             path="/"
-            element={<Home /> }
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/admin"
-            element= {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
+            element={
+              <ProtectedRoute adminOnly>
+                {isMobile ? <MobileDashboard /> : <DesktopDashboard />}
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </AuthProvider>
     </Router>
-   
   );
 };
 
