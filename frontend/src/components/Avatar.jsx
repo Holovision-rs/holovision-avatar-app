@@ -9,7 +9,6 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";          
 import { useSessionTimer } from "../hooks/useSessionTimer";
 import { useSubscriptionCheck } from "../hooks/useSubscriptionCheck";
-
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
@@ -34,8 +33,9 @@ export function Avatar(props) {
   const [audio, setAudio] = useState();
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
-console.log("🧩 Avatar.jsx RENDERED");
-  useSessionTimer(true, token);
+ 
+  useSessionTimer(true, token);      // ⏱️ radi usage tracking
+  useSubscriptionCheck();            // ✅ aktivira proveru pretplate
 
 
   // ⏯️ Promena animacija kada dođe poruka
