@@ -15,7 +15,6 @@ export function useSubscriptionCheck() {
     const checkSubscription = async () => {
       try {
         const freshUser = await refreshUser();
-        console.log("🧠 Refreshed user:", freshUser);
 
         if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
