@@ -22,9 +22,10 @@ export function useSubscriptionCheck() {
       isChecking.current = true;
       try {
         const freshUser = await refreshUser(); // koristi anti-spam zaštitu iz AuthContexta
-        console.log("🧠 Refreshed user:", freshUser);
+        console.log("💡 freshUser.monthlyPaidMinutes =", freshUser?.monthlyPaidMinutes);
 
-        if (freshUser?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
+        const safeMinutes = Math.max(parseInt(freshUser?.monthlyPaidMinutes ?? 0, 10), 0);
+        if (safeMinutes <= 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
@@ -33,6 +34,7 @@ export function useSubscriptionCheck() {
         if (err.status === 401 || err.status === 403) {
           logout?.();
           if (location.pathname !== "/login") {
+          
             navigate("/login");
           }
         }
