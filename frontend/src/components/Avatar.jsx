@@ -36,8 +36,7 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
 console.log("🧩 Avatar.jsx RENDERED");
   useSessionTimer(true, token);
-    // ✅ SUBSCRIPTION CHECK
-  useSubscriptionCheck();
+
 
   // ⏯️ Promena animacija kada dođe poruka
   useEffect(() => {
