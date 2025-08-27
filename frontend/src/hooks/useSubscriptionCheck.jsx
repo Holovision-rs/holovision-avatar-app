@@ -5,16 +5,17 @@ import { useAuth } from "../context/AuthContext";
 export function useSubscriptionCheck() {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationRef = useRef(location.pathname); // 🧠 beležimo početnu rutu
+  const locationRef = useRef(location.pathname);
   const { token, logout, refreshUser } = useAuth();
   const intervalRef = useRef(null);
 
     useEffect(() => {
+    console.log("hasInitializedRef.current:", hasInitializedRef.current);
       if (!token || !refreshUser || hasInitializedRef.current) return;
 
       const checkSubscription = async () => {
         const freshUser = await refreshUser();
-        console.log("🧠 Refreshed user:", freshUser);
+        
 
         if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
           navigate("/upgrade");

@@ -25,31 +25,31 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     navigate("/login");
   };
-  const refreshUser = async () => {
-  try {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    if (!res.ok) {
-       console.log("❌ Failed to refresh user"); // debug
-      const error = new Error("Failed to refresh user");
-      error.status = res.status;
-      throw error;
-    }
-  console.log("🔄 refreshUser CALLED");
-  console.trace(); // pokazaće ti stack trace u browser konzoli
-    const updatedUser = await res.json();
-    setUser(updatedUser);
+      if (!res.ok) {
+        console.log("❌ Failed to refresh user");
+        const error = new Error("Failed to refresh user");
+        error.status = res.status;
+        throw error;
+      }
 
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    return updatedUser;
+      console.log("🔄 refreshUser CALLED");
+      const updatedUser = await res.json();
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
     } catch (err) {
       throw err;
     }
-  };
+  }, [token]);
+  
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
