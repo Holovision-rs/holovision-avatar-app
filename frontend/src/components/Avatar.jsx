@@ -36,7 +36,7 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
  
   useSessionTimer(true, token);      // ⏱️ radi usage tracking
-  useSubscriptionCheck();
+  
     console.log("✅ Refreshed Avatar");
 
   // ⏯️ Promena animacija kada dođe poruka

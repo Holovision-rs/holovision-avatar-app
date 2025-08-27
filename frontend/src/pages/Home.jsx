@@ -13,7 +13,7 @@ const Home = () => (
 
   <SpeechProvider>
     <UserSpeech />
-    <LogoutButton /> {/* 👈 Ovde prikazuješ navbar */}
+    <LogoutButton />
     <Loader />
     <Leva collapsed hidden />
     <ChatInterface />

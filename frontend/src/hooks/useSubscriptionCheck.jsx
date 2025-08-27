@@ -5,43 +5,31 @@ import { useAuth } from "../context/AuthContext";
 export function useSubscriptionCheck() {
   const navigate = useNavigate();
   const location = useLocation();
+  const locationRef = useRef(location.pathname); // 🧠 beležimo početnu rutu
   const { token, logout, refreshUser } = useAuth();
-
   const intervalRef = useRef(null);
 
-  useEffect(() => {
-    if (!token || !refreshUser || intervalRef.current) return;
+    useEffect(() => {
+      if (!token || !refreshUser || hasInitializedRef.current) return;
 
-    const checkSubscription = async () => {
-      try {
+      const checkSubscription = async () => {
         const freshUser = await refreshUser();
         console.log("🧠 Refreshed user:", freshUser);
 
         if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
-          console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
-      } catch (err) {
-        console.error("❌ Subscription check error:", err);
-        if (err.status === 401 || err.status === 403) {
-          logout?.();
-          if (location.pathname !== "/login") {
-            navigate("/login");
-          }
-        }
-      }
-    };
+      };
 
-    checkSubscription(); // odmah na mount
+      checkSubscription(); // odmah
 
-    intervalRef.current = setInterval(() => {
-      console.log("⏱️ Running subscription check...");
-      checkSubscription();
-    }, 60000);
+      const intervalId = setInterval(() => {
+        console.log("⏱️ Running subscription check...");
+        checkSubscription();
+      }, 60000);
 
-    return () => {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    };
-  }, [token, refreshUser, logout, location.pathname, navigate]);
+      hasInitializedRef.current = true;
+
+      return () => clearInterval(intervalId);
+    }, [token, refreshUser, logout, navigate]);
 }
