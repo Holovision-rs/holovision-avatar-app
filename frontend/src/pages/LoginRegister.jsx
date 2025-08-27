@@ -52,7 +52,7 @@ const LoginRegister = () => {
       console.log("🧪 User object:", user);
 
       // ✅ Login & save to context + localStorage
-   login(data.token, user);
+      login(data.token, user);
 
       // 🔁 Redirect
       navigate(user.isAdmin ? "/admin" : "/");
@@ -64,77 +64,61 @@ const LoginRegister = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h2>{isLogin ? "Login" : "Register"}</h2>
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-        />
-        <button type="submit" style={styles.button}>
-          {isLogin ? "Login" : "Register"}
-        </button>
-      </form>
-      <p style={{ marginTop: 10 }}>
-        {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-        <button onClick={() => setIsLogin(!isLogin)} style={styles.link}>
-          {isLogin ? "Register" : "Login"}
-        </button>
-      </p>
-      {message && <p>{message}</p>}
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
+        <h2 className="text-3xl font-bold text-center text-white mb-6">
+          {isLogin ? "🔐 Prijava" : "📝 Registracija"}
+        </h2>
+
+        {message && (
+          <p className="text-red-500 text-sm text-center mb-4">{message}</p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Email</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Lozinka</label>
+            <input
+              type="password"
+              placeholder="******"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
+          >
+            {isLogin ? "Prijavi se" : "Registruj se"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-gray-400">
+          {isLogin ? "Nemate nalog?" : "Već imate nalog?"}{" "}
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-blue-400 hover:underline transition"
+          >
+            {isLogin ? "Registrujte se" : "Prijavite se"}
+          </button>
+        </p>
+      </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    maxWidth: "300px",
-    margin: "100px auto",
-    padding: "20px",
-    border: "1px solid #ccc",
-    borderRadius: "10px",
-    textAlign: "center",
-    fontFamily: "sans-serif",
-    backgroundColor: "#f9f9f9",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-  input: {
-    padding: "8px",
-    fontSize: "14px",
-  },
-  button: {
-    padding: "10px",
-    backgroundColor: "#007bff",
-    color: "#fff",
-    fontWeight: "bold",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-  },
-  link: {
-    background: "none",
-    border: "none",
-    color: "#007bff",
-    cursor: "pointer",
-    textDecoration: "underline",
-    fontSize: "14px",
-  },
 };
 
 export default LoginRegister;
