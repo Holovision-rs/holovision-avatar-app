@@ -8,6 +8,7 @@ import { useSpeech } from "../context/SpeechContext";
 import { useAuth } from "../context/AuthContext";        
 import { useNavigate } from "react-router-dom";          
 import { useSessionTimer } from "../hooks/useSessionTimer";
+
 import { useSubscriptionCheck } from "../hooks/useSubscriptionCheck";
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
@@ -35,7 +36,7 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
  
   useSessionTimer(true, token);      // ⏱️ radi usage tracking
-  
+  useSubscriptionCheck();
     console.log("✅ Refreshed Avatar");
 
   // ⏯️ Promena animacija kada dođe poruka
