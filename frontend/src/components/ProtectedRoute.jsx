@@ -1,26 +1,29 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, refreshUser, logout } = useAuth();
   const [status, setStatus] = useState("checking"); // 'checking', 'authorized', 'unauthorized', 'upgrade'
+  const lastRefreshRef = useRef(0);
 
   useEffect(() => {
     const validate = async () => {
+      const now = Date.now();
+      const MIN_INTERVAL = 60000;
+
+      // Ako je već pozvano u poslednjih 60 sekundi, koristi cached user
+      if (now - lastRefreshRef.current < MIN_INTERVAL) {
+        console.log("⏳ ProtectedRoute SKIPPING refreshUser");
+        evaluateUser(user);
+        return;
+      }
+
       try {
         const freshUser = await refreshUser();
         console.log("🔐 ProtectedRoute refreshed user:", freshUser);
-
-        if (!freshUser) {
-          setStatus("unauthorized");
-        } else if (adminOnly && !freshUser.isAdmin) {
-          setStatus("unauthorized");
-        } else if (!adminOnly && freshUser.monthlyPaidMinutes === 0) {
-          setStatus("upgrade");
-        } else {
-          setStatus("authorized");
-        }
+        lastRefreshRef.current = now;
+        evaluateUser(freshUser);
       } catch (err) {
         console.error("❌ ProtectedRoute error:", err);
         logout?.();
@@ -28,8 +31,22 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
       }
     };
 
+    const evaluateUser = (currentUser) => {
+      const safeMinutes = Math.max(currentUser?.monthlyPaidMinutes ?? 0, 0);
+
+      if (!currentUser) {
+        setStatus("unauthorized");
+      } else if (adminOnly && !currentUser.isAdmin) {
+        setStatus("unauthorized");
+      } else if (!adminOnly && safeMinutes <= 0) {
+        setStatus("upgrade");
+      } else {
+        setStatus("authorized");
+      }
+    };
+
     validate();
-  }, [adminOnly, refreshUser, logout]);
+  }, [adminOnly, refreshUser, logout, user]);
 
   if (status === "checking") {
     return (

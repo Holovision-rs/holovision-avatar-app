@@ -73,8 +73,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       const updatedUser = await res.json();
+      updatedUser.monthlyPaidMinutes = Math.max(updatedUser.monthlyPaidMinutes, 0);
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      
       lastRefreshRef.current = now;
 
       return updatedUser;

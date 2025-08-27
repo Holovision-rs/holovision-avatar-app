@@ -24,7 +24,7 @@ export function useSubscriptionCheck() {
         const freshUser = await refreshUser(); // koristi anti-spam zaštitu iz AuthContexta
         console.log("🧠 Refreshed user:", freshUser);
 
-        if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
+        if (freshUser?.monthlyPaidMinutes <= 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
