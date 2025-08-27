@@ -5,46 +5,36 @@ import { useAuth } from "../context/AuthContext";
 export function useSubscriptionCheck() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, token, logout, refreshUser } = useAuth();
+  const { token, logout, refreshUser } = useAuth();
 
-  const intervalRef = useRef(null); // ✅ sprečava više intervala
+  const intervalRef = useRef(null);
 
-  useEffect(() => {
-    console.log("✅ useSubscriptionCheck mounted in", location.pathname);
-  }, []);
-  
-  // Lokalna provera odmah
-  useEffect(() => {
-    if (user?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
-      navigate("/upgrade");
-    }
-  }, [user?.monthlyPaidMinutes, location.pathname, navigate]);
-
-  // Poziva se SAMO jednom ako postoji token
   useEffect(() => {
     if (!token || !refreshUser || intervalRef.current) return;
 
     const checkSubscription = async () => {
       try {
         const freshUser = await refreshUser();
+        console.log("🧠 Refreshed user:", freshUser); // debug
+
         if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
+          console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
       } catch (err) {
+        console.error("❌ Subscription check error:", err);
+
         if (err.status === 401 || err.status === 403) {
           logout?.();
           if (location.pathname !== "/login") {
             navigate("/login");
           }
-        } else {
-          console.error("❌ Subscription check error:", err);
         }
       }
     };
 
     checkSubscription(); // odmah
 
-    // ✅ stabilan interval — samo jedan
     intervalRef.current = setInterval(checkSubscription, 60000);
 
     return () => clearInterval(intervalRef.current);
