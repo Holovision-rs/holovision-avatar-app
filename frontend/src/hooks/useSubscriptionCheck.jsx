@@ -5,8 +5,8 @@ import { useAuth } from "../context/AuthContext";
 export function useSubscriptionCheck() {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationRef = useRef(location.pathname); // 🧠 beležimo početnu rutu
   const { token, logout, refreshUser } = useAuth();
+
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export function useSubscriptionCheck() {
         const freshUser = await refreshUser();
         console.log("🧠 Refreshed user:", freshUser);
 
-        if (freshUser?.monthlyPaidMinutes === 0 && locationRef.current !== "/upgrade") {
+        if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
@@ -25,14 +25,14 @@ export function useSubscriptionCheck() {
         console.error("❌ Subscription check error:", err);
         if (err.status === 401 || err.status === 403) {
           logout?.();
-          if (locationRef.current !== "/login") {
+          if (location.pathname !== "/login") {
             navigate("/login");
           }
         }
       }
     };
 
-    checkSubscription();
+    checkSubscription(); // odmah na mount
 
     intervalRef.current = setInterval(() => {
       console.log("⏱️ Running subscription check...");
@@ -43,5 +43,5 @@ export function useSubscriptionCheck() {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [token, refreshUser, logout, navigate]);
+  }, [token, refreshUser, logout, location.pathname, navigate]);
 }

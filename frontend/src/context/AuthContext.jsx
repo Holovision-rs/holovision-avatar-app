@@ -1,77 +1,64 @@
-import { createContext, useState, useEffect, useContext, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const navigate = useNavigate();
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = (token, userData) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setToken(token);
-    setUser(userData);
-  };
+  const isAuthenticated = !!token;
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
-    navigate("/login");
+    window.location.href = "/login";
   };
-  const refreshUser = async () => {
-  try {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
 
-    if (!res.ok) {
-       console.log("❌ Failed to refresh user"); // debug
-      const error = new Error("Failed to refresh user");
-      error.status = res.status;
-      throw error;
-    }
-     
-    const updatedUser = await res.json();
-    setUser(updatedUser);
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    return updatedUser;
+      if (!res.ok) {
+        console.log("❌ Failed to refresh user");
+        const error = new Error("Failed to refresh user");
+        error.status = res.status;
+        throw error;
+      }
+
+      console.log("🔄 refreshUser CALLED");
+      const updatedUser = await res.json();
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
     } catch (err) {
       throw err;
     }
-  };
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+  }, [token]);
 
   const value = useMemo(() => ({
-  token,
-  user,
-  login,
-  logout,
-  refreshUser,
-}), [token, user]);
+    token,
+    user,
+    isAuthenticated,
+    logout,
+    refreshUser,
+  }), [token, user, isAuthenticated, logout, refreshUser]);
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}
