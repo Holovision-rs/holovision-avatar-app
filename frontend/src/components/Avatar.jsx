@@ -35,8 +35,8 @@ export function Avatar(props) {
   const [setupMode, setSetupMode] = useState(false);
  
   useSessionTimer(true, token);      // ⏱️ radi usage tracking
-  useSubscriptionCheck();            // ✅ aktivira proveru pretplate
-
+  //useSubscriptionCheck();            // ✅ aktivira proveru pretplate
+    console.log("✅ Refreshed Avatar");
 
   // ⏯️ Promena animacija kada dođe poruka
   useEffect(() => {
