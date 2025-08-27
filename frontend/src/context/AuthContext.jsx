@@ -42,8 +42,6 @@ export const AuthProvider = ({ children }) => {
      
     const updatedUser = await res.json();
     setUser(updatedUser);
-    
-    console.log("updatedUser",JSON.stringify(updatedUser)); // debug
 
     localStorage.setItem("user", JSON.stringify(updatedUser));
     return updatedUser;
