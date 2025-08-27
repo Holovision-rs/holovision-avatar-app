@@ -10,8 +10,7 @@ export function useSubscriptionCheck() {
   const intervalRef = useRef(null);
 
     useEffect(() => {
-    console.log("hasInitializedRef.current:", hasInitializedRef.current);
-      if (!token || !refreshUser || hasInitializedRef.current) return;
+      if (!token || !refreshUser ) return;
 
       const checkSubscription = async () => {
         const freshUser = await refreshUser();
@@ -29,7 +28,7 @@ export function useSubscriptionCheck() {
         checkSubscription();
       }, 60000);
 
-      hasInitializedRef.current = true;
+      .current = true;
 
       return () => clearInterval(intervalId);
     }, [token, refreshUser, logout, navigate]);
