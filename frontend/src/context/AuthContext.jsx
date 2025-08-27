@@ -1,29 +1,34 @@
-import { createContext, useState, useEffect, useContext, useMemo, useCallback, useRef } from "react";
+import {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  const lastRefreshRef = useRef(0); // 🕒 Čuva vreme poslednjeg refresh-a
+  const lastRefreshRef = useRef(0);
+  const isRefreshingRef = useRef(false);
 
-  // 🔐 Login
-  const login = (newToken, userData) => {
-    localStorage.setItem("token", newToken);
+  const login = (token, userData) => {
+    localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userData));
-    setToken(newToken);
+    setToken(token);
     setUser(userData);
-    lastRefreshRef.current = 0; // resetuj vreme osvežavanja
   };
 
-  // 🔓 Logout
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -32,22 +37,33 @@ export const AuthProvider = ({ children }) => {
     navigate("/login");
   };
 
-  // 🔄 Refresh user, sa kontrolom frekvencije i opcijom forsiranja
   const refreshUser = useCallback(async (force = false) => {
     const now = Date.now();
-    const MIN_INTERVAL = 60 * 1000; // 60 sekundi
+    const MIN_INTERVAL = 60 * 1000;
 
     if (!force && now - lastRefreshRef.current < MIN_INTERVAL) {
       console.log("⏳ refreshUser SKIPPED (previše često)");
       return user;
     }
 
+    if (isRefreshingRef.current) {
+      console.log("⏳ refreshUser already running, skipping");
+      return user;
+    }
+
+    isRefreshingRef.current = true;
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      console.log("🔄 refreshUser CALLED");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!res.ok) {
         console.log("❌ Failed to refresh user");
@@ -56,19 +72,20 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
 
-      console.log("🔄 refreshUser CALLED");
       const updatedUser = await res.json();
       setUser(updatedUser);
       localStorage.setItem("user", JSON.stringify(updatedUser));
       lastRefreshRef.current = now;
+
       return updatedUser;
-
     } catch (err) {
+      console.error("❌ refreshUser ERROR:", err);
       throw err;
+    } finally {
+      isRefreshingRef.current = false;
     }
-  }, [token, user]);
+  }, [token]);
 
-  // ♻️ Prilikom mountovanja
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
@@ -76,25 +93,23 @@ export const AuthProvider = ({ children }) => {
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
-      lastRefreshRef.current = 0; // resetujemo refresh timer pri reloadu
     }
-  }, [token]);
+  }, []);
 
-  // 📦 Sve vrednosti za kontekst
-  const value = useMemo(() => ({
-    token,
-    user,
-    login,
-    logout,
-    refreshUser,
-  }), [token, user, refreshUser]);
+  const value = useMemo(
+    () => ({
+      token,
+      user,
+      login,
+      logout,
+      refreshUser,
+    }),
+    [token, user, refreshUser]
+  );
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };
 
-// ✅ Hook za korišćenje auth konteksta
 export const useAuth = () => useContext(AuthContext);

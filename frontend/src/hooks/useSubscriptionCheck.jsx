@@ -8,13 +8,21 @@ export function useSubscriptionCheck() {
   const { token, logout, refreshUser } = useAuth();
 
   const intervalRef = useRef(null);
+  const isChecking = useRef(false);
 
   useEffect(() => {
     if (!token || !refreshUser) return;
 
     const checkSubscription = async () => {
+      if (isChecking.current) {
+        console.log("⏳ checkSubscription skipped (already running)");
+        return;
+      }
+
+      isChecking.current = true;
       try {
-        const freshUser = await refreshUser();
+        const freshUser = await refreshUser(); // koristi anti-spam zaštitu iz AuthContexta
+        console.log("🧠 Refreshed user:", freshUser);
 
         if (freshUser?.monthlyPaidMinutes === 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
@@ -28,6 +36,8 @@ export function useSubscriptionCheck() {
             navigate("/login");
           }
         }
+      } finally {
+        isChecking.current = false;
       }
     };
 
@@ -35,7 +45,7 @@ export function useSubscriptionCheck() {
 
     intervalRef.current = setInterval(() => {
       console.log("⏱️ Running subscription check...");
-      checkSubscription();
+      checkSubscription(); // koristi zaštitu unutar
     }, 60000);
 
     return () => {
