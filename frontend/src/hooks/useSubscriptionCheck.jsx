@@ -11,9 +11,9 @@ export function useSubscriptionCheck() {
   const isChecking = useRef(false);
 
   useEffect(() => {
-  console.log("💡 freshUser.monthlyPaidMinutes = iznad", freshUser?.monthlyPaidMinutes);
+  console.log("💡 freshUser.monthlyPaidMinutes = iznad");
     if (!token || !refreshUser) return;
-console.log("💡 freshUser.monthlyPaidMinutes =ispod", freshUser?.monthlyPaidMinutes);
+
     const checkSubscription = async () => {
       if (isChecking.current) {
         console.log("⏳ checkSubscription skipped (already running)");
@@ -23,7 +23,7 @@ console.log("💡 freshUser.monthlyPaidMinutes =ispod", freshUser?.monthlyPaidMi
       isChecking.current = true;
       try {
         const freshUser = await refreshUser(); // koristi anti-spam zaštitu iz AuthContexta
-      
+      console.log("💡 freshUser.monthlyPaidMinutes =ispod", freshUser?.monthlyPaidMinutes);
 
         const safeMinutes = Math.max(parseInt(freshUser?.monthlyPaidMinutes ?? 0, 10), 0);
         if (safeMinutes <= 0 && location.pathname !== "/upgrade") {
