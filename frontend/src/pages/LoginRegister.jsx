@@ -18,7 +18,6 @@ const LoginRegister = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("🧪 Submitting login/register form", { email, password });
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
 
     try {

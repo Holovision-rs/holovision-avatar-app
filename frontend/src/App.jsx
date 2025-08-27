@@ -8,7 +8,6 @@ import DesktopDashboard from "./components/DesktopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import Upgrade from "./pages/Upgrade";
-import { useSubscriptionCheck } from "./hooks/useSubscriptionCheck";
 
 const App = () => {
   const isMobile = useMediaQuery({ maxWidth: 767 });

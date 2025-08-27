@@ -34,54 +34,10 @@ export function Avatar(props) {
   const [audio, setAudio] = useState();
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
-
+console.log("🧩 Avatar.jsx RENDERED");
   useSessionTimer(true, token);
     // ✅ SUBSCRIPTION CHECK
   useSubscriptionCheck();
- 
-  // ✅ SESSION TIME LOG
-  useEffect(() => {
-    const startTime = Date.now();
-
-    const sendUsageData = () => {
-      const now = Date.now();
-      const durationMs = now - startTime;
-      const minutes = Math.floor(durationMs / 60000);
-
-      if (minutes > 0 && token) {
-        const data = JSON.stringify({
-          timestamp: new Date().toISOString(),
-          minutes,
-        });
-
-        navigator.sendBeacon(
-          `${BACKEND_URL}/api/me/usage-log`,
-          new Blob([data], { type: "application/json" })
-        );
-
-        fetch(`${BACKEND_URL}/api/me/usage-log`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: data,
-        }).catch((err) => {
-          console.error("Greška pri slanju usage log:", err);
-        });
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      sendUsageData();
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      sendUsageData();
-    };
-  }, []);
 
   // ⏯️ Promena animacija kada dođe poruka
   useEffect(() => {
