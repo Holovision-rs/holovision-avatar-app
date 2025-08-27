@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     navigate("/login");
   };
-const refreshUser = useCallback(async () => {
+  const refreshUser = async () => {
   try {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/me`, {
       headers: {
@@ -34,24 +34,22 @@ const refreshUser = useCallback(async () => {
     });
 
     if (!res.ok) {
-      console.log("❌ Failed to refresh user");
+       console.log("❌ Failed to refresh user"); // debug
       const error = new Error("Failed to refresh user");
       error.status = res.status;
       throw error;
     }
-
-    console.log("🔄 refreshUser CALLED");
-    console.trace(); // vidi ko ga zove
-
+  console.log("🔄 refreshUser CALLED");
+  console.trace(); // pokazaće ti stack trace u browser konzoli
     const updatedUser = await res.json();
     setUser(updatedUser);
+
     localStorage.setItem("user", JSON.stringify(updatedUser));
     return updatedUser;
-  } catch (err) {
-    throw err;
-  }
-}, [token]);
-
+    } catch (err) {
+      throw err;
+    }
+  };
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
