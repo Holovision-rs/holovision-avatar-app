@@ -9,8 +9,6 @@ export function useSubscriptionCheck() {
   const intervalRef = useRef(null); 
 
   useEffect(() => {
-    if (!token || !refreshUser) return;
-
     const checkSubscription = async () => {
       try {
         const freshUser = await refreshUser();
