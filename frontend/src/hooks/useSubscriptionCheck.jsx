@@ -10,6 +10,9 @@ export function useSubscriptionCheck() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
+   console.log("🧠 Refreshed user:", token); // debug
+    console.log("🧠 Refreshed refreshUser:", refreshUser ); // debug
+     console.log("🧠 Refreshed intervalRef.current:",intervalRef.current); // debug
     if (!token || !refreshUser || intervalRef.current) return;
 
     const checkSubscription = async () => {
