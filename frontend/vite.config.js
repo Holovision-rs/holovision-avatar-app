@@ -9,5 +9,8 @@ export default defineConfig({
   },
   server: {
     historyApiFallback: true, // 🔁 važno za SPA routing
+  	watch: {
+	    usePolling: true
+ 	},
   },
 });

@@ -8,9 +8,6 @@ export function useSubscriptionCheck() {
   const { token, logout, refreshUser } = useAuth();
 
   const intervalRef = useRef(null);
- console.log("🚀 useSubscriptionCheck() CALLED");
- console.log("🧠 Refreshed user:", token); // debug
- console.log("🧠 Refreshed refreshUser:", refreshUser ); // debug
  console.log("🧠 Refreshed intervalRef.current:",intervalRef.current); // debug
   useEffect(() => {
 

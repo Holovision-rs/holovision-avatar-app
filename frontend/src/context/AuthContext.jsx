@@ -34,13 +34,17 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!res.ok) {
+       console.log("❌ Failed to refresh user"); // debug
       const error = new Error("Failed to refresh user");
       error.status = res.status;
       throw error;
     }
-
+     
     const updatedUser = await res.json();
     setUser(updatedUser);
+    
+    console.log("updatedUser",JSON.stringify(updatedUser)); // debug
+
     localStorage.setItem("user", JSON.stringify(updatedUser));
     return updatedUser;
     } catch (err) {
