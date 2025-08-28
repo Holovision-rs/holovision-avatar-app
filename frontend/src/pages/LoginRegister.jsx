@@ -63,7 +63,12 @@ const LoginRegister = () => {
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
       login(data.token, user);
-      navigate(user.isAdmin ? "/admin" : "/");
+      
+      if (user.monthlyPaidMinutes <= 0) {
+          navigate("/upgrade");
+        } else {
+          navigate(user.isAdmin ? "/admin" : "/");
+        }
 
     } catch (err) {
       setMessage(`❌ ${err.message}`);
