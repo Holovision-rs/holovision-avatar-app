@@ -163,10 +163,12 @@ const LoginRegister = () => {
           alt="Futuristic Robot"
           className="max-h-[90%] object-contain"
         />
-          <h1 className="absolute text-white font-bold text-6xl top-60 left-60">
+        <div  className="absolute top-60 left-60">
+          <h1 className="text-white font-bold text-6xl">
               Welcome.
           </h1>
-          <p className="absolute text-white font-bold top-60 left-60">Join the Holovision community.</p>
+          <p className="text-white font-bold">Join the Holovision community.</p>
+        </div>
       </div>
     </div>
   );
