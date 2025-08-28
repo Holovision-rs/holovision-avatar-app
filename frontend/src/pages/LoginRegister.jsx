@@ -87,7 +87,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
+    <div className="flex items-center justify-center px-4 overflow-hidden" > 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
