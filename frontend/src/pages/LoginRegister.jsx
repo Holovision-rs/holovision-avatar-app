@@ -27,6 +27,7 @@ const LoginRegister = () => {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const height = useWindowHeight(); 
+  const [avatarSeed] = useState(() => Math.random().toString(36).substring(7));
 
   useEffect(() => {
     console.log("🟢 LoginRegister komponenta učitana");
@@ -71,7 +72,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="h-[100dvh] flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
+    <div className="flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -80,8 +81,10 @@ const LoginRegister = () => {
       >
 
       <div className="flex justify-center mb-4">
-        <img src="https://api.dicebear.com/9.x/bottts/svg" alt="Avatar"
-              className="w-20 h-20 rounded-full shadow-md"
+        <img
+          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
+          alt="Avatar"
+          className="w-20 h-20 mx-auto mb-6"
         />
       </div>
         <h2 className="text-3xl font-bold text-center text-white mb-6">
