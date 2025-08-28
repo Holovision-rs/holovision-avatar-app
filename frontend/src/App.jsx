@@ -1,7 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import LoginRegister from "./pages/LoginRegister";
+import LoginRegisterDesktop from "./pages/desktop/LoginRegisterDesktop";
+import LoginRegisterMobile from "./pages/mobile/LoginRegisterMobile";
 import { useMediaQuery } from "react-responsive";
 import MobileDashboard from "./components/MobileDashboard";
 import DesktopDashboard from "./components/DesktopDashboard";
@@ -16,7 +17,9 @@ const App = () => {
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginRegister />} />
+          <Route path="/login" element=
+             {isMobile ? <LoginRegisterMobile /> : <LoginRegisterDesktop />}
+           />
           <Route
             path="/"
             element={
