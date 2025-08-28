@@ -138,7 +138,7 @@ const LoginRegister = () => {
 
             <button
               type="submit"
-              className="w-full py-3 text-white font-semibold bg-pink-600 hover:bg-pink-700 rounded-md transition"
+              className="w-full py-3  bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
             >
               {isLogin ? "Sign in" : "Sign up"}
             </button>
