@@ -17,7 +17,17 @@ const LoginRegister = () => {
   useEffect(() => {
     console.log("🟢 LoginRegister komponenta učitana");
   }, []);
+  function useWindowHeight() {
+  const [height, setHeight] = useState(window.innerHeight);
 
+  useEffect(() => {
+    const handleResize = () => setHeight(window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+    return height;
+  }
   const handleSubmit = async (e) => {
     e.preventDefault();
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
@@ -58,7 +68,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 overflow-hidden">
+    <div className="h-[100dvh] flex items-center justify-center px-4 overflow-hidden"  style={{ height: height }}> 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
