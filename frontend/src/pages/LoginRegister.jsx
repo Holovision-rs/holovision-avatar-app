@@ -66,7 +66,7 @@ const LoginRegister = () => {
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
+      <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-8">
         <h2 className="text-3xl font-bold text-center text-white mb-6">
         {isLogin ? (
           <span className="inline-flex items-center gap-2">

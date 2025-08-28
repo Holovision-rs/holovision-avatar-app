@@ -29,3 +29,6 @@ body {
     --tw-bg-opacity: 1;
     background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1)) !important;
 }
+.white-shadow{
+    box-shadow: 0 0 10px 2px #ffffff73, 0 0 14px 2px #751ae00a, var(--tw-shadow);
+}
