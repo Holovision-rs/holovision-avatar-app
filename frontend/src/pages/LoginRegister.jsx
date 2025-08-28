@@ -62,11 +62,14 @@ const LoginRegister = () => {
       const user = await meRes.json();
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
+      const paid = Number(user?.monthlyPaidMinutes) || 0;
+      const used = Number(user?.monthlyUsageMinutes) || 0;
+      const remaining = paid - used;
+
       login(data.token, user);
-      console.log("📊 Logged-in user:", user);
-      console.log("⏱️ Remaining minutes:", user.monthlyPaidMinutes);
-      
-      if (user.monthlyPaidMinutes <= 0) {
+      console.log("⏱️ Remaining minutes:", remaining);
+
+      if (remaining <= 0) {
           navigate("/upgrade");
         } else {
           navigate(user.isAdmin ? "/admin" : "/");

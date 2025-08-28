@@ -11,22 +11,21 @@ export function useSubscriptionCheck() {
   const isChecking = useRef(false);
 
   useEffect(() => {
-  console.log("💡 freshUser.monthlyPaidMinutes = iznad");
+
     if (!token || !refreshUser) return;
 
     const checkSubscription = async () => {
       if (isChecking.current) {
-        console.log("⏳ checkSubscription skipped (already running)");
         return;
       }
-
       isChecking.current = true;
       try {
-        const freshUser = await refreshUser(); // koristi anti-spam zaštitu iz AuthContexta
-      console.log("💡 freshUser.monthlyPaidMinutes =ispod", freshUser?.monthlyPaidMinutes);
+        const freshUser = await refreshUser(); 
+        const paid = Number(user?.monthlyPaidMinutes) || 0;
+        const used = Number(user?.monthlyUsageMinutes) || 0;
+        const remaining = paid - used;
 
-        const safeMinutes = Math.max(parseInt(freshUser?.monthlyPaidMinutes ?? 0, 10), 0);
-        if (safeMinutes <= 0 && location.pathname !== "/upgrade") {
+        if (remaining <= 0 && location.pathname !== "/upgrade") {
           console.warn("🚨 Redirecting to /upgrade");
           navigate("/upgrade");
         }
