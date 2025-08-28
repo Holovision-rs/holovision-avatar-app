@@ -17,7 +17,7 @@ function useWindowHeight() {
   return height;
 }
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const LoginRegister = () => {
   const { login } = useAuth();
@@ -60,13 +60,15 @@ const LoginRegister = () => {
       });
 
       const user = await meRes.json();
+
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
+
+      login(data.token, user);
 
       const paid = Number(user?.monthlyPaidMinutes) || 0;
       const used = Number(user?.monthlyUsageMinutes) || 0;
       const remaining = paid - used;
 
-      login(data.token, user);
       console.log("⏱️ Remaining minutes:", remaining);
 
       if (remaining <= 0) {
