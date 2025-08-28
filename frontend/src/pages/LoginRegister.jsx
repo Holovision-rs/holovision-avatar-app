@@ -108,7 +108,7 @@ const LoginRegister = () => {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
-          {isLogin ? "Register" : "Login"}{" "}
+          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="text-blue-400 hover:underline transition"
