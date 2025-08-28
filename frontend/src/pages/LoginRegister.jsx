@@ -87,82 +87,73 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 overflow-hidden" > 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full p-8 flex flex-col justify-center" >
+   <div className="w-screen h-screen overflow-hidden bg-black flex items-center justify-center">
+  <div className="w-[90vw] max-w-sm bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8 shadow-xl">
+    <div className="flex justify-center mb-4">
+      <img
+        src="https://avatars.dicebear.com/api/bottts/example.svg"
+        alt="Avatar"
+        className="w-16 h-16"
+      />
+    </div>
+    <h2 className="text-2xl font-bold text-center text-white mb-6">
+      {isLogin ? (
+        <span className="inline-flex items-center gap-2">
+          <ShieldCheck size={22} className="text-white" />
+          Sign in
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-2">
+          <ShieldPlus size={22} className="text-white" />
+          Sign up
+        </span>
+      )}
+    </h2>
 
-      <div className="flex justify-center mb-4">
-        <img
-          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
-          alt="Avatar"
-          className="mx-auto mb-4 w-20 h-20" 
+    {message && (
+      <p className="text-red-500 text-sm text-center mb-4">{message}</p>
+    )}
+
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm text-gray-300 mb-1">Email</label>
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
-        <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? (
-            <span className="inline-flex items-center gap-2">
-             
-              Sign in
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2">
-             
-               Sign up
-            </span>
-          )}
-        </h2>
+      <div>
+        <label className="block text-sm text-gray-300 mb-1">Password</label>
+        <input
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+      <button
+        type="submit"
+        className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
+      >
+        {isLogin ? "Sign in" : "Sign up"}
+      </button>
+    </form>
 
-        {message && (
-          <p className="text-red-500 text-sm text-center mb-4">{message}</p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="******"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
-          >
-            {isLogin ? "Sign in" : "Sign up"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-400">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-400 hover:underline transition"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
-        </p>
-      </motion.div>
-    </div>
+    <p className="mt-6 text-center text-sm text-gray-400">
+      {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+      <button
+        onClick={() => setIsLogin(!isLogin)}
+        className="text-blue-400 hover:underline transition"
+      >
+        {isLogin ? "Sign up" : "Sign in"}
+      </button>
+    </p>
+  </div>
+</div>
   );
 };
 
