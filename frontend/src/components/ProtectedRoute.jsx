@@ -52,9 +52,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   if (status === "checking") {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100vh" }}>
-        <p style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-        <ShieldAlert  color="white" size={26} /> Checking access...
-        </p>
+        <p className="text-white text-lg font-bold flex items-center gap-2">
+  				<ShieldAlert color="white" size={26} /> Checking access...
+		</p>
       </div>
     );
   }
