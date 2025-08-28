@@ -70,12 +70,12 @@ const LoginRegister = () => {
         <h2 className="text-3xl font-bold text-center text-white mb-6">
         {isLogin ? (
           <span className="inline-flex items-center gap-2">
-            <ShieldCheck color="white" size={20} />
+            <ShieldCheck color="white" size={26} />
             Sign in
           </span>
         ) : (
           <span className="inline-flex items-center gap-2">
-            <ShieldPlus color="white" size={20} />
+            <ShieldPlus color="white" size={26} />
             Sign up
           </span>
         )}
