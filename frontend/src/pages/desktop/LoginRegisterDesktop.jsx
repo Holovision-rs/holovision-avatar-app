@@ -155,13 +155,7 @@ const LoginRegister = () => {
           </p>
         </motion.div>
       </div>
-
-      {/* Srednja vertikalna senka kao razdvajanje */}
-      <div className="w-2 h-[70%] bg-gradient-to-r from-black/40 to-transparent rounded-full shadow-xl hidden md:block"></div>
-
-      {/* Desna strana - robot ili animacija */}
-      <div className="hidden md:flex flex-col justify-end items-center h-full pb-10">
-        {/* Ovo može biti slika robota */}
+      <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
         <img
           src="/robot.png" // koristi tačan path
           alt="Futuristic Robot"
