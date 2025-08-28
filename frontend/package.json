@@ -21,7 +21,8 @@
     "react-responsive": "^9.0.0",
     "three": "^0.178.0",
     "recharts": "^2.9.0",
-    "lucide-react": "^0.350.0"
+    "lucide-react": "^0.350.0",
+     "framer-motion": "^11.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

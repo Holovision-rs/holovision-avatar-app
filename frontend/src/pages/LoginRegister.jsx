@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ShieldCheck, ShieldPlus } from "lucide-react";
+import { motion } from "framer-motion";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
@@ -40,22 +41,14 @@ const LoginRegister = () => {
       if (!response.ok) throw new Error(data.message);
       if (!data.token) throw new Error("No token received");
 
-      // Fetch user data
       const meRes = await fetch(`${BACKEND_URL}/api/me`, {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-        },
+        headers: { Authorization: `Bearer ${data.token}` },
       });
 
       const user = await meRes.json();
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
-      console.log("🧪 User object:", user);
-
-      // ✅ Login & save to context + localStorage
       login(data.token, user);
-
-      // 🔁 Redirect
       navigate(user.isAdmin ? "/admin" : "/");
 
     } catch (err) {
@@ -65,20 +58,25 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-8">
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-md sm:scale-100 scale-[0.95] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-8"
+      >
         <h2 className="text-3xl font-bold text-center text-white mb-6">
-        {isLogin ? (
-          <span className="inline-flex items-center gap-2">
-            <ShieldCheck color="white" size={26} />
-            Sign in
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-2">
-            <ShieldPlus color="white" size={26} />
-            Sign up
-          </span>
-        )}
+          {isLogin ? (
+            <span className="inline-flex items-center gap-2">
+              <ShieldCheck color="white" size={26} />
+              Sign in
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <ShieldPlus color="white" size={26} />
+              Sign up
+            </span>
+          )}
         </h2>
 
         {message && (
@@ -127,7 +125,7 @@ const LoginRegister = () => {
             {isLogin ? "Sign up" : "Sign in"}
           </button>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 };
