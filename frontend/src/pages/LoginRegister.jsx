@@ -87,7 +87,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] w-screen  overflow-hidden bg-black flex items-center justify-center px-4">
+    <div style={{ height }} className="w-screen  overflow-hidden bg-black flex items-center justify-center">
       <motion.div className="w-[90%] max-w-mdm bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8  flex flex-col items-center">
         <div className="flex justify-center mb-4">
           <img
