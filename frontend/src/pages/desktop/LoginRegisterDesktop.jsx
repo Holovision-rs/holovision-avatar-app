@@ -89,7 +89,7 @@ const LoginRegister = () => {
   return (
  <div
       className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 sm:px-12"
-      style={{ backgroundImage: "url('/login-bg.png')" }} // koristi pravo ime slike
+      style={{ backgroundImage: "url('/styles/background.png')" }} // koristi pravo ime slike
     >
       {/* Leva strana - login forma */}
       <div className="flex flex-col justify-center max-w-sm w-full space-y-6 z-10">
@@ -163,7 +163,7 @@ const LoginRegister = () => {
       <div className="hidden md:flex flex-col justify-end items-center h-full pb-10">
         {/* Ovo može biti slika robota */}
         <img
-          src="/robot.png" // koristi tačan path
+          src="/styles/robot.png" // koristi tačan path
           alt="Futuristic Robot"
           className="max-h-[90%] object-contain"
         />
