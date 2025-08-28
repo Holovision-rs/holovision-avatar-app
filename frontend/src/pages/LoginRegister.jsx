@@ -89,7 +89,7 @@ const LoginRegister = () => {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Lozinka</label>
+            <label className="block text-sm text-gray-300 mb-1">Password</label>
             <input
               type="password"
               placeholder="******"
