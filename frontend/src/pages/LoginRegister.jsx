@@ -65,16 +65,22 @@ const LoginRegister = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-[65vw] h-[65vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-4 flex flex-col justify-center"
       >
+
+      <div className="flex justify-center mb-4">
+        <img src="https://avatars.dicebear.com/api/avataaars/holouser.svg" alt="Avatar"
+              className="w-20 h-20 rounded-full border-2 border-white shadow-md"
+        />
+      </div>
         <h2 className="text-3xl font-bold text-center text-white mb-6">
           {isLogin ? (
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck color="white" size={26} />
+             
               Sign in
             </span>
           ) : (
             <span className="inline-flex items-center gap-2">
-              <ShieldPlus color="white" size={26} />
-              Sign up
+             
+               Sign up
             </span>
           )}
         </h2>
