@@ -73,12 +73,12 @@ const LoginRegister = () => {
       console.log("⏱️ Remaining minutes:", remaining);
 
       if (user.isAdmin) {
-        navigate("/admin");
-      } else if (remaining <= 0) {
-        navigate("/account");
-      } else {
-        navigate("/");
-      }
+          navigate("/admin");
+        } else if (remaining <= 0) {
+          navigate("/account");
+        } else {
+          navigate("/");
+        }
 
     } catch (err) {
       setMessage(`❌ ${err.message}`);
@@ -87,25 +87,31 @@ const LoginRegister = () => {
   };
 
   return (
-    <div style={{ height }} className="w-screen  overflow-hidden bg-black flex items-center justify-center">
-      <motion.div className="w-[90%] max-w-mdm bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8  flex flex-col items-center">
-        <div className="flex justify-center mb-4">
-          <img
-              src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
-              alt="Avatar"
-              className="mx-auto mb-4 w-20 h-20" 
-            />
-        </div>
-        <h2 className="text-2xl font-bold text-center text-white mb-6">
+    <div className="flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-[75vw] h-[100vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-4 flex flex-col justify-center"
+      >
+
+      <div className="flex justify-center mb-4">
+        <img
+          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
+          alt="Avatar"
+          className="w-20 h-20 mx-auto mb-6"
+        />
+      </div>
+        <h2 className="text-3xl font-bold text-center text-white mb-6">
           {isLogin ? (
             <span className="inline-flex items-center gap-2">
-            
+             
               Sign in
             </span>
           ) : (
             <span className="inline-flex items-center gap-2">
-              <ShieldPlus size={22} className="text-white" />
-              Sign up
+             
+               Sign up
             </span>
           )}
         </h2>
@@ -114,32 +120,34 @@ const LoginRegister = () => {
           <p className="text-red-500 text-sm text-center mb-4">{message}</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm text-gray-300 mb-1">Email</label>
             <input
               type="email"
-               placeholder="you@example.com"
+              placeholder="you@example.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
           <div>
             <label className="block text-sm text-gray-300 mb-1">Password</label>
             <input
               type="password"
-               placeholder="******"
+              placeholder="******"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
+            className="w-full py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
           >
             {isLogin ? "Sign in" : "Sign up"}
           </button>
