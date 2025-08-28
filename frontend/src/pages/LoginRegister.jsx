@@ -58,7 +58,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4 overflow-hidden white-shadow">
+    <div className="min-h-screen flex items-center justify-center px-4 overflow-hidden white-shadow">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
