@@ -24,6 +24,7 @@ const LoginRegister = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const height = useWindowHeight(); 
@@ -126,7 +127,18 @@ const LoginRegister = () => {
                 className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
             </div>
-
+            <div>
+            {!isLogin && (
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              )}
+            </div>
             <div>
               <input
                 type="password"
