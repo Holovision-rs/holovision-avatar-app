@@ -32,6 +32,7 @@ const LoginRegister = () => {
   useEffect(() => {
     console.log("🟢 LoginRegister komponenta učitana");
   }, []);
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
@@ -71,11 +72,13 @@ const LoginRegister = () => {
 
       console.log("⏱️ Remaining minutes:", remaining);
 
-      if (remaining <= 0) {
-          navigate("/account");
-        } else {
-          navigate(user.isAdmin ? "/admin" : "/");
-        }
+      if (user.isAdmin) {
+        navigate("/admin");
+      } else if (remaining <= 0) {
+        navigate("/account");
+      } else {
+        navigate("/");
+      }
 
     } catch (err) {
       setMessage(`❌ ${err.message}`);
