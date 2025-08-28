@@ -108,7 +108,9 @@ const LoginRegister = () => {
           <h2 className="text-3xl font-bold text-white text-center">
             {isLogin ? "Sign in" : "Sign up"}
           </h2>
-
+            <p className="text-center text-sm text-white"> 
+            Enter your details to sign in to your avatar account.
+            </p>
           {message && (
             <p className="text-red-500 text-sm text-center">{message}</p>
           )}
@@ -117,7 +119,7 @@ const LoginRegister = () => {
             <div>
               <input
                 type="email"
-                placeholder="you@example.com"
+                placeholder="Enter your email address"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -128,7 +130,7 @@ const LoginRegister = () => {
             <div>
               <input
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
