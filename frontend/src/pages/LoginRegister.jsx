@@ -92,8 +92,7 @@ const LoginRegister = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="p-4 flex flex-col justify-center"
-      >
+        className="w-full p-6 flex flex-col justify-center" >
 
       <div className="flex justify-center mb-4">
         <img
