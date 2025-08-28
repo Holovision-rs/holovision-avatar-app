@@ -4,6 +4,19 @@ import { useAuth } from "../context/AuthContext";
 import { ShieldCheck, ShieldPlus } from "lucide-react";
 import { motion } from "framer-motion";
 
+// ✅ Hook za dinamicku visinu
+function useWindowHeight() {
+  const [height, setHeight] = useState(window.innerHeight);
+
+  useEffect(() => {
+    const handleResize = () => setHeight(window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return height;
+}
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
 const LoginRegister = () => {
@@ -13,21 +26,11 @@ const LoginRegister = () => {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const height = useWindowHeight(); 
 
   useEffect(() => {
     console.log("🟢 LoginRegister komponenta učitana");
   }, []);
-  function useWindowHeight() {
-  const [height, setHeight] = useState(window.innerHeight);
-
-  useEffect(() => {
-    const handleResize = () => setHeight(window.innerHeight);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-    return height;
-  }
   const handleSubmit = async (e) => {
     e.preventDefault();
     const endpoint = isLogin ? `${BACKEND_URL}/api/login` : `${BACKEND_URL}/api/register`;
@@ -68,7 +71,7 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="h-[100dvh] flex items-center justify-center px-4 overflow-hidden"  style={{ height: height }}> 
+    <div className="h-[100dvh] flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
