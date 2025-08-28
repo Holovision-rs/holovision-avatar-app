@@ -67,8 +67,8 @@ const LoginRegister = () => {
       >
 
       <div className="flex justify-center mb-4">
-        <img src="https://avatars.dicebear.com/api/avataaars/holouser.svg" alt="Avatar"
-              className="w-20 h-20 rounded-full border-2 border-white shadow-md"
+        <img src="https://api.dicebear.com/9.x/bottts/svg" alt="Avatar"
+              className="w-20 h-20 rounded-full shadow-md"
         />
       </div>
         <h2 className="text-3xl font-bold text-center text-white mb-6">
