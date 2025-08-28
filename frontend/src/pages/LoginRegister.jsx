@@ -63,6 +63,8 @@ const LoginRegister = () => {
       if (!meRes.ok) throw new Error(user.message || "Failed to fetch user");
 
       login(data.token, user);
+      console.log("📊 Logged-in user:", user);
+      console.log("⏱️ Remaining minutes:", user.monthlyPaidMinutes);
       
       if (user.monthlyPaidMinutes <= 0) {
           navigate("/upgrade");
