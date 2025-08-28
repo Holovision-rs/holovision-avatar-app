@@ -67,7 +67,7 @@ const LoginRegister = () => {
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? "🔐 Prijava" : "📝 Registracija"}
+          {isLogin ? "🔐 Login" : "📝 Register"}
         </h2>
 
         {message && (
@@ -103,17 +103,17 @@ const LoginRegister = () => {
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
           >
-            {isLogin ? "Prijavi se" : "Registruj se"}
+            {isLogin ? "Login" : "Register"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
-          {isLogin ? "Nemate nalog?" : "Već imate nalog?"}{" "}
+          {isLogin ? "Register" : "Login"}{" "}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="text-blue-400 hover:underline transition"
           >
-            {isLogin ? "Registrujte se" : "Prijavite se"}
+            {isLogin ? "Register" : "Login"}
           </button>
         </p>
       </div>
