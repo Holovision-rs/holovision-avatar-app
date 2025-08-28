@@ -100,11 +100,6 @@ const LoginRegister = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="w-full space-y-4"
         >
-          <img
-            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
-            alt="Avatar"
-            className="w-20 h-20 mx-auto"
-          />
 
           <h2 className="text-3xl font-bold text-white text-center">
             {isLogin ? "Sign in" : "Sign up"}
