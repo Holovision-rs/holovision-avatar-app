@@ -88,13 +88,13 @@ const LoginRegister = () => {
 
   return (
    <div className="w-screen h-screen overflow-hidden bg-black flex items-center justify-center">
-  <div className="w-[90vw] max-w-sm bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8 shadow-xl">
+  <motion.div className="w-[90vw] max-w-sm bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8">
     <div className="flex justify-center mb-4">
       <img
-        src="https://avatars.dicebear.com/api/bottts/example.svg"
-        alt="Avatar"
-        className="w-16 h-16"
-      />
+          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
+          alt="Avatar"
+          className="mx-auto mb-4 w-20 h-20" 
+        />
     </div>
     <h2 className="text-2xl font-bold text-center text-white mb-6">
       {isLogin ? (
@@ -152,7 +152,7 @@ const LoginRegister = () => {
         {isLogin ? "Sign up" : "Sign in"}
       </button>
     </p>
-  </div>
+  </motion.div>
 </div>
   );
 };
