@@ -87,82 +87,87 @@ const LoginRegister = () => {
   };
 
   return (
-    <div className="flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-[75vw] h-[100vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-4 flex flex-col justify-center"
-      >
+ <div
+      className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 sm:px-12"
+      style={{ backgroundImage: "url('/login-bg.png')" }} // koristi pravo ime slike
+    >
+      {/* Leva strana - login forma */}
+      <div className="flex flex-col justify-center max-w-sm w-full space-y-6 z-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full space-y-4"
+        >
+          <img
+            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
+            alt="Avatar"
+            className="w-20 h-20 mx-auto"
+          />
 
-      <div className="flex justify-center mb-4">
+          <h2 className="text-3xl font-bold text-white text-center">
+            {isLogin ? "Sign in" : "Sign up"}
+          </h2>
+
+          {message && (
+            <p className="text-red-500 text-sm text-center">{message}</p>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+            </div>
+
+            <div>
+              <input
+                type="password"
+                placeholder="••••••••"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 text-white font-semibold bg-pink-600 hover:bg-pink-700 rounded-md transition"
+            >
+              {isLogin ? "Sign in" : "Sign up"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-white">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-blue-400 hover:underline"
+            >
+              {isLogin ? "Sign up" : "Sign in"}
+            </button>
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Srednja vertikalna senka kao razdvajanje */}
+      <div className="w-2 h-[70%] bg-gradient-to-r from-black/40 to-transparent rounded-full shadow-xl hidden md:block"></div>
+
+      {/* Desna strana - robot ili animacija */}
+      <div className="hidden md:flex flex-col justify-end items-center h-full pb-10">
+        {/* Ovo može biti slika robota */}
         <img
-          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
-          alt="Avatar"
-          className="w-20 h-20 mx-auto mb-6"
+          src="/robot.png" // koristi tačan path
+          alt="Futuristic Robot"
+          className="max-h-[90%] object-contain"
         />
       </div>
-        <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? (
-            <span className="inline-flex items-center gap-2">
-             
-              Sign in
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-2">
-             
-               Sign up
-            </span>
-          )}
-        </h2>
-
-        {message && (
-          <p className="text-red-500 text-sm text-center mb-4">{message}</p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="******"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
-          >
-            {isLogin ? "Sign in" : "Sign up"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-400">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-400 hover:underline transition"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
-        </p>
-      </motion.div>
     </div>
   );
 };
