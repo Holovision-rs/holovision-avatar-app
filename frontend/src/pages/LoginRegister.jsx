@@ -67,7 +67,7 @@ const LoginRegister = () => {
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? "🔐 Login" : "📝 Register"}
+          {isLogin ? "🔐 Sign in" : "📝 Sign up"}
         </h2>
 
         {message && (
@@ -103,7 +103,7 @@ const LoginRegister = () => {
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
           >
-            {isLogin ? "Login" : "Register"}
+            {isLogin ? "Sign in" : "Sign up"}
           </button>
         </form>
 
@@ -113,7 +113,7 @@ const LoginRegister = () => {
             onClick={() => setIsLogin(!isLogin)}
             className="text-blue-400 hover:underline transition"
           >
-            {isLogin ? "Register" : "Login"}
+            {isLogin ? "Sign up" : "Sign in"}
           </button>
         </p>
       </div>
