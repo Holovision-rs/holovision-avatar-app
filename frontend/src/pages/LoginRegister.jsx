@@ -68,7 +68,17 @@ const LoginRegister = () => {
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? " <ShieldCheck color="white" size={24} /> Sign in" : "<ShieldPlus color="white" size={24} /> Sign up"}
+        {isLogin ? (
+          <span className="inline-flex items-center gap-2">
+            <ShieldCheck color="white" size={20} />
+            Sign in
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-2">
+            <ShieldPlus color="white" size={20} />
+            Sign up
+          </span>
+        )}
         </h2>
 
         {message && (
