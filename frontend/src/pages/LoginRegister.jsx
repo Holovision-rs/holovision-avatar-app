@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
+import { Power } from "lucide-react";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://holovision-avatar-app.onrender.com";
 
 const LoginRegister = () => {
@@ -67,7 +67,7 @@ const LoginRegister = () => {
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center text-white mb-6">
-          {isLogin ? "🔐 Sign in" : "📝 Sign up"}
+          {isLogin ? " <Power color="white" size={24} /> Sign in" : "📝 Sign up"}
         </h2>
 
         {message && (
