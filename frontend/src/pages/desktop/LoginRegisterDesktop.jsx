@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ShieldCheck, ShieldPlus } from "lucide-react";
 import { motion } from "framer-motion";
-
+import {Navbar} from "../../components/Navbar";
 // ✅ Hook za dinamicku visinu
 function useWindowHeight() {
   const [height, setHeight] = useState(window.innerHeight);
@@ -88,8 +88,8 @@ const LoginRegister = () => {
   };
 
   return (
- <div
-      className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
+ <Navbar /> {/* <- dodato */}
+ <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
       style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
     >
       {/* Leva strana - login forma */}
