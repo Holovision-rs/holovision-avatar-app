@@ -98,7 +98,7 @@ const LoginRegister = () => {
         <img
           src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
           alt="Avatar"
-          className="mx-auto mb-6" width="20"
+          className="mx-auto mb-4" width="100"
         />
       </div>
         <h2 className="text-3xl font-bold text-center text-white mb-6">
