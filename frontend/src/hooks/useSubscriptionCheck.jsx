@@ -24,10 +24,11 @@ export function useSubscriptionCheck() {
         const paid = Number(freshUser?.monthlyPaidMinutes) || 0;
         const used = Number(freshUser?.monthlyUsageMinutes) || 0;
         const remaining = paid - used;
-        
+        const isAdmin = freshUser?.isAdmin;
 
-        if (remaining <= 0 && !exemptRoutes.includes(location.pathname)) {
-              console.warn("🚨 Redirecting to /account");
+        // 👉 preskoči redirect ako je admin
+        if (!isAdmin && remaining <= 0 && !exemptRoutes.includes(location.pathname)) {
+          console.warn("🚨 Redirecting to /account (no time left)");
           navigate("/account");
         }
       } catch (err) {
