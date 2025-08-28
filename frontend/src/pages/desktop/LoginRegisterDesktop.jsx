@@ -88,7 +88,7 @@ const LoginRegister = () => {
 
   return (
  <div
-      className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 sm:px-12"
+      className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
       style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
     >
       {/* Leva strana - login forma */}

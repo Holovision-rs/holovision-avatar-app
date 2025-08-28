@@ -23,6 +23,9 @@ body {
 .right-20{
   margin-right: 20%;
 }
+.p-left-15{
+  padding-left: 15%;
+}
 .hover:bg-green-600:hover {
     --tw-bg-opacity: 1;
     background-color: rgb(22 163 74 / var(--tw-bg-opacity, 1))!important;
