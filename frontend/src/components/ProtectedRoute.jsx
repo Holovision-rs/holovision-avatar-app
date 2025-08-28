@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { ShieldQuestionMark } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, refreshUser, logout } = useAuth();
@@ -53,7 +53,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100vh" }}>
         <p style={{ fontSize: "1.2rem", fontWeight: "bold" }}>
-        <ShieldQuestionMark  color="white" size={26} /> Checking access...
+        <ShieldAlert  color="white" size={26} /> Checking access...
         </p>
       </div>
     );
