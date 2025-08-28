@@ -92,13 +92,13 @@ const LoginRegister = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full p-6 flex flex-col justify-center" >
+        className="w-full p-8 flex flex-col justify-center" >
 
       <div className="flex justify-center mb-4">
         <img
           src={`https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`}
           alt="Avatar"
-          className="mx-auto mb-4" width="100"
+          className="mx-auto mb-4 w-20 h-20" 
         />
       </div>
         <h2 className="text-3xl font-bold text-center text-white mb-6">
