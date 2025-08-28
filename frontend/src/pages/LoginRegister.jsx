@@ -63,7 +63,7 @@ const LoginRegister = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-[75vw] h-[90vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-4 flex flex-col justify-center"
+        className="w-[75vw] h-[100vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-4 flex flex-col justify-center"
       >
 
       <div className="flex justify-center mb-4">
