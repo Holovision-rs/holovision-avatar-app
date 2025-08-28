@@ -167,7 +167,7 @@ const LoginRegister = () => {
           <h1 className="text-white font-bold text-6xl">
               Welcome.
           </h1>
-          <p className="text-white font-bold">Join the Holovision community.</p>
+          <p className="text-white font-bold text-3xl">Join the Holovision community.</p>
         </div>
       </div>
     </div>
