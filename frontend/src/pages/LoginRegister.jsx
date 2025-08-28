@@ -63,7 +63,7 @@ const LoginRegister = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-[90vw] sm:max-w-[380px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-6 sm:p-8"
+        className="w-[65vw] h-[65vw] max-w-[400px] max-h-[500px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-4 flex flex-col justify-center"
       >
         <h2 className="text-3xl font-bold text-center text-white mb-6">
           {isLogin ? (
@@ -92,7 +92,7 @@ const LoginRegister = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -104,13 +104,13 @@ const LoginRegister = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 text-sm bg-[#121212] text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition duration-300"
+            className="w-full py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
           >
             {isLogin ? "Sign in" : "Sign up"}
           </button>
