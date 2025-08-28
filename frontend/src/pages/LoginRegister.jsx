@@ -63,7 +63,7 @@ const LoginRegister = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md sm:scale-100 scale-[0.95] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-8"
+        className="w-full max-w-[90vw] sm:max-w-[380px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl white-shadow p-6 sm:p-8"
       >
         <h2 className="text-3xl font-bold text-center text-white mb-6">
           {isLogin ? (
