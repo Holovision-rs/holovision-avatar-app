@@ -6,7 +6,7 @@ export function useSubscriptionCheck() {
   const navigate = useNavigate();
   const location = useLocation();
   const { token, logout, refreshUser } = useAuth();
-
+  const exemptRoutes = ["/account"];
   const intervalRef = useRef(null);
   const isChecking = useRef(false);
 
@@ -21,13 +21,14 @@ export function useSubscriptionCheck() {
       isChecking.current = true;
       try {
         const freshUser = await refreshUser(); 
-        const paid = Number(user?.monthlyPaidMinutes) || 0;
-        const used = Number(user?.monthlyUsageMinutes) || 0;
+        const paid = Number(freshUser?.monthlyPaidMinutes) || 0;
+        const used = Number(freshUser?.monthlyUsageMinutes) || 0;
         const remaining = paid - used;
+        
 
-        if (remaining <= 0 && location.pathname !== "/upgrade") {
-          console.warn("🚨 Redirecting to /upgrade");
-          navigate("/upgrade");
+        if (remaining <= 0 && !exemptRoutes.includes(location.pathname)) {
+              console.warn("🚨 Redirecting to /account");
+          navigate("/account");
         }
       } catch (err) {
         console.error("❌ Subscription check error:", err);

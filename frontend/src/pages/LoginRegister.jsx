@@ -70,7 +70,7 @@ const LoginRegister = () => {
       console.log("⏱️ Remaining minutes:", remaining);
 
       if (remaining <= 0) {
-          navigate("/upgrade");
+          navigate("/account");
         } else {
           navigate(user.isAdmin ? "/admin" : "/");
         }

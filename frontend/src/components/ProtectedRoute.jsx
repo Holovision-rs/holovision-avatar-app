@@ -5,7 +5,7 @@ import { ShieldAlert } from "lucide-react";
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, refreshUser, logout } = useAuth();
-  const [status, setStatus] = useState("checking"); // 'checking', 'authorized', 'unauthorized', 'upgrade'
+  const [status, setStatus] = useState("checking"); // 'checking', 'authorized', 'unauthorized', 'account'
   const lastRefreshRef = useRef(0);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
       } else if (adminOnly && !currentUser.isAdmin) {
         setStatus("unauthorized");
       } else if (!adminOnly && safeMinutes <= 0) {
-        setStatus("upgrade");
+        setStatus("account");
       } else {
         setStatus("authorized");
       }
@@ -60,7 +60,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   if (status === "unauthorized") return <Navigate to="/login" replace />;
-  if (status === "upgrade") return <Navigate to="/upgrade" replace />;
+  if (status === "account") return <Navigate to="/account" replace />;
 
   return children;
 };
