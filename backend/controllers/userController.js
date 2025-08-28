@@ -34,33 +34,36 @@ export const getUserUsageLog = async (req, res) => {
 };
 
 export const registerUser = async (req, res) => {
-  const { email, password } = req.body;
-  const existingUser = await User.findOne({ email });
+  const { name, email, password } = req.body; 
 
+  const existingUser = await User.findOne({ email });
   if (existingUser)
     return res.status(400).json({ message: "User already exists" });
 
   const hashedPassword = await bcrypt.hash(password, 10);
+
   const newUser = await User.create({
+    name, 
     email,
     password: hashedPassword,
   });
 
   const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
 
-    res.status(201).json({
-      token,
-      user: {
-        _id: newUser._id,
-        email: newUser.email,
-        subscription: newUser.subscription,
-        isAdmin: newUser.isAdmin,
-        usageMonth: newUser.usageMonth,
-        monthlyUsageMinutes: newUser.monthlyUsageMinutes,
-        monthlyPaidMinutes: newUser.monthlyPaidMinutes,
-      }
-    });
-  };
+  res.status(201).json({
+    token,
+    user: {
+      _id: newUser._id,
+      name: newUser.name, 
+      email: newUser.email,
+      subscription: newUser.subscription,
+      isAdmin: newUser.isAdmin,
+      usageMonth: newUser.usageMonth,
+      monthlyUsageMinutes: newUser.monthlyUsageMinutes,
+      monthlyPaidMinutes: newUser.monthlyPaidMinutes,
+    },
+  });
+};
 
 export const loginUser = async (req, res) => {
   try {
@@ -89,6 +92,7 @@ export const loginUser = async (req, res) => {
       token,
       user: {
         _id: user._id,
+        name: user.name, // ✅ dodato ime
         email: user.email,
         subscription: user.subscription,
         monthlyUsageMinutes: user.monthlyUsageMinutes,
