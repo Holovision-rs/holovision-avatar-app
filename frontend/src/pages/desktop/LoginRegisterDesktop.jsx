@@ -118,16 +118,6 @@ const LoginRegister = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <input
-                type="email"
-                placeholder="Enter your email address"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-              />
-            </div>
-            <div>
             {!isLogin && (
                 <input
                   type="text"
@@ -138,6 +128,16 @@ const LoginRegister = () => {
                   className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               )}
+            </div>
+            <div>
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
             </div>
             <div>
               <input
