@@ -41,8 +41,8 @@ body {
 }
 .from-blue-600 {
     --tw-gradient-from: #7901dd var(--tw-gradient-from-position);
-    --tw-gradient-to: rgb(37 99 235 / 0) var(--tw-gradient-to-position);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    --tw-gradient-to: rgb(37 53 235 / 45%) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), rgb(190 13 233 / 93%);
 }
 .hover:bg-green-600:hover {
     --tw-bg-opacity: 1;
