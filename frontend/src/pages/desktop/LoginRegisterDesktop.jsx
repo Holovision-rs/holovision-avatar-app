@@ -87,9 +87,10 @@ const LoginRegister = () => {
     }
   };
 
-  return (
- <Navbar /> 
- <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
+ return (
+  <>
+    <Navbar />
+    <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
       style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
     >
       {/* Leva strana - login forma */}
@@ -100,54 +101,46 @@ const LoginRegister = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="w-full space-y-4"
         >
-
           <h2 className="text-3xl font-bold text-white text-center">
             {isLogin ? "Sign in" : "Sign up"}
           </h2>
-            <p className="text-center text-sm text-white"> 
+          <p className="text-center text-sm text-white"> 
             Enter your details to sign in to your avatar account.
-            </p>
+          </p>
           {message && (
             <p className="text-red-500 text-sm text-center">{message}</p>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
             {!isLogin && (
-                <input
-                  type="text"
-                  placeholder="Your name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-              )}
-            </div>
-            <div>
               <input
-                type="email"
-                placeholder="Enter your email address"
+                type="text"
+                placeholder="Your name"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
-            </div>
-            <div>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-              />
-            </div>
-
+            )}
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            />
+            <input
+              type="password"
+              placeholder="Enter your password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+            />
             <button
               type="submit"
-              className="w-full py-3  bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
             >
               {isLogin ? "Sign in" : "Sign up"}
             </button>
@@ -164,21 +157,23 @@ const LoginRegister = () => {
           </p>
         </motion.div>
       </div>
+
+      {/* Desna strana sa robotom */}
       <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
         <img
-          src="/robot.png" // koristi tačan path
+          src="/robot.png"
           alt="Futuristic Robot"
           className="max-h-[90%] object-contain"
         />
-        <div  className="absolute top-60 left-60">
+        <div className="absolute top-60 left-60">
           <h1 className="text-white font-bold text-7xl">
-              Welcome.
+            Welcome.
           </h1>
           <p className="text-white text-3xl mt-6">Join the Holovision community.</p>
         </div>
       </div>
     </div>
-  );
-};
+  </>
+);
 
 export default LoginRegister;
