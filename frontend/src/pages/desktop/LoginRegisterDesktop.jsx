@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ShieldCheck, ShieldPlus } from "lucide-react";
 import { motion } from "framer-motion";
-import { Navbar } from '../../components/Navbar';
+import Navbar from "../../components/Navbar";
 
 function useWindowHeight() {
   const [height, setHeight] = useState(window.innerHeight);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ShieldCheck, ShieldPlus } from "lucide-react";
 import { motion } from "framer-motion";
+import Navbar from "../../components/Navbar";
 
 // ✅ Hook za dinamicku visinu
 function useWindowHeight() {
@@ -87,6 +88,7 @@ const LoginRegister = () => {
   };
 
   return (
+   <Navbar />
     <div className="flex items-center justify-center px-4 overflow-hidden"  style={{ height }}> 
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
