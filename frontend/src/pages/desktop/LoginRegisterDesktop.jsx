@@ -88,92 +88,91 @@ const LoginRegister = () => {
   };
 
  return (
-  <>
-    <Navbar />
-    <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
-      style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
-    >
-      {/* Leva strana - login forma */}
-      <div className="flex flex-col justify-center max-w-sm w-full space-y-6 z-10">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full space-y-4"
-        >
-          <h2 className="text-3xl font-bold text-white text-center">
-            {isLogin ? "Sign in" : "Sign up"}
-          </h2>
-          <p className="text-center text-sm text-white"> 
-            Enter your details to sign in to your avatar account.
-          </p>
-          {message && (
-            <p className="text-red-500 text-sm text-center">{message}</p>
-          )}
+      <Navbar />
+      <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
+        style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
+      >
+        {/* Leva strana - login forma */}
+        <div className="flex flex-col justify-center max-w-sm w-full space-y-6 z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full space-y-4"
+          >
+            <h2 className="text-3xl font-bold text-white text-center">
+              {isLogin ? "Sign in" : "Sign up"}
+            </h2>
+            <p className="text-center text-sm text-white"> 
+              Enter your details to sign in to your avatar account.
+            </p>
+            {message && (
+              <p className="text-red-500 text-sm text-center">{message}</p>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              )}
               <input
-                type="text"
-                placeholder="Your name"
+                type="email"
+                placeholder="Enter your email address"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
-            )}
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
-            <input
-              type="password"
-              placeholder="Enter your password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
-            <button
-              type="submit"
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
-            >
-              {isLogin ? "Sign in" : "Sign up"}
-            </button>
-          </form>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-transparent border border-purple-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+              <button
+                type="submit"
+                className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
+              >
+                {isLogin ? "Sign in" : "Sign up"}
+              </button>
+            </form>
 
-          <p className="text-center text-sm text-white">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-400 hover:underline"
-            >
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </p>
-        </motion.div>
-      </div>
+            <p className="text-center text-sm text-white">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-blue-400 hover:underline"
+              >
+                {isLogin ? "Sign up" : "Sign in"}
+              </button>
+            </p>
+          </motion.div>
+        </div>
 
-      {/* Desna strana sa robotom */}
-      <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
-        <img
-          src="/robot.png"
-          alt="Futuristic Robot"
-          className="max-h-[90%] object-contain"
-        />
-        <div className="absolute top-60 left-60">
-          <h1 className="text-white font-bold text-7xl">
-            Welcome.
-          </h1>
-          <p className="text-white text-3xl mt-6">Join the Holovision community.</p>
+        {/* Desna strana sa robotom */}
+        <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
+          <img
+            src="/robot.png"
+            alt="Futuristic Robot"
+            className="max-h-[90%] object-contain"
+          />
+          <div className="absolute top-60 left-60">
+            <h1 className="text-white font-bold text-7xl">
+              Welcome.
+            </h1>
+            <p className="text-white text-3xl mt-6">Join the Holovision community.</p>
+          </div>
         </div>
       </div>
-    </div>
-  </>
-);
-
+    </>
+  );
+}; // ✅ zatvara LoginRegister funkciju
 export default LoginRegister;
