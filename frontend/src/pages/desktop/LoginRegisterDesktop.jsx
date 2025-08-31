@@ -159,7 +159,7 @@ const LoginRegister = () => {
         </div>
 
         {/* Desna strana sa robotom */}
-        <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
+        <div className="hidden md:flex flex-col justify-end items-center h-full">
           <div className="absolute top-60 left-60">
             <h1 className="text-white font-bold text-7xl">
               Welcome.

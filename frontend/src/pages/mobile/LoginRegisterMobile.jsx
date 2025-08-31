@@ -159,7 +159,7 @@ const LoginRegister = () => {
         </div>
 
         {/* Desna strana sa robotom */}
-        <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
+        <div className="hidden md:flex flex-col justify-end items-center h-full">
           <img
             src="/robot.png"
             alt="Futuristic Robot"
