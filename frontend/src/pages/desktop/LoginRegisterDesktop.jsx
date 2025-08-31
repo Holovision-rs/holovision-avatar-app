@@ -90,7 +90,7 @@ const LoginRegister = () => {
  return (
   <>
       <Navbar />
-      <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-around px-6"
+      <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6"
         style={{ backgroundImage: "url('/background-avatar.png')" }} 
       >
         {/* Leva strana - login forma */}
