@@ -91,7 +91,7 @@ const LoginRegister = () => {
   <>
       <Navbar />
       <div className="w-screen h-screen bg-no-repeat bg-cover bg-center flex items-center justify-between px-6 p-left-15"
-        style={{ backgroundImage: "url('/background.png')" }} // koristi pravo ime slike
+        style={{ backgroundImage: "url('/background-avatar.png')" }} 
       >
         {/* Leva strana - login forma */}
         <div className="flex flex-col justify-center max-w-sm w-full space-y-6 z-10">
@@ -160,11 +160,6 @@ const LoginRegister = () => {
 
         {/* Desna strana sa robotom */}
         <div className="hidden md:flex flex-col justify-end items-center h-full right-20">
-          <img
-            src="/robot.png"
-            alt="Futuristic Robot"
-            className="max-h-[90%] object-contain"
-          />
           <div className="absolute top-60 left-60">
             <h1 className="text-white font-bold text-7xl">
               Welcome.
