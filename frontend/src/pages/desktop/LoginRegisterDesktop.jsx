@@ -171,10 +171,10 @@ const LoginRegister = () => {
           className="max-h-[90%] object-contain"
         />
         <div  className="absolute top-60 left-60">
-          <h1 className="text-white font-bold text-6xl">
+          <h1 className="text-white font-bold text-7xl">
               Welcome.
           </h1>
-          <p className="text-white font-bold text-3xl">Join the Holovision community.</p>
+          <p className="text-white text-3xl mt-6">Join the Holovision community.</p>
         </div>
       </div>
     </div>

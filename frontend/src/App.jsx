@@ -9,10 +9,10 @@ import DesktopDashboard from "./components/DesktopDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import Account from "./pages/Account";
+import { isMobile } from "react-device-detect";
 
 const App = () => {
-  const isMobile = useMediaQuery({ maxWidth: 767 });
-
+ 
   return (
     <Router>
       <AuthProvider>

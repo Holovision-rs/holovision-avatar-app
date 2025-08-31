@@ -19,6 +19,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.0",
     "react-responsive": "^9.0.0",
+    "react-device-detect": "^2.2.2",
     "three": "^0.178.0",
     "recharts": "^2.9.0",
     "lucide-react": "^0.350.0",
