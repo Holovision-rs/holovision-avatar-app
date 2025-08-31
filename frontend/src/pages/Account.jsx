@@ -2,8 +2,7 @@ import React from 'react';
 import { isMobile } from 'react-device-detect';
 import MobileAccountView from '../pages/mobile/MobileAccountView';
 import DesktopAccountView from '../pages/desktop/DesktopAccountView';
-import { useAuth } from '../contexts/AuthContext';
-
+import { useAuth } from '../context/AuthContext';
 
 const Account = () => {
   return (
