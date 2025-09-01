@@ -1,7 +1,7 @@
 // src/components/MobileAccountView.jsx
 import React from 'react';
 import { useAuth } from "../../context/AuthContext";
-import DonutChart from "../../components/DonutChart"; // tvoja komponenta za grafikon
+import DonutChart from "../../components/DonutChartWithLabels"; // tvoja komponenta za grafikon
 
 const MobileAccountView = () => {
 	const { user } = useAuth();
