@@ -1,7 +1,7 @@
 // src/components/MobileAccountView.jsx
 import React from 'react';
 import { useAuth } from "../../context/AuthContext";
-import DonutChart from "../../components/DonutChartWithLabels"; \
+import DonutChart from "../../components/DonutChartWithLabels";
 import { Globe } from "lucide-react";
 
 const MobileAccountView = () => {
@@ -32,8 +32,13 @@ const MobileAccountView = () => {
 
       {/* Sub info */}
       <div className="flex items-center justify-center gap-2 text-white mb-6">
-        <Globe size={20} />
-        <p className="text-sm">Subscription: Active (Pro Plan)</p>
+       
+        <p className="text-sm">
+          {user?.subscription === "gold" && <span>👑</span>}
+		  {user?.subscription === "silver" && <span>🥈</span>}
+		  {user?.subscription === "free" && <span>🆓</span>}
+		  Subscription: {user?.subscription?.charAt(0).toUpperCase() + user?.subscription?.slice(1) || "None"}
+		</p>
       </div>
 
       {/* Dalje sekcije - možeš koristiti Tailwind grid ili flex */}
