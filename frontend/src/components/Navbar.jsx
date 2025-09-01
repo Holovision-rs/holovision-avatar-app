@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { Globe } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -10,7 +11,7 @@ const Navbar = () => {
   	<span>HOLOVISION</span>
       	<button onClick={logout}>Logout</button>
       	<button onClick={() => navigate("/website")}>
-        go to Website
+        <Globe className="w-5 h-5 text-white" /> Go to Website
       </button>
     </nav>
   );
