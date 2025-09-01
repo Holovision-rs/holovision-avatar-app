@@ -5,9 +5,14 @@ import DesktopAccountView from '../pages/desktop/DesktopAccountView';
 import { useAuth } from '../context/AuthContext';
 
 const Account = () => {
+  const { user } = useAuth();
   return (
      <div>
-      {isMobile ? <MobileAccountView /> : <DesktopAccountView />}
+	{isMobile ? (
+        <MobileAccountView user={user} />
+      ) : (
+        <DesktopAccountView user={user} />
+      )}
     </div>
   );
 };
