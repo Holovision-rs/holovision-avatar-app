@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const DesktopAccountView = () => {
 	const { user } = useAuth();
+	console.log('user', user);
 	const paid = Number(user?.monthlyPaidMinutes) || 0;
     const used = Number(user?.monthlyUsageMinutes) || 0;
     const remaining = Math.max(paid - used, 0);
