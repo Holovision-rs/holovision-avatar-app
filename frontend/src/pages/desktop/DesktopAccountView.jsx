@@ -1,7 +1,12 @@
 // src/components/DesktopAccountView.jsx
 import React from 'react';
+import { useAuth } from "../../context/AuthContext";
 
-const DesktopAccountView = ({ user }) => {
+const DesktopAccountView = () => {
+	const { user } = useAuth();
+	const paid = Number(user?.monthlyPaidMinutes) || 0;
+    const used = Number(user?.monthlyUsageMinutes) || 0;
+    const remaining = Math.max(paid - used, 0);
   return (
     <div style={{ padding: '2rem' }}>
       <h1>👤 Welcome, {user.name || user.email}</h1>
