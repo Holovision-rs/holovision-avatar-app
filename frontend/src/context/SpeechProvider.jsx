@@ -37,7 +37,6 @@ export const SpeechProvider = ({ children }) => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingRef = useRef(false);
-  const messageEndKeyRef = useRef(null);
   const rafRef = useRef(null);
 
   const micSafetyTimerRef = useRef(null);
@@ -45,11 +44,16 @@ export const SpeechProvider = ({ children }) => {
   // ✅ “playback nije startovao” fallback timer
   const playBlockedFallbackTimerRef = useRef(null);
 
-  // ✅ NEW: playback safety timer (kad playback realno krene)
+  // ✅ playback safety timer (kad playback realno krene)
   const playbackSafetyTimerRef = useRef(null);
 
   const audioUnlockedRef = useRef(false);
+
+  // dedupe onMessagePlayed (Avatar onended) per current message
   const handledMessageKeyRef = useRef(null);
+
+  // dedupe safeOnMessagePlayed (any end reason) per message id
+  const messageEndKeyRef = useRef(null);
 
   // ✅ “čekamo playback” state
   const pendingPlaybackRef = useRef(false);
@@ -123,7 +127,6 @@ export const SpeechProvider = ({ children }) => {
   }, []);
 
   // ✅ audio unlock helper — NE SME BLOKIRATI startRecording
-  // KLJUČ: ovde sad otključavamo i playback AudioContext (koji Avatar koristi)
   const unlockAudioOnce = useCallback(async () => {
     if (audioUnlockedRef.current) return true;
 
@@ -169,8 +172,7 @@ export const SpeechProvider = ({ children }) => {
       }
     };
 
-    const ok = await doUnlock();
-    return ok;
+    return doUnlock();
   }, [ensurePlaybackContext]);
 
   const startKeepAlive = useCallback(async () => {
@@ -215,33 +217,75 @@ export const SpeechProvider = ({ children }) => {
     keepAliveActiveRef.current = false;
   }, []);
 
-const safeOnMessagePlayed = useCallback((reason = "unknown") => {
-  const key =
-    message?.id ||
-    message?.audio?.slice?.(0, 24) ||
-    JSON.stringify(message || {}).slice(0, 48);
+  // ✅ ako playback uopšte ne STARTUJE, samo odblokiraj mic, NE diraj queue
+  const armPlayBlockedFallback = useCallback(() => {
+    clearPlayBlockedFallback();
+    playBlockedFallbackTimerRef.current = setTimeout(() => {
+      if (pendingPlaybackRef.current && !recordingRef.current) {
+        console.warn("⚠️ playback NOT started → unlock mic but KEEP message (no dequeue)", {
+          reason: "play_not_started_fallback",
+        });
 
-  if (messageEndKeyRef.current === key) {
-    console.log("🟡 safeOnMessagePlayed ignored (duplicate)", { reason, key });
-    return;
-  }
-  messageEndKeyRef.current = key;
+        updateMicState(true);
+        pendingPlaybackRef.current = false; // da ne blokira UI
+        clearMicSafetyTimer();
+        clearPlaybackSafety();
+        stopKeepAlive();
+      }
+    }, 8000);
+  }, [stopKeepAlive]);
 
-  setMessages((prev) => (prev.length ? prev.slice(1) : prev));
-  updateMicState(true);
-  clearMicSafetyTimer();
-  pendingPlaybackRef.current = false;
-  clearPlayBlockedFallback();
-  clearPlaybackSafety();
-  stopKeepAlive();
+  // ✅ KLJUČ: mic se pali TEK kad queue postane prazan (poslednja poruka odigrana)
+  const safeOnMessagePlayed = useCallback(
+    (reason = "unknown") => {
+      setMessages((prev) => {
+        if (!prev.length) return prev;
 
-  console.log("🎤 Mic re-enabled after avatar speech.", { reason, key });
-}, [
-  message,
-  stopKeepAlive,
-]);
+        const current = prev[0];
+        const key =
+          current?.id ||
+          current?.audio?.slice?.(0, 24) ||
+          JSON.stringify(current || {}).slice(0, 48);
 
-  // ✅ NEW: Avatar zove čim playback stvarno krene
+        if (messageEndKeyRef.current === key) {
+          console.log("🟡 safeOnMessagePlayed ignored (duplicate)", { reason, key });
+          return prev;
+        }
+        messageEndKeyRef.current = key;
+
+        const next = prev.slice(1);
+        const hasMore = next.length > 0;
+
+        // uvek očisti safety timere za trenutno odigranu poruku
+        clearPlayBlockedFallback();
+        clearPlaybackSafety();
+
+        if (!hasMore) {
+          // ✅ nema više poruka -> tek sad pali mic + reset state
+          updateMicState(true);
+          clearMicSafetyTimer();
+          pendingPlaybackRef.current = false;
+          stopKeepAlive();
+          console.log("🎤 Mic re-enabled after ALL avatar speech.", { reason, key });
+        } else {
+          // ✅ ima još poruka -> ostaje mic disabled, čekamo sledeći playback
+          pendingPlaybackRef.current = true;
+          // na sledeću poruku opet armujemo "not started" fallback
+          armPlayBlockedFallback();
+          console.log("➡️ Next message queued, keep mic disabled.", {
+            reason,
+            key,
+            remaining: next.length,
+          });
+        }
+
+        return next;
+      });
+    },
+    [armPlayBlockedFallback, stopKeepAlive]
+  );
+
+  // ✅ Avatar zove čim playback stvarno krene
   const onAvatarPlaybackStart = useCallback(
     (durationSec) => {
       // čim playback krene, više nije “blocked” -> gasi brzi fallback
@@ -261,23 +305,6 @@ const safeOnMessagePlayed = useCallback((reason = "unknown") => {
     [safeOnMessagePlayed]
   );
 
-  // ✅ izmenjeno: ako playback uopšte ne STARTUJE, samo odblokiraj mic, NE diraj queue
-  const armPlayBlockedFallback = useCallback(() => {
-    clearPlayBlockedFallback();
-    playBlockedFallbackTimerRef.current = setTimeout(() => {
-      if (pendingPlaybackRef.current && !recordingRef.current) {
-
-        console.warn("⚠️ playback NOT started → unlock mic but KEEP message (no dequeue)", { reason: "play_not_started_fallback",});
-        
-        updateMicState(true);
-        pendingPlaybackRef.current = false; // da ne blokira UI
-        clearMicSafetyTimer();
-        clearPlaybackSafety();
-        stopKeepAlive();
-      }
-    }, 8000);
-  }, [stopKeepAlive]);
-
   const initiateRecording = () => {
     audioChunksRef.current = [];
   };
@@ -286,64 +313,65 @@ const safeOnMessagePlayed = useCallback((reason = "unknown") => {
     if (e?.data && e.data.size > 0) audioChunksRef.current.push(e.data);
   };
 
-const sendAudioData = async (audioBlob) => {
-  const reader = new FileReader();
-  reader.readAsDataURL(audioBlob);
+  const sendAudioData = async (audioBlob) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
 
-  reader.onloadend = async function () {
-    const base64Audio = reader.result.split(",")[1];
-    setLoading(true);
+    reader.onloadend = async function () {
+      const base64Audio = reader.result.split(",")[1];
+      setLoading(true);
 
-    try {
-      const response = await fetch(`${backendUrl}/sts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audio: base64Audio }),
-      });
+      try {
+        const response = await fetch(`${backendUrl}/sts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ audio: base64Audio }),
+        });
 
-      const data = await response.json();
-      const newMessages = data?.messages || [];
+        const data = await response.json();
+        const newMessages = data?.messages || [];
 
-      // ✅ LOG: koliko poruka backend vraća + kratak info
-      console.log("🟦 STS messages length:", newMessages.length);
-      console.log(
-        "🟦 STS message keys:",
-        newMessages.map((m) => ({
-          id: m?.id,
-          audioHead: m?.audio?.slice?.(0, 18),
-          textHead: m?.message?.slice?.(0, 40),
-        }))
-      );
+        // ✅ LOG: koliko poruka backend vraća + kratak info
+        console.log("🟦 STS messages length:", newMessages.length);
+        console.log(
+          "🟦 STS message keys:",
+          newMessages.map((m) => ({
+            id: m?.id,
+            audioHead: m?.audio?.slice?.(0, 18),
+            textHead: m?.text?.slice?.(0, 40) ?? m?.message?.slice?.(0, 40),
+          }))
+        );
 
-      if (!newMessages.length) {
-        console.warn("⚠️ Backend returned no messages → unlocking mic");
+        if (!newMessages.length) {
+          console.warn("⚠️ Backend returned no messages → unlocking mic");
+          updateMicState(true);
+          pendingPlaybackRef.current = false;
+          clearMicSafetyTimer();
+          clearPlayBlockedFallback();
+          clearPlaybackSafety();
+          stopKeepAlive();
+          return;
+        }
+
+        // ✅ dodaj u queue
+        setMessages((prev) => [...prev, ...newMessages]);
+
+        // ✅ čekamo da Avatar krene playback
+        pendingPlaybackRef.current = true;
+        armPlayBlockedFallback();
+      } catch (error) {
+        console.error("❌ Audio send error:", error);
         updateMicState(true);
         pendingPlaybackRef.current = false;
         clearMicSafetyTimer();
         clearPlayBlockedFallback();
         clearPlaybackSafety();
         stopKeepAlive();
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setMessages((prev) => [...prev, ...newMessages]);
-
-      // ✅ čekamo da Avatar krene playback
-      pendingPlaybackRef.current = true;
-      armPlayBlockedFallback();
-    } catch (error) {
-      console.error("❌ Audio send error:", error);
-      updateMicState(true);
-      pendingPlaybackRef.current = false;
-      clearMicSafetyTimer();
-      clearPlayBlockedFallback();
-      clearPlaybackSafety();
-      stopKeepAlive();
-    } finally {
-      setLoading(false);
-    }
+    };
   };
-};
 
   const startListening = async () => {
     if (streamRef.current && analyserRef.current) {
@@ -549,6 +577,7 @@ const sendAudioData = async (audioBlob) => {
       setRecording(false);
       recordingRef.current = false;
 
+      // mic off dok avatar priča (i dok queue traje)
       updateMicState(false);
       armMicSafetyUnlock();
 
@@ -562,9 +591,6 @@ const sendAudioData = async (audioBlob) => {
       stopKeepAlive();
     }
   };
-  useEffect(() => {
-    messageEndKeyRef.current = null;
-  }, [message]);
 
   useEffect(() => {
     recordingRef.current = recording;
@@ -579,6 +605,7 @@ const sendAudioData = async (audioBlob) => {
     else setMessage(null);
   }, [messages]);
 
+  // reset per message change (ok)
   useEffect(() => {
     handledMessageKeyRef.current = null;
   }, [message]);
@@ -610,7 +637,6 @@ const sendAudioData = async (audioBlob) => {
 
       setMessages((prev) => [...prev, ...newMessages]);
 
-      // ✅ čekamo da Avatar krene playback
       pendingPlaybackRef.current = true;
       armPlayBlockedFallback();
     } catch (error) {
@@ -625,20 +651,20 @@ const sendAudioData = async (audioBlob) => {
     }
   };
 
-const onMessagePlayed = () => {
-  const key =
-    message?.id ||
-    message?.audio?.slice?.(0, 24) ||
-    JSON.stringify(message || {}).slice(0, 48);
+  const onMessagePlayed = () => {
+    const key =
+      message?.id ||
+      message?.audio?.slice?.(0, 24) ||
+      JSON.stringify(message || {}).slice(0, 48);
 
-  if (handledMessageKeyRef.current === key) {
-    console.log("🟡 onMessagePlayed ignored (duplicate)", { key });
-    return;
-  }
+    if (handledMessageKeyRef.current === key) {
+      console.log("🟡 onMessagePlayed ignored (duplicate)", { key });
+      return;
+    }
 
-  handledMessageKeyRef.current = key;
-  safeOnMessagePlayed("avatar_onended");
-};
+    handledMessageKeyRef.current = key;
+    safeOnMessagePlayed("avatar_onended");
+  };
 
   useEffect(() => {
     return () => {
