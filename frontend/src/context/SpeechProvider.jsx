@@ -4,7 +4,7 @@ import { SpeechContext } from "./SpeechContext";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const SILENCE_MS = Number(import.meta.env.VITE_SILENCE_MS || 2000);
-const RMS_THRESHOLD = Number(import.meta.env.VITE_RMS_THRESHOLD || 0.03);
+const RMS_THRESHOLD = Number(import.meta.env.VITE_RMS_THRESHOLD || 0.010);
 
 const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const ENABLE_AUTO_STOP = true;
