@@ -17,7 +17,8 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 const allowedOrigins = [
-  "https://holovision-avatar-app-1.onrender.com", // izmeni po potrebi
+  "https://holovision-avatar-app-1.onrender.com",
+  "http://localhost:5173",
 ];
 
 const __filename = fileURLToPath(import.meta.url);

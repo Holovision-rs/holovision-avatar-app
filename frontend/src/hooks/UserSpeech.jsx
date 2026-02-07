@@ -39,7 +39,7 @@ const UserSpeech = () => {
     },
   };
 
-  useVoiceTrigger(speechControl.onVoiceStart, speechControl.onVoiceStop);
+  useVoiceTrigger(speechControl.onVoiceStart, speechControl.onVoiceStop, false);
 
   useEffect(() => {
     console.debug("📡 UserSpeech component mounted.");
