@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { SpeechContext } from "./SpeechContext";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -7,8 +7,15 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const SILENCE_MS = Number(import.meta.env.VITE_SILENCE_MS || 2000);
 const RMS_THRESHOLD = Number(import.meta.env.VITE_RMS_THRESHOLD || 0.03);
 
+// ✅ Auto-stop radi i na mobilnom (isti behavior kao desktop)
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const ENABLE_AUTO_STOP = true;
+
 // Safety unlock (mobilni: audio "ended" ponekad ne okine)
 const MIC_SAFETY_UNLOCK_MS = Number(import.meta.env.VITE_MIC_SAFETY_UNLOCK_MS || 12000);
+
+// Ako audio play bude blokiran, posle koliko da “pustimo” mic (ALI NE diramo queue poruka)
+const PLAY_BLOCKED_FALLBACK_MS = Number(import.meta.env.VITE_PLAY_BLOCKED_FALLBACK_MS || 900);
 
 export const SpeechProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
@@ -36,54 +43,77 @@ export const SpeechProvider = ({ children }) => {
   // 🤫 Auto-stop on silence (samo dok snimaš)
   const rafRef = useRef(null);
 
-  // Safety unlock timer (mobilni fallback)
+  // Timers
   const micSafetyTimerRef = useRef(null);
+  const playBlockedFallbackTimerRef = useRef(null);
 
-  // ✅ Spreči duplo “unlock” na više gesture-a
+  // ✅ Unlock samo jednom (na MIC tapu)
   const audioUnlockedRef = useRef(false);
+
+  // ✅ Anti-dupli onMessagePlayed
+  const handledMessageKeyRef = useRef(null);
+
+  // ✅ Dok čekamo playback (Avatar -> onended)
+  const pendingPlaybackRef = useRef(false);
+
+  // 🔋 Mobile keep-alive audio session (iOS)
+  const keepAliveCtxRef = useRef(null);
+  const keepAliveOscRef = useRef(null);
+  const keepAliveGainRef = useRef(null);
+
+  const startKeepAlive = useCallback(async () => {
+    // uglavnom treba samo na mobilnom, ali može i svuda bez štete
+    if (keepAliveCtxRef.current) return;
+
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      const ctx = new AudioContext();
+      keepAliveCtxRef.current = ctx;
+
+      if (ctx.state === "suspended") {
+        try {
+          await ctx.resume();
+        } catch {}
+      }
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      // ultra-tiho (nemoj 0)
+      gain.gain.value = 0.00001;
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+
+      keepAliveOscRef.current = osc;
+      keepAliveGainRef.current = gain;
+
+      // console.log("🔋 keepAlive ON");
+    } catch (e) {
+      console.warn("keepAlive start failed", e);
+    }
+  }, []);
+
+  const stopKeepAlive = useCallback(() => {
+    try {
+      keepAliveOscRef.current?.stop?.();
+    } catch {}
+    keepAliveOscRef.current = null;
+    keepAliveGainRef.current = null;
+
+    try {
+      keepAliveCtxRef.current?.close?.();
+    } catch {}
+    keepAliveCtxRef.current = null;
+
+    // console.log("🔋 keepAlive OFF");
+  }, []);
 
   const updateMicState = (enabled) => {
     setMicEnabled(enabled);
     micEnabledRef.current = enabled;
-  };
-
-  // ✅ UBACUJEMO OVO: audio unlock helper (iOS / mobile)
-  const ensureAudioUnlocked = async () => {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-
-        if (ctx.state === "suspended") {
-          try {
-            await ctx.resume();
-          } catch {}
-        }
-
-        // kratki “tick”
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.value = 0.0001;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.01);
-
-        setTimeout(() => {
-          try {
-            ctx.close?.();
-          } catch {}
-        }, 50);
-      }
-
-      // Prime HTMLAudio (silent)
-      const a = new Audio();
-      a.muted = true;
-      a.volume = 0;
-      await a.play().catch(() => {});
-    } catch {
-      // ignore
-    }
   };
 
   const clearMicSafetyTimer = () => {
@@ -102,6 +132,84 @@ export const SpeechProvider = ({ children }) => {
       }
     }, MIC_SAFETY_UNLOCK_MS);
   };
+
+  const clearPlayBlockedFallback = () => {
+    if (playBlockedFallbackTimerRef.current) {
+      clearTimeout(playBlockedFallbackTimerRef.current);
+      playBlockedFallbackTimerRef.current = null;
+    }
+  };
+
+  // ✅ audio unlock helper (iOS) — ZOVI IZ USER GESTURE (MIC TAP)
+  const unlockAudioOnce = useCallback(async () => {
+    if (audioUnlockedRef.current) return true;
+
+    try {
+      // WebAudio unlock
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        const ctx = new AudioContext();
+        if (ctx.state === "suspended") {
+          try {
+            await ctx.resume();
+          } catch {}
+        }
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.0001;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+
+        setTimeout(() => {
+          try {
+            ctx.close?.();
+          } catch {}
+        }, 50);
+      }
+
+      // Prime HTMLAudio
+      const a = new Audio();
+      a.muted = true;
+      a.volume = 0;
+      a.playsInline = true;
+      await a.play().catch(() => {});
+
+      audioUnlockedRef.current = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const safeOnMessagePlayed = useCallback(() => {
+    setMessages((prev) => (prev.length ? prev.slice(1) : prev));
+    updateMicState(true);
+    clearMicSafetyTimer();
+    pendingPlaybackRef.current = false;
+    clearPlayBlockedFallback();
+    stopKeepAlive(); // ✅ prekid keepAlive kad poruka završi
+    console.log("🎤 Mic re-enabled after avatar speech.");
+  }, [stopKeepAlive]);
+
+  // ✅ fallback ako audio.play bude blokiran:
+  // BITNO: NE smemo da "pojedemo" poruku (NE zovemo safeOnMessagePlayed),
+  // samo otključamo mic da app ne ostane zaglavljena.
+  const armPlayBlockedFallback = useCallback(() => {
+    clearPlayBlockedFallback();
+    playBlockedFallbackTimerRef.current = setTimeout(() => {
+      if (pendingPlaybackRef.current && !recordingRef.current) {
+        console.warn("⚠️ audio.play likely blocked → unlock mic (do not dequeue message)");
+        pendingPlaybackRef.current = false;
+        updateMicState(true);
+        clearMicSafetyTimer();
+        // keepAlive može ostati upaljen do sledećeg onended, ali da ne “visi”:
+        stopKeepAlive();
+      }
+    }, PLAY_BLOCKED_FALLBACK_MS);
+  }, [stopKeepAlive]);
 
   const initiateRecording = () => {
     audioChunksRef.current = [];
@@ -129,20 +237,38 @@ export const SpeechProvider = ({ children }) => {
         });
 
         const data = await response.json();
-        setMessages((prev) => [...prev, ...(data?.messages || [])]);
+        const newMessages = data?.messages || [];
+
+        if (!newMessages.length) {
+          console.warn("⚠️ Backend returned no messages → unlocking mic");
+          updateMicState(true);
+          pendingPlaybackRef.current = false;
+          clearMicSafetyTimer();
+          clearPlayBlockedFallback();
+          stopKeepAlive();
+          return;
+        }
+
+        setMessages((prev) => [...prev, ...newMessages]);
+
+        // čekamo playback (Avatar -> onended)
+        pendingPlaybackRef.current = true;
+        armPlayBlockedFallback();
       } catch (error) {
         console.error("❌ Audio send error:", error);
         updateMicState(true);
+        pendingPlaybackRef.current = false;
         clearMicSafetyTimer();
+        clearPlayBlockedFallback();
+        stopKeepAlive();
       } finally {
         setLoading(false);
       }
     };
   };
 
-  // ✅ Listening: traži mic + napravi analyser (za equalizer)
+  // ✅ Listening: traži mic + napravi analyser (equalizer)
   const startListening = async () => {
-    // već sluša
     if (streamRef.current && analyserRef.current) {
       try {
         if (audioContextRef.current?.state === "suspended") {
@@ -179,10 +305,11 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ⚠️ Opciono ručno gašenje listening-a
   const stopListening = () => {
     stopAutoStopOnSilence();
     clearMicSafetyTimer();
+    clearPlayBlockedFallback();
+    stopKeepAlive();
 
     try {
       audioContextRef.current?.close();
@@ -202,6 +329,7 @@ export const SpeechProvider = ({ children }) => {
 
   // 🤫 Auto-stop snimanja posle SILENCE_MS tišine (RMS)
   const startAutoStopOnSilence = () => {
+    if (!ENABLE_AUTO_STOP) return;
     if (!analyserRef.current) return;
 
     stopAutoStopOnSilence();
@@ -227,8 +355,9 @@ export const SpeechProvider = ({ children }) => {
 
       const silentFor = performance.now() - lastLoudAt;
       if (silentFor >= SILENCE_MS) {
-        console.log(`🤫 ${SILENCE_MS}ms silence (rms=${rms.toFixed(4)}) → auto stopRecording()`);
-        stopRecording();
+        console.log(`🤫 ${SILENCE_MS}ms silence (rms=${rms.toFixed(4)}) → auto stop`);
+        // auto-stop nije user gesture:
+        stopRecording({ userGesture: false });
         return;
       }
 
@@ -245,7 +374,6 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ Recorder init koristi postojeći stream iz listening-a
   const initMediaRecorder = async () => {
     if (mediaRecorderRef.current) return mediaRecorderRef.current;
 
@@ -267,7 +395,6 @@ export const SpeechProvider = ({ children }) => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         sendAudioData(audioBlob);
         mediaRecorderRef.current = null;
-
         console.log("⏹️ Recorder stopped (listening/equalizer remains active).");
       };
 
@@ -280,8 +407,12 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ START (samo dugme)
+  // ✅ START (tap mic) — unlock mora biti NA TAPU
   const startRecording = async () => {
+    await unlockAudioOnce();
+    // ✅ keepAlive start (posebno pomaže na iOS)
+    if (IS_MOBILE) await startKeepAlive();
+
     if (!micEnabledRef.current || loading || message) {
       console.log("🚫 Can't start recording (mic disabled / loading / message).");
       return;
@@ -293,8 +424,6 @@ export const SpeechProvider = ({ children }) => {
     }
 
     const recorder = await initMediaRecorder();
-    console.log(`[StartRecording] micEnabled: ${micEnabledRef.current}, recorder state: ${recorder?.state}`);
-
     if (!recorder) return;
 
     if (recorder.state !== "inactive") {
@@ -314,8 +443,14 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ STOP (ručno ili auto)
-  const stopRecording = () => {
+  // ✅ STOP (tap mic ili auto)
+  // UI treba da zove: stopRecording({ userGesture: true })
+  const stopRecording = async ({ userGesture } = {}) => {
+    if (userGesture) {
+      await unlockAudioOnce();
+      if (IS_MOBILE) await startKeepAlive(); // ✅ obnovi session na tap-u
+    }
+
     const recorder = mediaRecorderRef.current;
     console.log(`[StopRecording] recorder state: ${recorder?.state}`);
 
@@ -336,7 +471,10 @@ export const SpeechProvider = ({ children }) => {
       setRecording(false);
       recordingRef.current = false;
 
+      // 🔒 zaključaj mic dok avatar ne završi poruku
       updateMicState(false);
+
+      // fallback unlock
       armMicSafetyUnlock();
 
       console.log("⏹️ Recording stopped and mic disabled (until avatar finishes).");
@@ -344,6 +482,7 @@ export const SpeechProvider = ({ children }) => {
       console.error("💥 Failed to stop recording:", err);
       updateMicState(true);
       clearMicSafetyTimer();
+      stopKeepAlive();
     }
   };
 
@@ -360,35 +499,16 @@ export const SpeechProvider = ({ children }) => {
     else setMessage(null);
   }, [messages]);
 
-  // 🔓 first user gesture: unlock audio + startListening (equalizer)
+  // ✅ reset anti-double guard kad stigne nova poruka
   useEffect(() => {
-    const onFirstGesture = async () => {
-      if (audioUnlockedRef.current) return;
-      audioUnlockedRef.current = true;
-
-      await ensureAudioUnlocked();
-      await startListening();
-
-      console.log("✅ Audio unlocked + mic listening enabled on first user gesture.");
-    };
-
-    document.addEventListener("touchstart", onFirstGesture, { once: true, passive: true });
-    document.addEventListener("click", onFirstGesture, { once: true });
-
-    return () => {
-      document.removeEventListener("touchstart", onFirstGesture);
-      document.removeEventListener("click", onFirstGesture);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    handledMessageKeyRef.current = null;
+  }, [message]);
 
   const tts = async (text) => {
     setLoading(true);
 
     updateMicState(false);
     clearMicSafetyTimer();
-
-    console.log(`[TTS] Mic disabled and message sent: "${text}"`);
 
     try {
       const response = await fetch(`${backendUrl}/tts`, {
@@ -398,27 +518,49 @@ export const SpeechProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      setMessages((prev) => [...prev, ...(data?.messages || [])]);
+      const newMessages = data?.messages || [];
+
+      if (!newMessages.length) {
+        console.warn("⚠️ TTS returned no messages → unlocking mic");
+        updateMicState(true);
+        pendingPlaybackRef.current = false;
+        stopKeepAlive();
+        return;
+      }
+
+      setMessages((prev) => [...prev, ...newMessages]);
+
+      pendingPlaybackRef.current = true;
+      armPlayBlockedFallback();
     } catch (error) {
       console.error("❌ TTS error:", error);
       updateMicState(true);
+      pendingPlaybackRef.current = false;
+      stopKeepAlive();
     } finally {
       setLoading(false);
     }
   };
 
   const onMessagePlayed = () => {
-    setMessages((prev) => prev.slice(1));
-    updateMicState(true);
-    clearMicSafetyTimer();
-    console.log("🎤 Mic re-enabled after avatar speech.");
+    // zaštita od duplog poziva
+    const key =
+      message?.id ||
+      message?.audio?.slice?.(0, 24) ||
+      JSON.stringify(message || {}).slice(0, 48);
+
+    if (handledMessageKeyRef.current === key) return;
+    handledMessageKeyRef.current = key;
+
+    safeOnMessagePlayed();
   };
 
-  // cleanup on unmount
   useEffect(() => {
     return () => {
       stopAutoStopOnSilence();
       clearMicSafetyTimer();
+      clearPlayBlockedFallback();
+      stopKeepAlive();
       try {
         audioContextRef.current?.close();
       } catch {}
@@ -426,8 +568,7 @@ export const SpeechProvider = ({ children }) => {
         streamRef.current?.getTracks()?.forEach((t) => t.stop());
       } catch {}
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stopKeepAlive]);
 
   return (
     <SpeechContext.Provider
@@ -435,7 +576,7 @@ export const SpeechProvider = ({ children }) => {
         recording,
         recordingRef,
         startRecording,
-        stopRecording,
+        stopRecording, // <-- async, UI: stopRecording({ userGesture: true })
         message,
         loading,
         tts,
@@ -446,6 +587,7 @@ export const SpeechProvider = ({ children }) => {
         setAnalyserNode,
         startListening,
         stopListening,
+        unlockAudioOnce, // <-- opcionalno (ako želiš da pozoveš iz UI)
       }}
     >
       {children}

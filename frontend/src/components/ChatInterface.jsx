@@ -1,11 +1,21 @@
 import { useRef } from "react";
 import { useSpeech } from "../context/SpeechContext";
-import {VoiceEqualizer} from "./VoiceEqualizer";
+import { VoiceEqualizer } from "./VoiceEqualizer";
 
 export const ChatInterface = ({ hidden, ...props }) => {
-  const { analyserNode} = useSpeech();
   const input = useRef();
-  const { tts, loading, message, startRecording, stopRecording, recording } = useSpeech();
+
+  const {
+    analyserNode,
+    tts,
+    loading,
+    message,
+    startRecording,
+    stopRecording,
+    recording,
+    micEnabled,
+    ensureAudioUnlocked,
+  } = useSpeech();
 
   const sendMessage = () => {
     const text = input.current.value;
@@ -14,21 +24,34 @@ export const ChatInterface = ({ hidden, ...props }) => {
       input.current.value = "";
     }
   };
-  if (hidden) {
-    return null;
-  }
+
+  if (hidden) return null;
+
+  const isDisabled = loading || !!message || !micEnabled;
+
+  const handleMicClick = async () => {
+    if (isDisabled) return;
+
+    // ✅ bitno za iOS: unlock u user gesture
+    try {
+      await ensureAudioUnlocked?.();
+    } catch {}
+
+    if (recording) stopRecording();
+    else startRecording();
+  };
 
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 z-10 flex justify-between p-4 flex-col pointer-events-none">
-
       <div className="w-full flex flex-col items-end justify-center gap-4"></div>
+
       <div className="flex items-center gap-2 pointer-events-auto max-w-screen-sm w-full mx-auto">
-        <button
-          onClick={recording ? stopRecording : startRecording}
-          className={`center bg-red-500 hover:bg-red-600 text-white p-2 px-2 font-semibold uppercase rounded-full ${
-            recording ? "bg-green-500 hover:bg-green-600" : ""
-          } ${loading || message ? "cursor-not-allowed opacity-30" : ""}`}
-        >
+      <button
+        onClick={recording ? () => stopRecording({ userGesture: true }) : startRecording} 
+        className={`center bg-red-500 hover:bg-red-600 text-white p-2 px-2 font-semibold uppercase rounded-full ${
+          recording ? "bg-green-500 hover:bg-green-600" : ""
+        } ${loading || message ? "cursor-not-allowed opacity-30" : ""}`}
+      >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -44,7 +67,8 @@ export const ChatInterface = ({ hidden, ...props }) => {
             />
           </svg>
         </button>
-        <VoiceEqualizer analyserNode={analyserNode} /> 
+
+        <VoiceEqualizer analyserNode={analyserNode} />
       </div>
     </div>
   );

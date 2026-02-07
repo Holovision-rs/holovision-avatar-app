@@ -6,7 +6,6 @@ import * as THREE from "three";
 
 import { useSpeech } from "../context/SpeechContext";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { useSessionTimer } from "../hooks/useSessionTimer";
 import { useSubscriptionCheck } from "../hooks/useSubscriptionCheck";
 
@@ -16,9 +15,10 @@ import morphTargets from "../constants/morphTargets";
 
 export function Avatar(props) {
   const { token } = useAuth();
-  const navigate = useNavigate();
 
+  // ✅ samo ovo treba iz contexta
   const { message, onMessagePlayed } = useSpeech();
+
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
 
@@ -34,10 +34,9 @@ export function Avatar(props) {
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
 
-  // ✅ refs za kontrolu audio lifecycle-a
+  // ✅ audio lifecycle refs
   const audioRef = useRef(null);
   const endedRef = useRef(false);
-  const fallbackTimerRef = useRef(null);
 
   useSessionTimer(true, token);
   useSubscriptionCheck();
@@ -45,31 +44,39 @@ export function Avatar(props) {
   const safeOnMessagePlayed = useCallback(() => {
     if (endedRef.current) return;
     endedRef.current = true;
-
-    // očisti fallback timer
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-
     onMessagePlayed?.();
   }, [onMessagePlayed]);
 
-  // ⏯️ Kad dođe poruka: postavi anim/facial/lipsync i pusti audio
+  // ✅ helper: tryPlay (bez fallback-a)
+  const tryPlay = useCallback(async () => {
+    const a = audioRef.current;
+    if (!a) return;
+
+    try {
+      // ako je već krenulo, ne diraj
+      if (!a.paused) return;
+
+      await a.play();
+      // console.log("✅ audio.play success");
+    } catch (err) {
+      // iOS: ako je blocked, nema retry ovde da ne duplira
+      console.warn("🔇 audio.play blocked (needs gesture / session)", err);
+    }
+  }, []);
+
+  // ⏯️ Kad dođe poruka: set anim/facial/lipsync i pusti audio
   useEffect(() => {
-    // pre nego što pustimo novi audio, ugasi stari
+    // ugasi stari audio
     if (audioRef.current) {
       try {
+        audioRef.current.onended = null;
+        audioRef.current.oncanplay = null;
+        audioRef.current.oncanplaythrough = null;
+        audioRef.current.onloadedmetadata = null;
         audioRef.current.pause();
         audioRef.current.src = "";
       } catch {}
       audioRef.current = null;
-    }
-
-    // očisti fallback timer
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
     }
 
     endedRef.current = false;
@@ -87,40 +94,38 @@ export function Avatar(props) {
     setLipsync(message.lipsync || null);
 
     const a = new Audio("data:audio/mp3;base64," + message.audio);
-    a.playsInline = true; // ✅ iOS
 
-    a.onended = () => {
-      safeOnMessagePlayed();
-    };
+    // iOS hints
+    a.preload = "auto";
+    a.playsInline = true;
 
-    // ✅ pokušaj play, a ako je blokirano -> fallback
-    a.play().catch((err) => {
-      console.warn("🔇 audio.play blocked (mobile autoplay)", err);
+    a.onended = () => safeOnMessagePlayed();
 
-      // fallback: ako ne može play, posle kratkog vremena simuliraj kraj
-      fallbackTimerRef.current = setTimeout(() => {
-        safeOnMessagePlayed();
-      }, 800);
-    });
+    // ✅ probaj više “momenta” kad iOS konačno smatra da može
+    a.onloadedmetadata = () => tryPlay();
+    a.oncanplay = () => tryPlay();
+    a.oncanplaythrough = () => tryPlay();
 
     audioRef.current = a;
     setAudio(a);
 
-    // cleanup kad se promeni message (ili unmount)
+    // ✅ probaj odmah
+    tryPlay();
+
     return () => {
-      if (fallbackTimerRef.current) {
-        clearTimeout(fallbackTimerRef.current);
-        fallbackTimerRef.current = null;
-      }
       if (audioRef.current) {
         try {
+          audioRef.current.onended = null;
+          audioRef.current.oncanplay = null;
+          audioRef.current.oncanplaythrough = null;
+          audioRef.current.onloadedmetadata = null;
           audioRef.current.pause();
           audioRef.current.src = "";
         } catch {}
         audioRef.current = null;
       }
     };
-  }, [message, safeOnMessagePlayed]);
+  }, [message, safeOnMessagePlayed, tryPlay]);
 
   // 🎞️ Animacije
   useEffect(() => {
@@ -207,7 +212,7 @@ export function Avatar(props) {
     });
   });
 
-  // 🎛️ Leva (ostaje isto)
+  // 🎛️ Leva
   useControls("FacialExpressions", {
     animation: {
       value: animation,
@@ -219,19 +224,6 @@ export function Avatar(props) {
       onChange: setFacialExpression,
     },
     setupMode: button(() => setSetupMode((v) => !v)),
-    logMorphTargetValues: button(() => {
-      const emotionValues = {};
-      Object.values(nodes).forEach((node) => {
-        if (node.morphTargetInfluences && node.morphTargetDictionary) {
-          morphTargets.forEach((key) => {
-            if (["eyeBlinkLeft", "eyeBlinkRight"].includes(key)) return;
-            const value = node.morphTargetInfluences[node.morphTargetDictionary[key]];
-            if (value > 0.01) emotionValues[key] = value;
-          });
-        }
-      });
-      console.log(JSON.stringify(emotionValues, null, 2));
-    }),
   });
 
   useControls("MorphTarget", () =>
