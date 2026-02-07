@@ -41,6 +41,8 @@ export const SpeechProvider = ({ children }) => {
   const rafRef = useRef(null);
 
   const micSafetyTimerRef = useRef(null);
+
+  // ✅ “playback nije startovao” fallback timer
   const playBlockedFallbackTimerRef = useRef(null);
 
   // ✅ NEW: playback safety timer (kad playback realno krene)
@@ -86,7 +88,6 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ NEW
   const clearPlaybackSafety = () => {
     if (playbackSafetyTimerRef.current) {
       clearTimeout(playbackSafetyTimerRef.current);
@@ -220,7 +221,7 @@ export const SpeechProvider = ({ children }) => {
     clearMicSafetyTimer();
     pendingPlaybackRef.current = false;
     clearPlayBlockedFallback();
-    clearPlaybackSafety(); // ✅ NEW
+    clearPlaybackSafety();
     stopKeepAlive();
     console.log("🎤 Mic re-enabled after avatar speech.");
   }, [stopKeepAlive]);
@@ -254,9 +255,10 @@ export const SpeechProvider = ({ children }) => {
         updateMicState(true);
         pendingPlaybackRef.current = false; // da ne blokira UI
         clearMicSafetyTimer();
+        clearPlaybackSafety();
         stopKeepAlive();
       }
-    }, 8000); // ✅ umesto 900ms
+    }, 8000);
   }, [stopKeepAlive]);
 
   const initiateRecording = () => {
@@ -267,53 +269,64 @@ export const SpeechProvider = ({ children }) => {
     if (e?.data && e.data.size > 0) audioChunksRef.current.push(e.data);
   };
 
-  const sendAudioData = async (audioBlob) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
+const sendAudioData = async (audioBlob) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(audioBlob);
 
-    reader.onloadend = async function () {
-      const base64Audio = reader.result.split(",")[1];
-      setLoading(true);
+  reader.onloadend = async function () {
+    const base64Audio = reader.result.split(",")[1];
+    setLoading(true);
 
-      try {
-        const response = await fetch(`${backendUrl}/sts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ audio: base64Audio }),
-        });
+    try {
+      const response = await fetch(`${backendUrl}/sts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio: base64Audio }),
+      });
 
-        const data = await response.json();
-        const newMessages = data?.messages || [];
+      const data = await response.json();
+      const newMessages = data?.messages || [];
 
-        if (!newMessages.length) {
-          console.warn("⚠️ Backend returned no messages → unlocking mic");
-          updateMicState(true);
-          pendingPlaybackRef.current = false;
-          clearMicSafetyTimer();
-          clearPlayBlockedFallback();
-          clearPlaybackSafety();
-          stopKeepAlive();
-          return;
-        }
+      // ✅ LOG: koliko poruka backend vraća + kratak info
+      console.log("🟦 STS messages length:", newMessages.length);
+      console.log(
+        "🟦 STS message keys:",
+        newMessages.map((m) => ({
+          id: m?.id,
+          audioHead: m?.audio?.slice?.(0, 18),
+          textHead: m?.message?.slice?.(0, 40),
+        }))
+      );
 
-        setMessages((prev) => [...prev, ...newMessages]);
-
-        // ✅ čekamo da Avatar krene playback
-        pendingPlaybackRef.current = true;
-        armPlayBlockedFallback();
-      } catch (error) {
-        console.error("❌ Audio send error:", error);
+      if (!newMessages.length) {
+        console.warn("⚠️ Backend returned no messages → unlocking mic");
         updateMicState(true);
         pendingPlaybackRef.current = false;
         clearMicSafetyTimer();
         clearPlayBlockedFallback();
         clearPlaybackSafety();
         stopKeepAlive();
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
+
+      setMessages((prev) => [...prev, ...newMessages]);
+
+      // ✅ čekamo da Avatar krene playback
+      pendingPlaybackRef.current = true;
+      armPlayBlockedFallback();
+    } catch (error) {
+      console.error("❌ Audio send error:", error);
+      updateMicState(true);
+      pendingPlaybackRef.current = false;
+      clearMicSafetyTimer();
+      clearPlayBlockedFallback();
+      clearPlaybackSafety();
+      stopKeepAlive();
+    } finally {
+      setLoading(false);
+    }
   };
+};
 
   const startListening = async () => {
     if (streamRef.current && analyserRef.current) {
@@ -527,6 +540,8 @@ export const SpeechProvider = ({ children }) => {
       console.error("💥 Failed to stop recording:", err);
       updateMicState(true);
       clearMicSafetyTimer();
+      clearPlayBlockedFallback();
+      clearPlaybackSafety();
       stopKeepAlive();
     }
   };
@@ -567,6 +582,8 @@ export const SpeechProvider = ({ children }) => {
         console.warn("⚠️ TTS returned no messages → unlocking mic");
         updateMicState(true);
         pendingPlaybackRef.current = false;
+        clearPlayBlockedFallback();
+        clearPlaybackSafety();
         stopKeepAlive();
         return;
       }
@@ -580,6 +597,8 @@ export const SpeechProvider = ({ children }) => {
       console.error("❌ TTS error:", error);
       updateMicState(true);
       pendingPlaybackRef.current = false;
+      clearPlayBlockedFallback();
+      clearPlaybackSafety();
       stopKeepAlive();
     } finally {
       setLoading(false);
