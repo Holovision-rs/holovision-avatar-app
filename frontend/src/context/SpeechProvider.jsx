@@ -12,6 +12,13 @@ const ENABLE_AUTO_STOP = true;
 const MIC_SAFETY_UNLOCK_MS = Number(import.meta.env.VITE_MIC_SAFETY_UNLOCK_MS || 12000);
 const PLAY_BLOCKED_FALLBACK_MS = Number(import.meta.env.VITE_PLAY_BLOCKED_FALLBACK_MS || 900);
 
+// ✅ pomoćno: da unlock nikad ne blokira
+const withTimeout = (promise, ms = 250) =>
+  Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(false), ms)),
+  ]);
+
 export const SpeechProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState(null);
@@ -74,39 +81,72 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
+  // ✅ MIME type picker (bitno za mobilni)
+  const pickMimeType = () => {
+    try {
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return null;
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4", // safari ponekad
+      ];
+      return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // ✅ audio unlock helper — NE SME BLOKIRATI startRecording
   const unlockAudioOnce = useCallback(async () => {
     if (audioUnlockedRef.current) return true;
 
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-        if (ctx.state === "suspended") {
-          try { await ctx.resume(); } catch {}
+    const doUnlock = async () => {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+        if (AudioContext) {
+          const ctx = new AudioContext();
+
+          // pokušaj resume (nekad reject, nekad ok)
+          try {
+            if (ctx.state === "suspended") await ctx.resume();
+          } catch {}
+
+          // kratki tick
+          try {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            gain.gain.value = 0.0001;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.01);
+          } catch {}
+
+          setTimeout(() => {
+            try { ctx.close?.(); } catch {}
+          }, 80);
         }
 
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        gain.gain.value = 0.0001;
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.01);
+        // Prime HTMLAudio (NAJČEŠĆE je problem ovde → promise nekad ostane pending)
+        const a = new Audio();
+        a.muted = true;
+        a.volume = 0;
+        a.playsInline = true;
 
-        setTimeout(() => { try { ctx.close?.(); } catch {} }, 50);
+        // ✅ sa timeout race da ne zaglavi
+        await withTimeout(a.play().catch(() => false), 200);
+
+        audioUnlockedRef.current = true;
+        return true;
+      } catch {
+        return false;
       }
+    };
 
-      const a = new Audio();
-      a.muted = true;
-      a.volume = 0;
-      a.playsInline = true;
-      await a.play().catch(() => {});
-
-      audioUnlockedRef.current = true;
-      return true;
-    } catch {
-      return false;
-    }
+    const ok = await doUnlock();
+    // čak i ako nije uspelo, ne blokiramo app
+    return ok;
   }, []);
 
   const startKeepAlive = useCallback(async () => {
@@ -117,12 +157,13 @@ export const SpeechProvider = ({ children }) => {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
 
+      // koristi postojeći ctx ako postoji (da ne pravimo dupli)
       const ctx = audioContextRef.current || new AudioContext();
       audioContextRef.current = ctx;
 
-      if (ctx.state === "suspended") {
-        try { await ctx.resume(); } catch {}
-      }
+      try {
+        if (ctx.state === "suspended") await withTimeout(ctx.resume(), 200);
+      } catch {}
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -159,7 +200,8 @@ export const SpeechProvider = ({ children }) => {
     console.log("🎤 Mic re-enabled after avatar speech.");
   }, [stopKeepAlive]);
 
-  // ✅ FIX: kad je play blokiran, MORAMO da skinemo poruku, inače message ostaje i mic je mrtav
+  // ✅ fallback kad audio.play bude blokiran:
+  // da ne ostane message zaglavljen i ubije mic
   const armPlayBlockedFallback = useCallback(() => {
     clearPlayBlockedFallback();
     playBlockedFallbackTimerRef.current = setTimeout(() => {
@@ -227,13 +269,14 @@ export const SpeechProvider = ({ children }) => {
     if (streamRef.current && analyserRef.current) {
       try {
         if (audioContextRef.current?.state === "suspended") {
-          await audioContextRef.current.resume();
+          await withTimeout(audioContextRef.current.resume(), 200);
         }
       } catch {}
       return;
     }
 
     try {
+      console.log("🎤 getUserMedia request...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
@@ -242,7 +285,7 @@ export const SpeechProvider = ({ children }) => {
       audioContextRef.current = ctx;
 
       try {
-        if (ctx.state === "suspended") await ctx.resume();
+        if (ctx.state === "suspended") await withTimeout(ctx.resume(), 200);
       } catch {}
 
       const source = ctx.createMediaStreamSource(stream);
@@ -329,19 +372,24 @@ export const SpeechProvider = ({ children }) => {
     }
 
     try {
-      const recorder = new MediaRecorder(streamRef.current);
+      const mimeType = pickMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(streamRef.current, { mimeType })
+        : new MediaRecorder(streamRef.current);
+
       recorder.onstart = initiateRecording;
       recorder.ondataavailable = onDataAvailable;
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const type = recorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type });
         sendAudioData(audioBlob);
         mediaRecorderRef.current = null;
         console.log("⏹️ Recorder stopped (listening/equalizer remains active).");
       };
 
       mediaRecorderRef.current = recorder;
-      console.log("🎙️ MediaRecorder initialized.");
+      console.log("🎙️ MediaRecorder initialized:", recorder.mimeType);
       return recorder;
     } catch (err) {
       console.error("🎙️ MediaRecorder init error:", err);
@@ -350,9 +398,11 @@ export const SpeechProvider = ({ children }) => {
   };
 
   const startRecording = async () => {
-    await unlockAudioOnce();
-    await startKeepAlive();
+    // ✅ KLJUČ: NE BLOKIRAJ start
+    unlockAudioOnce();      // fire-and-forget
+    startKeepAlive();       // fire-and-forget
 
+    console.log("🎤 startRecording() called");
     console.log("START CHECK:", {
       micEnabled: micEnabledRef.current,
       loading,
@@ -388,13 +438,14 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ FIX: ako UI pozove stopRecording() bez arg, tretiramo to kao userGesture=true
+  // ✅ ako UI pozove stopRecording() bez arg, tretiramo kao userGesture=true
   const stopRecording = async (opts) => {
     const userGesture = opts?.userGesture !== undefined ? opts.userGesture : true;
 
+    // ✅ KLJUČ: ni ovo ne sme da blokira stop
     if (userGesture) {
-      await unlockAudioOnce();
-      await startKeepAlive();
+      unlockAudioOnce();
+      startKeepAlive();
     }
 
     const recorder = mediaRecorderRef.current;
@@ -503,7 +554,7 @@ export const SpeechProvider = ({ children }) => {
         recording,
         recordingRef,
         startRecording,
-        stopRecording, // UI može stopRecording() bez parametra
+        stopRecording,
         message,
         loading,
         tts,
