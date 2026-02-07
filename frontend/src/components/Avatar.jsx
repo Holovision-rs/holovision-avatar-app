@@ -1,73 +1,140 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { button, useControls } from "leva";
 import * as THREE from "three";
 
 import { useSpeech } from "../context/SpeechContext";
-import { useAuth } from "../context/AuthContext";        
-import { useNavigate } from "react-router-dom";          
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { useSessionTimer } from "../hooks/useSessionTimer";
-
 import { useSubscriptionCheck } from "../hooks/useSubscriptionCheck";
+
 import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 
 export function Avatar(props) {
-  const { token, user, isAuthenticated, logout } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
+
   const { message, onMessagePlayed } = useSpeech();
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const group = useRef();
-  const startTimeRef = useRef(null);
-
   const { actions, mixer } = useAnimations(animations, group);
+
   const [animation, setAnimation] = useState(
     animations.find((a) => a.name === "Idle") ? "Idle" : animations[0].name
   );
   const [facialExpression, setFacialExpression] = useState("");
-  const [lipsync, setLipsync] = useState();
-  const [audio, setAudio] = useState();
+  const [lipsync, setLipsync] = useState(null);
+  const [audio, setAudio] = useState(null);
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
- 
-  useSessionTimer(true, token);      // ⏱️ radi usage tracking
+
+  // ✅ refs za kontrolu audio lifecycle-a
+  const audioRef = useRef(null);
+  const endedRef = useRef(false);
+  const fallbackTimerRef = useRef(null);
+
+  useSessionTimer(true, token);
   useSubscriptionCheck();
 
-  // ⏯️ Promena animacija kada dođe poruka
+  const safeOnMessagePlayed = useCallback(() => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+
+    // očisti fallback timer
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+
+    onMessagePlayed?.();
+  }, [onMessagePlayed]);
+
+  // ⏯️ Kad dođe poruka: postavi anim/facial/lipsync i pusti audio
   useEffect(() => {
+    // pre nego što pustimo novi audio, ugasi stari
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      } catch {}
+      audioRef.current = null;
+    }
+
+    // očisti fallback timer
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+
+    endedRef.current = false;
+
     if (!message) {
       setAnimation("Idle");
+      setFacialExpression("");
+      setLipsync(null);
+      setAudio(null);
       return;
     }
 
-    setAnimation(message.animation);
-    setFacialExpression(message.facialExpression);
-    setLipsync(message.lipsync);
+    setAnimation(message.animation || "Idle");
+    setFacialExpression(message.facialExpression || "");
+    setLipsync(message.lipsync || null);
 
-    const audio = new Audio("data:audio/mp3;base64," + message.audio);
-    audio.play();
-    setAudio(audio);
-    audio.onended = onMessagePlayed;
-  }, [message]);
+    const a = new Audio("data:audio/mp3;base64," + message.audio);
+    a.playsInline = true; // ✅ iOS
 
-  // 🎞️ Pokretanje animacija
+    a.onended = () => {
+      safeOnMessagePlayed();
+    };
+
+    // ✅ pokušaj play, a ako je blokirano -> fallback
+    a.play().catch((err) => {
+      console.warn("🔇 audio.play blocked (mobile autoplay)", err);
+
+      // fallback: ako ne može play, posle kratkog vremena simuliraj kraj
+      fallbackTimerRef.current = setTimeout(() => {
+        safeOnMessagePlayed();
+      }, 800);
+    });
+
+    audioRef.current = a;
+    setAudio(a);
+
+    // cleanup kad se promeni message (ili unmount)
+    return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      if (audioRef.current) {
+        try {
+          audioRef.current.pause();
+          audioRef.current.src = "";
+        } catch {}
+        audioRef.current = null;
+      }
+    };
+  }, [message, safeOnMessagePlayed]);
+
+  // 🎞️ Animacije
   useEffect(() => {
-    if (actions[animation]) {
-      actions[animation]
-        .reset()
-        .fadeIn(mixer.stats.actions.inUse === 0 ? 0 : 0.5)
-        .play();
+    if (!actions?.[animation]) return;
 
-      return () => {
-        actions[animation]?.fadeOut(0.5);
-      };
-    }
-  }, [animation]);
+    actions[animation]
+      .reset()
+      .fadeIn(mixer?.stats?.actions?.inUse === 0 ? 0 : 0.5)
+      .play();
+
+    return () => {
+      actions[animation]?.fadeOut(0.5);
+    };
+  }, [animation, actions, mixer]);
 
   // 👀 Treptanje
   useEffect(() => {
@@ -87,7 +154,26 @@ export function Avatar(props) {
     return () => clearTimeout(blinkTimeout);
   }, []);
 
-  // 🧠 Lip sync i mimika
+  // Helper: morph lerp
+  const lerpMorphTarget = useCallback(
+    (target, value, speed = 0.1) => {
+      scene.traverse((child) => {
+        if (child.isSkinnedMesh && child.morphTargetDictionary) {
+          const index = child.morphTargetDictionary[target];
+          if (index !== undefined) {
+            child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
+              child.morphTargetInfluences[index],
+              value,
+              speed
+            );
+          }
+        }
+      });
+    },
+    [scene]
+  );
+
+  // 🧠 Lip sync + mimika
   useFrame(() => {
     if (!setupMode) {
       morphTargets.forEach((key) => {
@@ -103,10 +189,12 @@ export function Avatar(props) {
 
     if (setupMode || !message || !lipsync) return;
 
-    const currentAudioTime = audio?.currentTime;
+    const currentAudioTime = audioRef.current?.currentTime ?? audio?.currentTime;
+    if (currentAudioTime == null) return;
+
     const applied = [];
 
-    lipsync.mouthCues.forEach((cue) => {
+    lipsync.mouthCues?.forEach((cue) => {
       if (currentAudioTime >= cue.start && currentAudioTime <= cue.end) {
         const target = visemesMapping[cue.value];
         applied.push(target);
@@ -119,7 +207,7 @@ export function Avatar(props) {
     });
   });
 
-  // 🎛️ Leva kontrola (leva panel)
+  // 🎛️ Leva (ostaje isto)
   useControls("FacialExpressions", {
     animation: {
       value: animation,
@@ -130,7 +218,7 @@ export function Avatar(props) {
       options: Object.keys(facialExpressions),
       onChange: setFacialExpression,
     },
-    setupMode: button(() => setSetupMode(!setupMode)),
+    setupMode: button(() => setSetupMode((v) => !v)),
     logMorphTargetValues: button(() => {
       const emotionValues = {};
       Object.values(nodes).forEach((node) => {
@@ -161,48 +249,55 @@ export function Avatar(props) {
     )
   );
 
-  // 💀 Helper funkcija za morph target
-  const lerpMorphTarget = (target, value, speed = 0.1) => {
-    scene.traverse((child) => {
-      if (child.isSkinnedMesh && child.morphTargetDictionary) {
-        const index = child.morphTargetDictionary[target];
-        if (index !== undefined) {
-          child.morphTargetInfluences[index] = THREE.MathUtils.lerp(
-            child.morphTargetInfluences[index],
-            value,
-            speed
-          );
-        }
-      }
-    });
-  };
-
-  // 🧍‍♂️ Render 3D avatara
   return (
     <group {...props} dispose={null} ref={group} position={[0, -0.5, 0]}>
       <primitive object={nodes.Hips} />
-      
-      <skinnedMesh name="EyeLeft" geometry={nodes.EyeLeft.geometry} material={materials.Wolf3D_Eye} skeleton={nodes.EyeLeft.skeleton} morphTargetDictionary={nodes.EyeLeft.morphTargetDictionary} morphTargetInfluences={nodes.EyeLeft.morphTargetInfluences} />
 
-      <skinnedMesh name="EyeRight" geometry={nodes.EyeRight.geometry} material={materials.Wolf3D_Eye} skeleton={nodes.EyeRight.skeleton} morphTargetDictionary={nodes.EyeRight.morphTargetDictionary} morphTargetInfluences={nodes.EyeRight.morphTargetInfluences} />
+      <skinnedMesh
+        name="EyeLeft"
+        geometry={nodes.EyeLeft.geometry}
+        material={materials.Wolf3D_Eye}
+        skeleton={nodes.EyeLeft.skeleton}
+        morphTargetDictionary={nodes.EyeLeft.morphTargetDictionary}
+        morphTargetInfluences={nodes.EyeLeft.morphTargetInfluences}
+      />
 
-      <skinnedMesh name="Wolf3D_Head" geometry={nodes.Wolf3D_Head.geometry} material={materials.Wolf3D_Skin} skeleton={nodes.Wolf3D_Head.skeleton} morphTargetDictionary={nodes.Wolf3D_Head.morphTargetDictionary} morphTargetInfluences={nodes.Wolf3D_Head.morphTargetInfluences} />
+      <skinnedMesh
+        name="EyeRight"
+        geometry={nodes.EyeRight.geometry}
+        material={materials.Wolf3D_Eye}
+        skeleton={nodes.EyeRight.skeleton}
+        morphTargetDictionary={nodes.EyeRight.morphTargetDictionary}
+        morphTargetInfluences={nodes.EyeRight.morphTargetInfluences}
+      />
 
-      <skinnedMesh name="Wolf3D_Teeth" geometry={nodes.Wolf3D_Teeth.geometry} material={materials.Wolf3D_Teeth} skeleton={nodes.Wolf3D_Teeth.skeleton} morphTargetDictionary={nodes.Wolf3D_Teeth.morphTargetDictionary} morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences} />
+      <skinnedMesh
+        name="Wolf3D_Head"
+        geometry={nodes.Wolf3D_Head.geometry}
+        material={materials.Wolf3D_Skin}
+        skeleton={nodes.Wolf3D_Head.skeleton}
+        morphTargetDictionary={nodes.Wolf3D_Head.morphTargetDictionary}
+        morphTargetInfluences={nodes.Wolf3D_Head.morphTargetInfluences}
+      />
+
+      <skinnedMesh
+        name="Wolf3D_Teeth"
+        geometry={nodes.Wolf3D_Teeth.geometry}
+        material={materials.Wolf3D_Teeth}
+        skeleton={nodes.Wolf3D_Teeth.skeleton}
+        morphTargetDictionary={nodes.Wolf3D_Teeth.morphTargetDictionary}
+        morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences}
+      />
 
       <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
-
       <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
-
       <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
-
       <skinnedMesh geometry={nodes.Wolf3D_Outfit_Bottom.geometry} material={materials.Wolf3D_Outfit_Bottom} skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton} />
-
       <skinnedMesh geometry={nodes.Wolf3D_Outfit_Footwear.geometry} material={materials.Wolf3D_Outfit_Footwear} skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton} />
-
       <skinnedMesh geometry={nodes.Wolf3D_Outfit_Top.geometry} material={materials.Wolf3D_Outfit_Top} skeleton={nodes.Wolf3D_Outfit_Top.skeleton} />
     </group>
   );
 }
 
 useGLTF.preload("/models/avatar.glb");
+useGLTF.preload("/models/animations.glb");
