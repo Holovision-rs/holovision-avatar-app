@@ -30,7 +30,7 @@ export const SpeechProvider = ({ children }) => {
   // 🎚️ Equalizer node (analyser)
   const [analyserNode, setAnalyserNode] = useState(null);
 
-  // 🎧 Listening (stream + analyser) — ostaje aktivno za equalizer
+  // 🎧 Listening (stream + analyser)
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
@@ -40,7 +40,7 @@ export const SpeechProvider = ({ children }) => {
   const audioChunksRef = useRef([]);
   const recordingRef = useRef(false);
 
-  // 🤫 Auto-stop on silence (samo dok snimaš)
+  // 🤫 Auto-stop on silence
   const rafRef = useRef(null);
 
   // Timers
@@ -56,60 +56,10 @@ export const SpeechProvider = ({ children }) => {
   // ✅ Dok čekamo playback (Avatar -> onended)
   const pendingPlaybackRef = useRef(false);
 
-  // 🔋 Mobile keep-alive audio session (iOS)
-  const keepAliveCtxRef = useRef(null);
+  // 🔋 Keep-alive (u ISTOM AudioContext-u kad je moguće)
   const keepAliveOscRef = useRef(null);
   const keepAliveGainRef = useRef(null);
-
-  const startKeepAlive = useCallback(async () => {
-    // uglavnom treba samo na mobilnom, ali može i svuda bez štete
-    if (keepAliveCtxRef.current) return;
-
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-
-      const ctx = new AudioContext();
-      keepAliveCtxRef.current = ctx;
-
-      if (ctx.state === "suspended") {
-        try {
-          await ctx.resume();
-        } catch {}
-      }
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      // ultra-tiho (nemoj 0)
-      gain.gain.value = 0.00001;
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-
-      keepAliveOscRef.current = osc;
-      keepAliveGainRef.current = gain;
-
-      // console.log("🔋 keepAlive ON");
-    } catch (e) {
-      console.warn("keepAlive start failed", e);
-    }
-  }, []);
-
-  const stopKeepAlive = useCallback(() => {
-    try {
-      keepAliveOscRef.current?.stop?.();
-    } catch {}
-    keepAliveOscRef.current = null;
-    keepAliveGainRef.current = null;
-
-    try {
-      keepAliveCtxRef.current?.close?.();
-    } catch {}
-    keepAliveCtxRef.current = null;
-
-    // console.log("🔋 keepAlive OFF");
-  }, []);
+  const keepAliveActiveRef = useRef(false);
 
   const updateMicState = (enabled) => {
     setMicEnabled(enabled);
@@ -145,7 +95,6 @@ export const SpeechProvider = ({ children }) => {
     if (audioUnlockedRef.current) return true;
 
     try {
-      // WebAudio unlock
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
         const ctx = new AudioContext();
@@ -155,6 +104,7 @@ export const SpeechProvider = ({ children }) => {
           } catch {}
         }
 
+        // kratki “tick”
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         gain.gain.value = 0.0001;
@@ -184,19 +134,68 @@ export const SpeechProvider = ({ children }) => {
     }
   }, []);
 
+  // 🔋 Keep alive: koristi postojeći ctx ako postoji, inače pravi novi (ali samo u user gesture pozivu)
+  const startKeepAlive = useCallback(async () => {
+    if (!IS_MOBILE) return;
+    if (keepAliveActiveRef.current) return;
+
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      // koristi postojeći mic ctx ako postoji (da ne pravimo dupli context)
+      const ctx = audioContextRef.current || new AudioContext();
+      if (!audioContextRef.current) audioContextRef.current = ctx;
+
+      if (ctx.state === "suspended") {
+        try {
+          await ctx.resume();
+        } catch {}
+      }
+
+      // ultra-tih low freq tone (praktično 0)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.frequency.value = 30;     // nisko
+      gain.gain.value = 0.000001;   // ultra tiho
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+
+      keepAliveOscRef.current = osc;
+      keepAliveGainRef.current = gain;
+      keepAliveActiveRef.current = true;
+
+      // console.log("🔋 keepAlive ON");
+    } catch (e) {
+      console.warn("keepAlive start failed", e);
+    }
+  }, []);
+
+  const stopKeepAlive = useCallback(() => {
+    try {
+      keepAliveOscRef.current?.stop?.();
+    } catch {}
+    keepAliveOscRef.current = null;
+    keepAliveGainRef.current = null;
+    keepAliveActiveRef.current = false;
+    // console.log("🔋 keepAlive OFF");
+  }, []);
+
   const safeOnMessagePlayed = useCallback(() => {
     setMessages((prev) => (prev.length ? prev.slice(1) : prev));
     updateMicState(true);
     clearMicSafetyTimer();
     pendingPlaybackRef.current = false;
     clearPlayBlockedFallback();
-    stopKeepAlive(); // ✅ prekid keepAlive kad poruka završi
+    stopKeepAlive();
     console.log("🎤 Mic re-enabled after avatar speech.");
   }, [stopKeepAlive]);
 
   // ✅ fallback ako audio.play bude blokiran:
-  // BITNO: NE smemo da "pojedemo" poruku (NE zovemo safeOnMessagePlayed),
-  // samo otključamo mic da app ne ostane zaglavljena.
+  // NE diramo queue poruka, samo otključamo mic.
   const armPlayBlockedFallback = useCallback(() => {
     clearPlayBlockedFallback();
     playBlockedFallbackTimerRef.current = setTimeout(() => {
@@ -205,7 +204,6 @@ export const SpeechProvider = ({ children }) => {
         pendingPlaybackRef.current = false;
         updateMicState(true);
         clearMicSafetyTimer();
-        // keepAlive može ostati upaljen do sledećeg onended, ali da ne “visi”:
         stopKeepAlive();
       }
     }, PLAY_BLOCKED_FALLBACK_MS);
@@ -267,7 +265,7 @@ export const SpeechProvider = ({ children }) => {
     };
   };
 
-  // ✅ Listening: traži mic + napravi analyser (equalizer)
+  // ✅ Listening: mic + analyser
   const startListening = async () => {
     if (streamRef.current && analyserRef.current) {
       try {
@@ -283,7 +281,7 @@ export const SpeechProvider = ({ children }) => {
       streamRef.current = stream;
 
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioContext();
+      const ctx = audioContextRef.current || new AudioContext();
       audioContextRef.current = ctx;
 
       try {
@@ -312,11 +310,6 @@ export const SpeechProvider = ({ children }) => {
     stopKeepAlive();
 
     try {
-      audioContextRef.current?.close();
-    } catch {}
-    audioContextRef.current = null;
-
-    try {
       streamRef.current?.getTracks()?.forEach((t) => t.stop());
     } catch {}
 
@@ -324,10 +317,14 @@ export const SpeechProvider = ({ children }) => {
     analyserRef.current = null;
     setAnalyserNode(null);
 
+    // (AudioContext ostavljamo da ne pravimo suspend/resume haos; ali može close ako baš želiš)
+    // try { audioContextRef.current?.close(); } catch {}
+    // audioContextRef.current = null;
+
     console.log("🔇 Listening stopped.");
   };
 
-  // 🤫 Auto-stop snimanja posle SILENCE_MS tišine (RMS)
+  // 🤫 Auto-stop snimanja posle tišine
   const startAutoStopOnSilence = () => {
     if (!ENABLE_AUTO_STOP) return;
     if (!analyserRef.current) return;
@@ -356,7 +353,6 @@ export const SpeechProvider = ({ children }) => {
       const silentFor = performance.now() - lastLoudAt;
       if (silentFor >= SILENCE_MS) {
         console.log(`🤫 ${SILENCE_MS}ms silence (rms=${rms.toFixed(4)}) → auto stop`);
-        // auto-stop nije user gesture:
         stopRecording({ userGesture: false });
         return;
       }
@@ -410,8 +406,7 @@ export const SpeechProvider = ({ children }) => {
   // ✅ START (tap mic) — unlock mora biti NA TAPU
   const startRecording = async () => {
     await unlockAudioOnce();
-    // ✅ keepAlive start (posebno pomaže na iOS)
-    if (IS_MOBILE) await startKeepAlive();
+    await startKeepAlive(); // ✅ start session na tapu
 
     if (!micEnabledRef.current || loading || message) {
       console.log("🚫 Can't start recording (mic disabled / loading / message).");
@@ -436,7 +431,6 @@ export const SpeechProvider = ({ children }) => {
       setRecording(true);
       recordingRef.current = true;
       console.log("🎬 Recording started");
-
       startAutoStopOnSilence();
     } catch (err) {
       console.error("💥 Failed to start recording:", err);
@@ -448,7 +442,7 @@ export const SpeechProvider = ({ children }) => {
   const stopRecording = async ({ userGesture } = {}) => {
     if (userGesture) {
       await unlockAudioOnce();
-      if (IS_MOBILE) await startKeepAlive(); // ✅ obnovi session na tap-u
+      await startKeepAlive(); // ✅ obnovi session na tap-u
     }
 
     const recorder = mediaRecorderRef.current;
@@ -543,7 +537,6 @@ export const SpeechProvider = ({ children }) => {
   };
 
   const onMessagePlayed = () => {
-    // zaštita od duplog poziva
     const key =
       message?.id ||
       message?.audio?.slice?.(0, 24) ||
@@ -561,9 +554,7 @@ export const SpeechProvider = ({ children }) => {
       clearMicSafetyTimer();
       clearPlayBlockedFallback();
       stopKeepAlive();
-      try {
-        audioContextRef.current?.close();
-      } catch {}
+
       try {
         streamRef.current?.getTracks()?.forEach((t) => t.stop());
       } catch {}
@@ -587,7 +578,7 @@ export const SpeechProvider = ({ children }) => {
         setAnalyserNode,
         startListening,
         stopListening,
-        unlockAudioOnce, // <-- opcionalno (ako želiš da pozoveš iz UI)
+        unlockAudioOnce,
       }}
     >
       {children}
