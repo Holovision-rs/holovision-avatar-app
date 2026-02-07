@@ -7,33 +7,40 @@ export const ChatInterface = ({ hidden }) => {
 
   const {
     analyserNode,
-    tts,
     loading,
     message,
     startRecording,
     stopRecording,
     recording,
     micEnabled,
-    unlockAudioOnce, // ✅ ovo je iz SpeechProvider-a
+    unlockAudioOnce,
   } = useSpeech();
 
   if (hidden) return null;
 
-  const isDisabled = loading || !!message || !micEnabled;
+  // ✅ START je blokiran ako čekamo odgovor ili mic nije dozvoljen
+  const startBlocked = loading || !!message || !micEnabled;
+
+  // ✅ STOP nikad ne blokiraj (moraš uvek moći da prekineš snimanje)
+  const disabled = recording ? false : startBlocked;
 
   const handleMicClick = async () => {
-    if (isDisabled) return;
+    console.log("[MIC CLICK]", { recording, loading, hasMessage: !!message, micEnabled });
 
-    // ✅ iOS unlock mora da bude u user gesture
+    // ✅ STOP uvek radi
+    if (recording) {
+      await stopRecording({ userGesture: true });
+      return;
+    }
+
+    // ✅ START radi samo ako nije blokiran
+    if (startBlocked) return;
+
     try {
       await unlockAudioOnce?.();
     } catch {}
 
-    if (recording) {
-      await stopRecording({ userGesture: true });
-    } else {
-      await startRecording();
-    }
+    await startRecording();
   };
 
   return (
@@ -44,22 +51,13 @@ export const ChatInterface = ({ hidden }) => {
         <button
           type="button"
           onClick={handleMicClick}
-          disabled={isDisabled}
+          disabled={disabled}
           className={`center text-white p-2 px-2 font-semibold uppercase rounded-full
             ${recording ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
-            ${isDisabled ? "cursor-not-allowed opacity-30" : ""}`}
+            ${disabled ? "cursor-not-allowed opacity-30" : ""}`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-4 h-4"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round"
               d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z"
             />
           </svg>
