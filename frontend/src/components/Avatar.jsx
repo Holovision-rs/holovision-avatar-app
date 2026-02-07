@@ -25,8 +25,14 @@ const base64ToArrayBuffer = (base64) => {
 export function Avatar(props) {
   const { token } = useAuth();
 
-  // ✅ uzimamo playback ctx iz SpeechProvider-a
-  const { message, onMessagePlayed, ensurePlaybackContext, playbackCtxRef } = useSpeech();
+  // ✅ + onAvatarPlaybackStart (NEW)
+  const {
+    message,
+    onMessagePlayed,
+    onAvatarPlaybackStart,
+    ensurePlaybackContext,
+    playbackCtxRef,
+  } = useSpeech();
 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
@@ -45,10 +51,12 @@ export function Avatar(props) {
   useSessionTimer(true, token);
   useSubscriptionCheck();
 
-  // ✅ WebAudio playback refs
+  // ✅ WebAudio refs
   const sourceRef = useRef(null);
-  const startedAtRef = useRef(null); // ctx.currentTime kad je startovano
+  const startedAtRef = useRef(null);     // ctx.currentTime kad je startovano
   const endedRef = useRef(false);
+  const manualStopRef = useRef(false);   // da ne okine onended na stop
+  const playJobIdRef = useRef(0);        // ✅ cancel async decode/play
 
   const safeOnMessagePlayed = useCallback(() => {
     if (endedRef.current) return;
@@ -57,21 +65,31 @@ export function Avatar(props) {
   }, [onMessagePlayed]);
 
   const stopCurrentAudio = useCallback(() => {
+    manualStopRef.current = true;
+
     try {
       if (sourceRef.current) {
         sourceRef.current.onended = null;
         sourceRef.current.stop(0);
       }
     } catch {}
+
     sourceRef.current = null;
     startedAtRef.current = null;
+
+    setTimeout(() => {
+      manualStopRef.current = false;
+    }, 0);
   }, []);
 
   const playWebAudioFromMessage = useCallback(
     async (msg) => {
       if (!msg?.audio) return;
 
-      // obavezno imamo ctx (iOS: resume mora da se desi preko user gesture-a -> ti to radiš preko unlockAudioOnce)
+      // ✅ novi job (otkazuje sve prethodne async decode/play)
+      const myJobId = ++playJobIdRef.current;
+
+      // obezbedi ctx
       let ctx = playbackCtxRef?.current;
       if (!ctx) ctx = await ensurePlaybackContext?.();
       if (!ctx) {
@@ -79,18 +97,22 @@ export function Avatar(props) {
         return;
       }
 
-      // i dalje može da bude suspended ako unlock nije urađen
+      // resume ako treba
       if (ctx.state === "suspended") {
         try {
           await ctx.resume();
         } catch {}
       }
 
+      // stop prethodno (pre decode-a da ne preklapa)
+      stopCurrentAudio();
+      endedRef.current = false;
+
+      // decode
       const arrayBuffer = base64ToArrayBuffer(msg.audio);
 
       let audioBuffer = null;
       try {
-        // decodeAudioData (promisified)
         audioBuffer = await new Promise((resolve, reject) => {
           ctx.decodeAudioData(
             arrayBuffer.slice(0),
@@ -99,39 +121,56 @@ export function Avatar(props) {
           );
         });
       } catch (e) {
+        if (myJobId !== playJobIdRef.current) return;
         console.warn("❌ decodeAudioData failed", e);
         return;
       }
 
-      // stop prethodno
-      stopCurrentAudio();
-      endedRef.current = false;
+      // ✅ ako je stigla nova poruka dok smo dekodirali → ne startuj staro
+      if (myJobId !== playJobIdRef.current) return;
 
+      // napravi source
       const src = ctx.createBufferSource();
       src.buffer = audioBuffer;
       src.connect(ctx.destination);
 
       src.onended = () => {
-        // nekad onended okine i kad stopujemo, ali to je ok jer imamo endedRef guard
+        if (manualStopRef.current) return;
         safeOnMessagePlayed();
       };
 
       sourceRef.current = src;
-      startedAtRef.current = ctx.currentTime;
+
+      // ✅ start time precizno u odnosu na ctx clock (sa malim offsetom)
+      const when = ctx.currentTime + 0.005;
+      startedAtRef.current = when;
 
       try {
-        src.start(0);
-        // console.log("✅ WebAudio start");
+        src.start(when);
+
+        // ✅ NEW: javi SpeechProvider-u da je playback KRENUO + koliko traje
+        // (ovo gasi "blocked fallback" i pali safety timeout = duration + 1.5s)
+        onAvatarPlaybackStart?.(audioBuffer?.duration);
+
       } catch (e) {
         console.warn("❌ WebAudio start failed", e);
+        // ✅ da ne zaglavi poruku u queue
+        safeOnMessagePlayed();
       }
     },
-    [ensurePlaybackContext, playbackCtxRef, safeOnMessagePlayed, stopCurrentAudio]
+    [
+      ensurePlaybackContext,
+      playbackCtxRef,
+      onAvatarPlaybackStart,
+      safeOnMessagePlayed,
+      stopCurrentAudio,
+    ]
   );
 
   // ⏯️ Kad dođe poruka: set anim/facial/lipsync i pusti WebAudio
   useEffect(() => {
-    // reset
+    // ✅ otkaži prethodne async poslove + stop audio
+    playJobIdRef.current++;
     stopCurrentAudio();
     endedRef.current = false;
 
@@ -149,6 +188,7 @@ export function Avatar(props) {
     playWebAudioFromMessage(message);
 
     return () => {
+      playJobIdRef.current++;
       stopCurrentAudio();
     };
   }, [message, playWebAudioFromMessage, stopCurrentAudio]);
@@ -220,11 +260,11 @@ export function Avatar(props) {
 
     if (setupMode || !message || !lipsync) return;
 
-    // ✅ WebAudio current time
     const ctx = playbackCtxRef?.current;
     const startedAt = startedAtRef.current;
-
     if (!ctx || startedAt == null) return;
+
+    // ✅ WebAudio time (start je "when" pa je tačno)
     const currentAudioTime = Math.max(0, ctx.currentTime - startedAt);
 
     const applied = [];
@@ -308,12 +348,36 @@ export function Avatar(props) {
         morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences}
       />
 
-      <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Bottom.geometry} material={materials.Wolf3D_Outfit_Bottom} skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Footwear.geometry} material={materials.Wolf3D_Outfit_Footwear} skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Top.geometry} material={materials.Wolf3D_Outfit_Top} skeleton={nodes.Wolf3D_Outfit_Top.skeleton} />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Glasses.geometry}
+        material={materials.Wolf3D_Glasses}
+        skeleton={nodes.Wolf3D_Glasses.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Headwear.geometry}
+        material={materials.Wolf3D_Headwear}
+        skeleton={nodes.Wolf3D_Headwear.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Body.geometry}
+        material={materials.Wolf3D_Body}
+        skeleton={nodes.Wolf3D_Body.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Bottom.geometry}
+        material={materials.Wolf3D_Outfit_Bottom}
+        skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Footwear.geometry}
+        material={materials.Wolf3D_Outfit_Footwear}
+        skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Top.geometry}
+        material={materials.Wolf3D_Outfit_Top}
+        skeleton={nodes.Wolf3D_Outfit_Top.skeleton}
+      />
     </group>
   );
 }

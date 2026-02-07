@@ -10,7 +10,6 @@ const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const ENABLE_AUTO_STOP = true;
 
 const MIC_SAFETY_UNLOCK_MS = Number(import.meta.env.VITE_MIC_SAFETY_UNLOCK_MS || 12000);
-const PLAY_BLOCKED_FALLBACK_MS = Number(import.meta.env.VITE_PLAY_BLOCKED_FALLBACK_MS || 900);
 
 // ✅ pomoćno: da unlock nikad ne blokira
 const withTimeout = (promise, ms = 250) =>
@@ -44,8 +43,13 @@ export const SpeechProvider = ({ children }) => {
   const micSafetyTimerRef = useRef(null);
   const playBlockedFallbackTimerRef = useRef(null);
 
+  // ✅ NEW: playback safety timer (kad playback realno krene)
+  const playbackSafetyTimerRef = useRef(null);
+
   const audioUnlockedRef = useRef(false);
   const handledMessageKeyRef = useRef(null);
+
+  // ✅ “čekamo playback” state
   const pendingPlaybackRef = useRef(false);
 
   // keepAlive (iOS)
@@ -79,6 +83,14 @@ export const SpeechProvider = ({ children }) => {
     if (playBlockedFallbackTimerRef.current) {
       clearTimeout(playBlockedFallbackTimerRef.current);
       playBlockedFallbackTimerRef.current = null;
+    }
+  };
+
+  // ✅ NEW
+  const clearPlaybackSafety = () => {
+    if (playbackSafetyTimerRef.current) {
+      clearTimeout(playbackSafetyTimerRef.current);
+      playbackSafetyTimerRef.current = null;
     }
   };
 
@@ -157,7 +169,7 @@ export const SpeechProvider = ({ children }) => {
     };
 
     const ok = await doUnlock();
-    return ok; // čak i false ne sme da blokira app (ti već ne čekaš unlock u startRecording)
+    return ok;
   }, [ensurePlaybackContext]);
 
   const startKeepAlive = useCallback(async () => {
@@ -208,20 +220,44 @@ export const SpeechProvider = ({ children }) => {
     clearMicSafetyTimer();
     pendingPlaybackRef.current = false;
     clearPlayBlockedFallback();
+    clearPlaybackSafety(); // ✅ NEW
     stopKeepAlive();
     console.log("🎤 Mic re-enabled after avatar speech.");
   }, [stopKeepAlive]);
 
-  // ✅ fallback ako se playback nikad ne desi (da ne zamrzne)
+  // ✅ NEW: Avatar zove čim playback stvarno krene
+  const onAvatarPlaybackStart = useCallback(
+    (durationSec) => {
+      // čim playback krene, više nije “blocked” -> gasi brzi fallback
+      clearPlayBlockedFallback();
+
+      // postavi normalan safety timeout: trajanje + 1.5s
+      clearPlaybackSafety();
+      const ms = Math.max(1500, Math.floor((Number(durationSec) || 0) * 1000) + 1500);
+
+      playbackSafetyTimerRef.current = setTimeout(() => {
+        if (pendingPlaybackRef.current) {
+          console.warn("⚠️ Playback safety timeout hit → force end");
+          safeOnMessagePlayed();
+        }
+      }, ms);
+    },
+    [safeOnMessagePlayed]
+  );
+
+  // ✅ izmenjeno: ako playback uopšte ne STARTUJE, samo odblokiraj mic, NE diraj queue
   const armPlayBlockedFallback = useCallback(() => {
     clearPlayBlockedFallback();
     playBlockedFallbackTimerRef.current = setTimeout(() => {
       if (pendingPlaybackRef.current && !recordingRef.current) {
-        console.warn("⚠️ playback did not finish → forcing message end (dequeue) to avoid deadlock");
-        safeOnMessagePlayed();
+        console.warn("⚠️ playback NOT started → unlock mic but KEEP message (no dequeue)");
+        updateMicState(true);
+        pendingPlaybackRef.current = false; // da ne blokira UI
+        clearMicSafetyTimer();
+        stopKeepAlive();
       }
-    }, PLAY_BLOCKED_FALLBACK_MS);
-  }, [safeOnMessagePlayed]);
+    }, 8000); // ✅ umesto 900ms
+  }, [stopKeepAlive]);
 
   const initiateRecording = () => {
     audioChunksRef.current = [];
@@ -255,12 +291,14 @@ export const SpeechProvider = ({ children }) => {
           pendingPlaybackRef.current = false;
           clearMicSafetyTimer();
           clearPlayBlockedFallback();
+          clearPlaybackSafety();
           stopKeepAlive();
           return;
         }
 
         setMessages((prev) => [...prev, ...newMessages]);
 
+        // ✅ čekamo da Avatar krene playback
         pendingPlaybackRef.current = true;
         armPlayBlockedFallback();
       } catch (error) {
@@ -269,6 +307,7 @@ export const SpeechProvider = ({ children }) => {
         pendingPlaybackRef.current = false;
         clearMicSafetyTimer();
         clearPlayBlockedFallback();
+        clearPlaybackSafety();
         stopKeepAlive();
       } finally {
         setLoading(false);
@@ -317,6 +356,7 @@ export const SpeechProvider = ({ children }) => {
     stopAutoStopOnSilence();
     clearMicSafetyTimer();
     clearPlayBlockedFallback();
+    clearPlaybackSafety();
     stopKeepAlive();
 
     try {
@@ -532,6 +572,8 @@ export const SpeechProvider = ({ children }) => {
       }
 
       setMessages((prev) => [...prev, ...newMessages]);
+
+      // ✅ čekamo da Avatar krene playback
       pendingPlaybackRef.current = true;
       armPlayBlockedFallback();
     } catch (error) {
@@ -561,6 +603,7 @@ export const SpeechProvider = ({ children }) => {
       stopAutoStopOnSilence();
       clearMicSafetyTimer();
       clearPlayBlockedFallback();
+      clearPlaybackSafety();
       stopKeepAlive();
       try {
         streamRef.current?.getTracks()?.forEach((t) => t.stop());
@@ -590,6 +633,9 @@ export const SpeechProvider = ({ children }) => {
         playbackCtxRef,
         ensurePlaybackContext,
         unlockAudioOnce,
+
+        // ✅ NEW: Avatar javlja kad playback startuje + trajanje
+        onAvatarPlaybackStart,
       }}
     >
       {children}
