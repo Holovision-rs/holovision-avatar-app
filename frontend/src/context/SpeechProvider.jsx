@@ -14,10 +14,7 @@ const PLAY_BLOCKED_FALLBACK_MS = Number(import.meta.env.VITE_PLAY_BLOCKED_FALLBA
 
 // ✅ pomoćno: da unlock nikad ne blokira
 const withTimeout = (promise, ms = 250) =>
-  Promise.race([
-    promise,
-    new Promise((resolve) => setTimeout(() => resolve(false), ms)),
-  ]);
+  Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(false), ms))]);
 
 export const SpeechProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
@@ -30,9 +27,13 @@ export const SpeechProvider = ({ children }) => {
 
   const [analyserNode, setAnalyserNode] = useState(null);
 
+  // 🎧 mic listening ctx (analyser)
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
+
+  // ✅ WebAudio playback ctx (Avatar koristi ovo)
+  const playbackCtxRef = useRef(null);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -85,34 +86,46 @@ export const SpeechProvider = ({ children }) => {
   const pickMimeType = () => {
     try {
       if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return null;
-      const candidates = [
-        "audio/webm;codecs=opus",
-        "audio/webm",
-        "audio/mp4", // safari ponekad
-      ];
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
       return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || null;
     } catch {
       return null;
     }
   };
 
+  // ✅ ensure playback AudioContext exists + resumed (u user gesture pozivu)
+  const ensurePlaybackContext = useCallback(async () => {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return null;
+
+    if (!playbackCtxRef.current) playbackCtxRef.current = new AudioContext();
+
+    const ctx = playbackCtxRef.current;
+    if (ctx.state === "suspended") {
+      try {
+        await withTimeout(ctx.resume(), 200);
+      } catch {}
+    }
+    return ctx;
+  }, []);
+
   // ✅ audio unlock helper — NE SME BLOKIRATI startRecording
+  // KLJUČ: ovde sad otključavamo i playback AudioContext (koji Avatar koristi)
   const unlockAudioOnce = useCallback(async () => {
     if (audioUnlockedRef.current) return true;
 
     const doUnlock = async () => {
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        // 1) otključaj playback ctx (važnije od svega)
+        await ensurePlaybackContext();
 
+        // 2) mali “tick” (nekad pomaže na iOS)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
           const ctx = new AudioContext();
-
-          // pokušaj resume (nekad reject, nekad ok)
           try {
             if (ctx.state === "suspended") await ctx.resume();
           } catch {}
-
-          // kratki tick
           try {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -122,19 +135,18 @@ export const SpeechProvider = ({ children }) => {
             osc.start();
             osc.stop(ctx.currentTime + 0.01);
           } catch {}
-
           setTimeout(() => {
-            try { ctx.close?.(); } catch {}
+            try {
+              ctx.close?.();
+            } catch {}
           }, 80);
         }
 
-        // Prime HTMLAudio (NAJČEŠĆE je problem ovde → promise nekad ostane pending)
+        // 3) Prime HTMLAudio (može da visi → timeout)
         const a = new Audio();
         a.muted = true;
         a.volume = 0;
         a.playsInline = true;
-
-        // ✅ sa timeout race da ne zaglavi
         await withTimeout(a.play().catch(() => false), 200);
 
         audioUnlockedRef.current = true;
@@ -145,9 +157,8 @@ export const SpeechProvider = ({ children }) => {
     };
 
     const ok = await doUnlock();
-    // čak i ako nije uspelo, ne blokiramo app
-    return ok;
-  }, []);
+    return ok; // čak i false ne sme da blokira app (ti već ne čekaš unlock u startRecording)
+  }, [ensurePlaybackContext]);
 
   const startKeepAlive = useCallback(async () => {
     if (!IS_MOBILE) return;
@@ -157,7 +168,7 @@ export const SpeechProvider = ({ children }) => {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
 
-      // koristi postojeći ctx ako postoji (da ne pravimo dupli)
+      // koristi mic ctx ako postoji
       const ctx = audioContextRef.current || new AudioContext();
       audioContextRef.current = ctx;
 
@@ -167,7 +178,6 @@ export const SpeechProvider = ({ children }) => {
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-
       osc.frequency.value = 30;
       gain.gain.value = 0.000001;
 
@@ -184,7 +194,9 @@ export const SpeechProvider = ({ children }) => {
   }, []);
 
   const stopKeepAlive = useCallback(() => {
-    try { keepAliveOscRef.current?.stop?.(); } catch {}
+    try {
+      keepAliveOscRef.current?.stop?.();
+    } catch {}
     keepAliveOscRef.current = null;
     keepAliveGainRef.current = null;
     keepAliveActiveRef.current = false;
@@ -200,13 +212,12 @@ export const SpeechProvider = ({ children }) => {
     console.log("🎤 Mic re-enabled after avatar speech.");
   }, [stopKeepAlive]);
 
-  // ✅ fallback kad audio.play bude blokiran:
-  // da ne ostane message zaglavljen i ubije mic
+  // ✅ fallback ako se playback nikad ne desi (da ne zamrzne)
   const armPlayBlockedFallback = useCallback(() => {
     clearPlayBlockedFallback();
     playBlockedFallbackTimerRef.current = setTimeout(() => {
       if (pendingPlaybackRef.current && !recordingRef.current) {
-        console.warn("⚠️ audio.play blocked → forcing message end (dequeue) to avoid deadlock");
+        console.warn("⚠️ playback did not finish → forcing message end (dequeue) to avoid deadlock");
         safeOnMessagePlayed();
       }
     }, PLAY_BLOCKED_FALLBACK_MS);
@@ -308,7 +319,9 @@ export const SpeechProvider = ({ children }) => {
     clearPlayBlockedFallback();
     stopKeepAlive();
 
-    try { streamRef.current?.getTracks()?.forEach((t) => t.stop()); } catch {}
+    try {
+      streamRef.current?.getTracks()?.forEach((t) => t.stop());
+    } catch {}
     streamRef.current = null;
     analyserRef.current = null;
     setAnalyserNode(null);
@@ -324,7 +337,6 @@ export const SpeechProvider = ({ children }) => {
 
     const analyser = analyserRef.current;
     const data = new Uint8Array(analyser.fftSize);
-
     let lastLoudAt = performance.now();
 
     const loop = () => {
@@ -398,9 +410,9 @@ export const SpeechProvider = ({ children }) => {
   };
 
   const startRecording = async () => {
-    // ✅ KLJUČ: NE BLOKIRAJ start
-    unlockAudioOnce();      // fire-and-forget
-    startKeepAlive();       // fire-and-forget
+    // fire-and-forget unlock (ne blokira)
+    unlockAudioOnce();
+    startKeepAlive();
 
     console.log("🎤 startRecording() called");
     console.log("START CHECK:", {
@@ -438,11 +450,10 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ✅ ako UI pozove stopRecording() bez arg, tretiramo kao userGesture=true
   const stopRecording = async (opts) => {
     const userGesture = opts?.userGesture !== undefined ? opts.userGesture : true;
 
-    // ✅ KLJUČ: ni ovo ne sme da blokira stop
+    // ni ovo ne sme da blokira stop
     if (userGesture) {
       unlockAudioOnce();
       startKeepAlive();
@@ -480,15 +491,22 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => { recordingRef.current = recording; }, [recording]);
-  useEffect(() => { micEnabledRef.current = micEnabled; }, [micEnabled]);
+  useEffect(() => {
+    recordingRef.current = recording;
+  }, [recording]);
+
+  useEffect(() => {
+    micEnabledRef.current = micEnabled;
+  }, [micEnabled]);
 
   useEffect(() => {
     if (messages.length > 0) setMessage(messages[0]);
     else setMessage(null);
   }, [messages]);
 
-  useEffect(() => { handledMessageKeyRef.current = null; }, [message]);
+  useEffect(() => {
+    handledMessageKeyRef.current = null;
+  }, [message]);
 
   const tts = async (text) => {
     setLoading(true);
@@ -544,7 +562,9 @@ export const SpeechProvider = ({ children }) => {
       clearMicSafetyTimer();
       clearPlayBlockedFallback();
       stopKeepAlive();
-      try { streamRef.current?.getTracks()?.forEach((t) => t.stop()); } catch {}
+      try {
+        streamRef.current?.getTracks()?.forEach((t) => t.stop());
+      } catch {}
     };
   }, [stopKeepAlive]);
 
@@ -565,6 +585,10 @@ export const SpeechProvider = ({ children }) => {
         setAnalyserNode,
         startListening,
         stopListening,
+
+        // ✅ IMPORTANT: Avatar koristi WebAudio ctx odavde
+        playbackCtxRef,
+        ensurePlaybackContext,
         unlockAudioOnce,
       }}
     >

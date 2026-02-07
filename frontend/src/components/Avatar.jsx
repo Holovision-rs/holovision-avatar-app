@@ -13,11 +13,20 @@ import facialExpressions from "../constants/facialExpressions";
 import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 
+// base64 -> ArrayBuffer
+const base64ToArrayBuffer = (base64) => {
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+};
+
 export function Avatar(props) {
   const { token } = useAuth();
 
-  // ✅ samo ovo treba iz contexta
-  const { message, onMessagePlayed } = useSpeech();
+  // ✅ uzimamo playback ctx iz SpeechProvider-a
+  const { message, onMessagePlayed, ensurePlaybackContext, playbackCtxRef } = useSpeech();
 
   const { nodes, materials, scene } = useGLTF("/models/avatar.glb");
   const { animations } = useGLTF("/models/animations.glb");
@@ -30,16 +39,16 @@ export function Avatar(props) {
   );
   const [facialExpression, setFacialExpression] = useState("");
   const [lipsync, setLipsync] = useState(null);
-  const [audio, setAudio] = useState(null);
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
 
-  // ✅ audio lifecycle refs
-  const audioRef = useRef(null);
-  const endedRef = useRef(false);
-
   useSessionTimer(true, token);
   useSubscriptionCheck();
+
+  // ✅ WebAudio playback refs
+  const sourceRef = useRef(null);
+  const startedAtRef = useRef(null); // ctx.currentTime kad je startovano
+  const endedRef = useRef(false);
 
   const safeOnMessagePlayed = useCallback(() => {
     if (endedRef.current) return;
@@ -47,45 +56,89 @@ export function Avatar(props) {
     onMessagePlayed?.();
   }, [onMessagePlayed]);
 
-  // ✅ helper: tryPlay (bez fallback-a)
-  const tryPlay = useCallback(async () => {
-    const a = audioRef.current;
-    if (!a) return;
-
+  const stopCurrentAudio = useCallback(() => {
     try {
-      // ako je već krenulo, ne diraj
-      if (!a.paused) return;
-
-      await a.play();
-      // console.log("✅ audio.play success");
-    } catch (err) {
-      // iOS: ako je blocked, nema retry ovde da ne duplira
-      console.warn("🔇 audio.play blocked (needs gesture / session)", err);
-    }
+      if (sourceRef.current) {
+        sourceRef.current.onended = null;
+        sourceRef.current.stop(0);
+      }
+    } catch {}
+    sourceRef.current = null;
+    startedAtRef.current = null;
   }, []);
 
-  // ⏯️ Kad dođe poruka: set anim/facial/lipsync i pusti audio
-  useEffect(() => {
-    // ugasi stari audio
-    if (audioRef.current) {
-      try {
-        audioRef.current.onended = null;
-        audioRef.current.oncanplay = null;
-        audioRef.current.oncanplaythrough = null;
-        audioRef.current.onloadedmetadata = null;
-        audioRef.current.pause();
-        audioRef.current.src = "";
-      } catch {}
-      audioRef.current = null;
-    }
+  const playWebAudioFromMessage = useCallback(
+    async (msg) => {
+      if (!msg?.audio) return;
 
+      // obavezno imamo ctx (iOS: resume mora da se desi preko user gesture-a -> ti to radiš preko unlockAudioOnce)
+      let ctx = playbackCtxRef?.current;
+      if (!ctx) ctx = await ensurePlaybackContext?.();
+      if (!ctx) {
+        console.warn("❌ No AudioContext available for playback");
+        return;
+      }
+
+      // i dalje može da bude suspended ako unlock nije urađen
+      if (ctx.state === "suspended") {
+        try {
+          await ctx.resume();
+        } catch {}
+      }
+
+      const arrayBuffer = base64ToArrayBuffer(msg.audio);
+
+      let audioBuffer = null;
+      try {
+        // decodeAudioData (promisified)
+        audioBuffer = await new Promise((resolve, reject) => {
+          ctx.decodeAudioData(
+            arrayBuffer.slice(0),
+            (buf) => resolve(buf),
+            (err) => reject(err)
+          );
+        });
+      } catch (e) {
+        console.warn("❌ decodeAudioData failed", e);
+        return;
+      }
+
+      // stop prethodno
+      stopCurrentAudio();
+      endedRef.current = false;
+
+      const src = ctx.createBufferSource();
+      src.buffer = audioBuffer;
+      src.connect(ctx.destination);
+
+      src.onended = () => {
+        // nekad onended okine i kad stopujemo, ali to je ok jer imamo endedRef guard
+        safeOnMessagePlayed();
+      };
+
+      sourceRef.current = src;
+      startedAtRef.current = ctx.currentTime;
+
+      try {
+        src.start(0);
+        // console.log("✅ WebAudio start");
+      } catch (e) {
+        console.warn("❌ WebAudio start failed", e);
+      }
+    },
+    [ensurePlaybackContext, playbackCtxRef, safeOnMessagePlayed, stopCurrentAudio]
+  );
+
+  // ⏯️ Kad dođe poruka: set anim/facial/lipsync i pusti WebAudio
+  useEffect(() => {
+    // reset
+    stopCurrentAudio();
     endedRef.current = false;
 
     if (!message) {
       setAnimation("Idle");
       setFacialExpression("");
       setLipsync(null);
-      setAudio(null);
       return;
     }
 
@@ -93,39 +146,12 @@ export function Avatar(props) {
     setFacialExpression(message.facialExpression || "");
     setLipsync(message.lipsync || null);
 
-    const a = new Audio("data:audio/mp3;base64," + message.audio);
-
-    // iOS hints
-    a.preload = "auto";
-    a.playsInline = true;
-
-    a.onended = () => safeOnMessagePlayed();
-
-    // ✅ probaj više “momenta” kad iOS konačno smatra da može
-    a.onloadedmetadata = () => tryPlay();
-    a.oncanplay = () => tryPlay();
-    a.oncanplaythrough = () => tryPlay();
-
-    audioRef.current = a;
-    setAudio(a);
-
-    // ✅ probaj odmah
-    tryPlay();
+    playWebAudioFromMessage(message);
 
     return () => {
-      if (audioRef.current) {
-        try {
-          audioRef.current.onended = null;
-          audioRef.current.oncanplay = null;
-          audioRef.current.oncanplaythrough = null;
-          audioRef.current.onloadedmetadata = null;
-          audioRef.current.pause();
-          audioRef.current.src = "";
-        } catch {}
-        audioRef.current = null;
-      }
+      stopCurrentAudio();
     };
-  }, [message, safeOnMessagePlayed, tryPlay]);
+  }, [message, playWebAudioFromMessage, stopCurrentAudio]);
 
   // 🎞️ Animacije
   useEffect(() => {
@@ -194,8 +220,12 @@ export function Avatar(props) {
 
     if (setupMode || !message || !lipsync) return;
 
-    const currentAudioTime = audioRef.current?.currentTime ?? audio?.currentTime;
-    if (currentAudioTime == null) return;
+    // ✅ WebAudio current time
+    const ctx = playbackCtxRef?.current;
+    const startedAt = startedAtRef.current;
+
+    if (!ctx || startedAt == null) return;
+    const currentAudioTime = Math.max(0, ctx.currentTime - startedAt);
 
     const applied = [];
 
@@ -253,7 +283,6 @@ export function Avatar(props) {
         morphTargetDictionary={nodes.EyeLeft.morphTargetDictionary}
         morphTargetInfluences={nodes.EyeLeft.morphTargetInfluences}
       />
-
       <skinnedMesh
         name="EyeRight"
         geometry={nodes.EyeRight.geometry}
@@ -262,7 +291,6 @@ export function Avatar(props) {
         morphTargetDictionary={nodes.EyeRight.morphTargetDictionary}
         morphTargetInfluences={nodes.EyeRight.morphTargetInfluences}
       />
-
       <skinnedMesh
         name="Wolf3D_Head"
         geometry={nodes.Wolf3D_Head.geometry}
@@ -271,7 +299,6 @@ export function Avatar(props) {
         morphTargetDictionary={nodes.Wolf3D_Head.morphTargetDictionary}
         morphTargetInfluences={nodes.Wolf3D_Head.morphTargetInfluences}
       />
-
       <skinnedMesh
         name="Wolf3D_Teeth"
         geometry={nodes.Wolf3D_Teeth.geometry}
