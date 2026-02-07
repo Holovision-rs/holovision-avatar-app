@@ -37,7 +37,7 @@ export const SpeechProvider = ({ children }) => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingRef = useRef(false);
-
+  const messageEndKeyRef = useRef(null);
   const rafRef = useRef(null);
 
   const micSafetyTimerRef = useRef(null);
@@ -215,16 +215,31 @@ export const SpeechProvider = ({ children }) => {
     keepAliveActiveRef.current = false;
   }, []);
 
-  const safeOnMessagePlayed = useCallback(() => {
-    setMessages((prev) => (prev.length ? prev.slice(1) : prev));
-    updateMicState(true);
-    clearMicSafetyTimer();
-    pendingPlaybackRef.current = false;
-    clearPlayBlockedFallback();
-    clearPlaybackSafety();
-    stopKeepAlive();
-    console.log("🎤 Mic re-enabled after avatar speech.");
-  }, [stopKeepAlive]);
+const safeOnMessagePlayed = useCallback((reason = "unknown") => {
+  const key =
+    message?.id ||
+    message?.audio?.slice?.(0, 24) ||
+    JSON.stringify(message || {}).slice(0, 48);
+
+  if (messageEndKeyRef.current === key) {
+    console.log("🟡 safeOnMessagePlayed ignored (duplicate)", { reason, key });
+    return;
+  }
+  messageEndKeyRef.current = key;
+
+  setMessages((prev) => (prev.length ? prev.slice(1) : prev));
+  updateMicState(true);
+  clearMicSafetyTimer();
+  pendingPlaybackRef.current = false;
+  clearPlayBlockedFallback();
+  clearPlaybackSafety();
+  stopKeepAlive();
+
+  console.log("🎤 Mic re-enabled after avatar speech.", { reason, key });
+}, [
+  message,
+  stopKeepAlive,
+]);
 
   // ✅ NEW: Avatar zove čim playback stvarno krene
   const onAvatarPlaybackStart = useCallback(
@@ -239,7 +254,7 @@ export const SpeechProvider = ({ children }) => {
       playbackSafetyTimerRef.current = setTimeout(() => {
         if (pendingPlaybackRef.current) {
           console.warn("⚠️ Playback safety timeout hit → force end");
-          safeOnMessagePlayed();
+          safeOnMessagePlayed("playback_safety_timeout");
         }
       }, ms);
     },
@@ -251,7 +266,9 @@ export const SpeechProvider = ({ children }) => {
     clearPlayBlockedFallback();
     playBlockedFallbackTimerRef.current = setTimeout(() => {
       if (pendingPlaybackRef.current && !recordingRef.current) {
-        console.warn("⚠️ playback NOT started → unlock mic but KEEP message (no dequeue)");
+
+        console.warn("⚠️ playback NOT started → unlock mic but KEEP message (no dequeue)", { reason: "play_not_started_fallback",});
+        
         updateMicState(true);
         pendingPlaybackRef.current = false; // da ne blokira UI
         clearMicSafetyTimer();
@@ -545,6 +562,9 @@ const sendAudioData = async (audioBlob) => {
       stopKeepAlive();
     }
   };
+  useEffect(() => {
+    messageEndKeyRef.current = null;
+  }, [message]);
 
   useEffect(() => {
     recordingRef.current = recording;
@@ -605,17 +625,20 @@ const sendAudioData = async (audioBlob) => {
     }
   };
 
-  const onMessagePlayed = () => {
-    const key =
-      message?.id ||
-      message?.audio?.slice?.(0, 24) ||
-      JSON.stringify(message || {}).slice(0, 48);
+const onMessagePlayed = () => {
+  const key =
+    message?.id ||
+    message?.audio?.slice?.(0, 24) ||
+    JSON.stringify(message || {}).slice(0, 48);
 
-    if (handledMessageKeyRef.current === key) return;
-    handledMessageKeyRef.current = key;
+  if (handledMessageKeyRef.current === key) {
+    console.log("🟡 onMessagePlayed ignored (duplicate)", { key });
+    return;
+  }
 
-    safeOnMessagePlayed();
-  };
+  handledMessageKeyRef.current = key;
+  safeOnMessagePlayed("avatar_onended");
+};
 
   useEffect(() => {
     return () => {
