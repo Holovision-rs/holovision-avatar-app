@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
-
+import crypto from "crypto";
 
 // MODULES
 import { openAIChain, parser } from "./modules/openAI.mjs";
@@ -101,7 +101,14 @@ app.post("/sts", async (req, res) => {
     }
 
     const response = await lipSync({ messages: openAImessages.messages });
-    res.send({ messages: response });
+
+    // ✅ DODAJ ID-eve OVDE (posle lipSync)
+    const messages = response.map((m) => ({
+      id: crypto.randomUUID(),
+      ...m,
+    }));
+
+    res.send({ messages });
   } catch (error) {
     console.error("Error in /sts:", error);
     res.status(500).send({ error: "Failed to process STT request." });
