@@ -2,8 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { SpeechContext } from "./SpeechContext";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+// Frontend env (Vite):
 const SILENCE_MS = Number(import.meta.env.VITE_SILENCE_MS || 2000);
 const RMS_THRESHOLD = Number(import.meta.env.VITE_RMS_THRESHOLD || 0.03);
+
+// Safety unlock (mobilni: audio "ended" ponekad ne okine)
+const MIC_SAFETY_UNLOCK_MS = Number(import.meta.env.VITE_MIC_SAFETY_UNLOCK_MS || 12000);
 
 export const SpeechProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
@@ -11,14 +16,14 @@ export const SpeechProvider = ({ children }) => {
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔒 micEnabled: kontrola da li sme da snima (dok avatar priča)
+  // 🔒 micEnabled: da li sme da startuje snimanje (dok avatar priča / dok čeka odgovor)
   const [micEnabled, setMicEnabled] = useState(true);
   const micEnabledRef = useRef(true);
 
-  // 🎚️ Equalizer
+  // 🎚️ Equalizer node (analyser)
   const [analyserNode, setAnalyserNode] = useState(null);
 
-  // 🎧 Listening (mic stream + analyser) — ostaje aktivno za equalizer
+  // 🎧 Listening (stream + analyser) — ostaje aktivno za equalizer
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
@@ -29,12 +34,32 @@ export const SpeechProvider = ({ children }) => {
   const recordingRef = useRef(false);
 
   // 🤫 Auto-stop on silence (samo dok snimaš)
-  const silenceTimerRef = useRef(null);
   const rafRef = useRef(null);
+
+  // Safety unlock timer (mobilni fallback)
+  const micSafetyTimerRef = useRef(null);
 
   const updateMicState = (enabled) => {
     setMicEnabled(enabled);
     micEnabledRef.current = enabled;
+  };
+
+  const clearMicSafetyTimer = () => {
+    if (micSafetyTimerRef.current) {
+      clearTimeout(micSafetyTimerRef.current);
+      micSafetyTimerRef.current = null;
+    }
+  };
+
+  const armMicSafetyUnlock = () => {
+    clearMicSafetyTimer();
+    micSafetyTimerRef.current = setTimeout(() => {
+      // ako smo i dalje zaključani, a ne snimamo -> otključaj
+      if (!recordingRef.current && !micEnabledRef.current) {
+        console.warn("⚠️ Safety unlock mic (mobile audio end not detected)");
+        updateMicState(true);
+      }
+    }, MIC_SAFETY_UNLOCK_MS);
   };
 
   const initiateRecording = () => {
@@ -66,6 +91,9 @@ export const SpeechProvider = ({ children }) => {
         setMessages((prev) => [...prev, ...(data?.messages || [])]);
       } catch (error) {
         console.error("❌ Audio send error:", error);
+        // ako backend padne, nemoj da ostane zaključan mic
+        updateMicState(true);
+        clearMicSafetyTimer();
       } finally {
         setLoading(false);
       }
@@ -74,17 +102,32 @@ export const SpeechProvider = ({ children }) => {
 
   // ✅ Listening: traži mic + napravi analyser (za equalizer)
   const startListening = async () => {
-    if (streamRef.current && analyserRef.current) return;
+    // već sluša
+    if (streamRef.current && analyserRef.current) {
+      // iOS: nekad context ostane suspended
+      try {
+        if (audioContextRef.current?.state === "suspended") {
+          await audioContextRef.current.resume();
+        }
+      } catch {}
+      return;
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioContextRef.current = new AudioContext();
+      const ctx = new AudioContext();
+      audioContextRef.current = ctx;
 
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      const analyser = audioContextRef.current.createAnalyser();
+      // iOS: mora resume u user gesture (mi ovo zovemo iz onFirstGesture)
+      try {
+        if (ctx.state === "suspended") await ctx.resume();
+      } catch {}
+
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
 
       source.connect(analyser);
@@ -98,23 +141,19 @@ export const SpeechProvider = ({ children }) => {
     }
   };
 
-  // ⚠️ Opciono: ako baš želiš da ugasiš mic listening ručno (ne koristimo za auto-stop)
+  // ⚠️ Opciono ručno gašenje listening-a (NE koristimo za silence)
   const stopListening = () => {
-    // stop raf/timer ako slučajno radi
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = null;
-
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    silenceTimerRef.current = null;
+    stopAutoStopOnSilence();
+    clearMicSafetyTimer();
 
     try {
       audioContextRef.current?.close();
-    } catch (e) {}
+    } catch {}
     audioContextRef.current = null;
 
     try {
       streamRef.current?.getTracks()?.forEach((t) => t.stop());
-    } catch (e) {}
+    } catch {}
 
     streamRef.current = null;
     analyserRef.current = null;
@@ -123,68 +162,53 @@ export const SpeechProvider = ({ children }) => {
     console.log("🔇 Listening stopped.");
   };
 
-  // 🤫 Auto-stop snimanja posle 3s tišine (ALI samo dok recordingRef.current === true)
-const startAutoStopOnSilence = () => {
-  if (!analyserRef.current) return;
+  // 🤫 Auto-stop snimanja posle SILENCE_MS tišine (RMS), samo dok recordingRef.current === true
+  const startAutoStopOnSilence = () => {
+    if (!analyserRef.current) return;
 
-  // reset starih loopova
-  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  rafRef.current = null;
+    stopAutoStopOnSilence(); // reset loop
 
-  if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-  silenceTimerRef.current = null;
+    const analyser = analyserRef.current;
+    const data = new Uint8Array(analyser.fftSize); // time-domain buffer (256)
 
-  const analyser = analyserRef.current;
-  const data = new Uint8Array(analyser.fftSize); // time-domain buffer
+    let lastLoudAt = performance.now();
 
- // prag u RMS (0.00 - 0.30). Tipično 0.01–0.03.
- // koristi iz .env (ili fallback)
-  const SILENCE_MS_LOCAL = SILENCE_MS;
-  const RMS_THRESHOLD_LOCAL = RMS_THRESHOLD;
+    const loop = () => {
+      // radi samo dok snimaš
+      if (!recordingRef.current || !analyserRef.current) return;
 
-  let lastLoudAt = performance.now();
+      analyser.getByteTimeDomainData(data);
 
-  const loop = () => {
-    // radi samo dok snimaš
-    if (!recordingRef.current || !analyserRef.current) return;
+      let sumSquares = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128; // -1..1
+        sumSquares += v * v;
+      }
+      const rms = Math.sqrt(sumSquares / data.length);
 
-    analyser.getByteTimeDomainData(data);
+      if (rms > RMS_THRESHOLD) {
+        lastLoudAt = performance.now();
+      }
 
-    // RMS računanje
-    let sumSquares = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = (data[i] - 128) / 128; // -1..1
-      sumSquares += v * v;
-    }
-    const rms = Math.sqrt(sumSquares / data.length);
+      const silentFor = performance.now() - lastLoudAt;
+      if (silentFor >= SILENCE_MS) {
+        console.log(`🤫 ${SILENCE_MS}ms silence (rms=${rms.toFixed(4)}) → auto stopRecording()`);
+        stopRecording(); // isto kao ručni stop
+        return;
+      }
 
-    // DEBUG (ostavi dok ne podesiš prag)
-    // console.log("rms:", rms.toFixed(4));
-
-    if (rms > RMS_THRESHOLD) {
-      lastLoudAt = performance.now();
-    }
-
-    const silentFor = performance.now() - lastLoudAt;
-    if (silentFor >= SILENCE_MS) {
-      console.log(`🤫 ${SILENCE_MS}ms silence (rms=${rms.toFixed(4)}) → auto stopRecording()`);
-      stopRecording(); // isto kao ručni stop
-      return;
-    }
+      rafRef.current = requestAnimationFrame(loop);
+    };
 
     rafRef.current = requestAnimationFrame(loop);
   };
 
-  rafRef.current = requestAnimationFrame(loop);
-};
-
-const stopAutoStopOnSilence = () => {
-  if (rafRef.current) cancelAnimationFrame(rafRef.current);
-  rafRef.current = null;
-
-  if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-  silenceTimerRef.current = null;
-};
+  const stopAutoStopOnSilence = () => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  };
 
   // ✅ Recorder init koristi postojeći stream iz listening-a
   const initMediaRecorder = async () => {
@@ -253,7 +277,7 @@ const stopAutoStopOnSilence = () => {
       recordingRef.current = true;
       console.log("🎬 Recording started");
 
-      // ✅ uključi auto-stop na tišinu (3s)
+      // ✅ uključi auto-stop na tišinu
       startAutoStopOnSilence();
     } catch (err) {
       console.error("💥 Failed to start recording:", err);
@@ -265,7 +289,7 @@ const stopAutoStopOnSilence = () => {
     const recorder = mediaRecorderRef.current;
     console.log(`[StopRecording] recorder state: ${recorder?.state}`);
 
-    // ugasi silence loop/timer
+    // ugasi silence loop
     stopAutoStopOnSilence();
 
     if (!recorder) {
@@ -283,12 +307,18 @@ const stopAutoStopOnSilence = () => {
       setRecording(false);
       recordingRef.current = false;
 
-      // 🔒 isto stanje kao kad klikneš stop: zaključaj mic dok avatar ne završi poruku
+      // 🔒 zaključaj mic dok avatar ne završi poruku
       updateMicState(false);
+
+      // ✅ MOBILE fallback: ako se onMessagePlayed ne pozove, otključaj posle timeout-a
+      armMicSafetyUnlock();
 
       console.log("⏹️ Recording stopped and mic disabled (until avatar finishes).");
     } catch (err) {
       console.error("💥 Failed to stop recording:", err);
+      // ako fail stop, nemoj zaključavati
+      updateMicState(true);
+      clearMicSafetyTimer();
     }
   };
 
@@ -305,21 +335,9 @@ const stopAutoStopOnSilence = () => {
     else setMessage(null);
   }, [messages]);
 
-  // 🔓 first click: unlock audio + startListening (equalizer) — ne pali recording
+  // 🔓 first click: startListening (equalizer) — ne pali recording
   useEffect(() => {
-    const unlockAudio = () => {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const context = new AudioContext();
-      const buffer = context.createBuffer(1, 1, 22050);
-      const source = context.createBufferSource();
-      source.buffer = buffer;
-      source.connect(context.destination);
-      if (source.start) source.start(0);
-      console.log("🔓 Audio context unlocked");
-    };
-
     const onFirstGesture = async () => {
-      unlockAudio();
       await startListening();
       console.log("✅ Mic listening enabled on first user gesture.");
     };
@@ -335,7 +353,11 @@ const stopAutoStopOnSilence = () => {
 
   const tts = async (text) => {
     setLoading(true);
-    updateMicState(false); // 🔇 disable mic
+
+    // 🔇 disable mic while avatar will speak
+    updateMicState(false);
+    clearMicSafetyTimer(); // ovde safety ne treba
+
     console.log(`[TTS] Mic disabled and message sent: "${text}"`);
 
     try {
@@ -349,6 +371,8 @@ const stopAutoStopOnSilence = () => {
       setMessages((prev) => [...prev, ...(data?.messages || [])]);
     } catch (error) {
       console.error("❌ TTS error:", error);
+      // ako tts fail, nemoj da ostane zaključan
+      updateMicState(true);
     } finally {
       setLoading(false);
     }
@@ -356,9 +380,31 @@ const stopAutoStopOnSilence = () => {
 
   const onMessagePlayed = () => {
     setMessages((prev) => prev.slice(1));
-    updateMicState(true); // ✅ re-enable mic
+
+    // ✅ re-enable mic after avatar speech
+    updateMicState(true);
+
+    // ✅ stop safety timer (ako je bio armovan)
+    clearMicSafetyTimer();
+
     console.log("🎤 Mic re-enabled after avatar speech.");
   };
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopAutoStopOnSilence();
+      clearMicSafetyTimer();
+      // ostavi listening ako želiš, ali bolje je očistiti:
+      try {
+        audioContextRef.current?.close();
+      } catch {}
+      try {
+        streamRef.current?.getTracks()?.forEach((t) => t.stop());
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SpeechContext.Provider
