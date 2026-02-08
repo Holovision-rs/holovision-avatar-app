@@ -1,13 +1,14 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import crypto from "crypto";
+import openai from "./openaiClient.js";
 
 // MODULES
-import { openAIChain, parser } from "./modules/openAI.mjs";
+import { parser } from "./modules/openAI.mjs";
 import { lipSync } from "./modules/lip-sync.mjs";
 import { sendDefaultMessages, defaultResponse } from "./modules/defaultMessages.mjs";
 import { convertAudioToText } from "./modules/whisper.mjs";
@@ -25,31 +26,155 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 dotenv.config();
-const app = express(); // ✅ prvo kreiraj instancu
+const app = express();
 
 // Body parser
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
 // CORS
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// --- helpers ---
+const extractJson = (raw = "") => {
+  let s = raw.trim();
+
+  // ukloni ```json ... ``` ili ``` ... ```
+  if (s.startsWith("```")) {
+    s = s.replace(/^```[a-zA-Z]*\n?/, "");
+    s = s.replace(/```$/, "");
+    s = s.trim();
+  }
+
+  // uzmi samo deo od prve { do poslednje }
+  const first = s.indexOf("{");
+  const last = s.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    s = s.slice(first, last + 1);
+  }
+
+  return s;
+};
+
+const safeJsonParse = (s) => {
+  // pokušaj normalno
+  try {
+    return JSON.parse(s);
+  } catch {}
+
+  // popravi raw newline/tab u stringovima
+  let out = "";
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+
+    if (!inString) {
+      if (ch === '"') inString = true;
+      out += ch;
+      continue;
     }
-  },
-  credentials: true,
-}));
+
+    if (escape) {
+      out += ch;
+      escape = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      out += ch;
+      escape = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = false;
+      out += ch;
+      continue;
+    }
+
+    if (ch === "\n") {
+      out += "\\n";
+      continue;
+    }
+    if (ch === "\r") {
+      out += "\\r";
+      continue;
+    }
+    if (ch === "\t") {
+      out += "\\t";
+      continue;
+    }
+
+    out += ch;
+  }
+
+  return JSON.parse(out);
+};
+
+// --- WEB ONLY ANSWER (FOR TESTING) ---
+const answerWithWebOnly = async (userMessage) => {
+  const formatInstructions = parser.getFormatInstructions();
+
+  console.log("🌐 [WEB ONLY] userMessage:", userMessage);
+
+  const r = await openai.responses.create({
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    tools: [{ type: "web_search" }],
+    input: [
+      {
+        role: "system",
+        content:
+          "Return ONLY STRICT minified JSON (single line). No markdown fences. No commentary. No leading/trailing text. Do NOT include raw newlines inside strings; use \\n.",
+      },
+      {
+        role: "user",
+        content: `Question: ${userMessage}\n\n${formatInstructions}`,
+      },
+    ],
+  });
+
+  const raw = (r.output_text || "").trim();
+  console.log("🌐 [WEB ONLY] raw:", raw.slice(0, 200));
+
+  const cleaned = extractJson(raw);
+  console.log("🌐 [WEB ONLY] cleaned:", cleaned.slice(0, 200));
+
+  try {
+    const parsed = safeJsonParse(cleaned);
+
+    if (parsed?.messages?.length) return parsed;
+    if (Array.isArray(parsed)) return { messages: parsed };
+
+    throw new Error("Parsed JSON but missing messages");
+  } catch (e) {
+    console.error("❌ [WEB ONLY] JSON parse failed:", e);
+    console.error("❌ [WEB ONLY] cleaned was:", cleaned);
+    return defaultResponse;
+  }
+};
+
 // MongoDB konekcija
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // API rute
 app.use("/api/admin", adminRoutes);
 app.use("/api", userRoutes);
-
 
 // ElevenLabs API Key
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
@@ -59,11 +184,11 @@ app.get("/voices", async (req, res) => {
   res.send(await voice.getVoices(elevenLabsApiKey));
 });
 
-// ROUTE: TTS
+// ROUTE: TTS (WEB ONLY)
 app.post("/tts", async (req, res) => {
   const userMessage = req.body.message;
-  const defaultMessages = await sendDefaultMessages({ userMessage });
 
+  const defaultMessages = await sendDefaultMessages({ userMessage });
   if (defaultMessages) {
     res.send({ messages: defaultMessages });
     return;
@@ -71,19 +196,28 @@ app.post("/tts", async (req, res) => {
 
   let openAImessages;
   try {
-    openAImessages = await openAIChain.invoke({
-      question: userMessage,
-      format_instructions: parser.getFormatInstructions(),
-    });
-  } catch (error) {
+    openAImessages = await answerWithWebOnly(userMessage);
+  } catch (e) {
+    console.error("❌ /tts web error:", e);
     openAImessages = defaultResponse;
   }
 
-  const response = await lipSync({ messages: openAImessages.messages });
+  const messagesForLipSync =
+    Array.isArray(openAImessages?.messages) && openAImessages.messages.length
+      ? openAImessages.messages
+      : Array.isArray(defaultResponse?.messages)
+      ? defaultResponse.messages
+      : [];
+
+  if (!messagesForLipSync.length) {
+    return res.status(500).send({ error: "No messages for lipSync" });
+  }
+
+  const response = await lipSync({ messages: messagesForLipSync });
   res.send({ messages: response });
 });
 
-// ROUTE: STS
+// ROUTE: STS (WEB ONLY)
 app.post("/sts", async (req, res) => {
   try {
     const base64Audio = req.body.audio;
@@ -92,17 +226,25 @@ app.post("/sts", async (req, res) => {
 
     let openAImessages;
     try {
-      openAImessages = await openAIChain.invoke({
-        question: userMessage,
-        format_instructions: parser.getFormatInstructions(),
-      });
-    } catch (error) {
+      openAImessages = await answerWithWebOnly(userMessage);
+    } catch (e) {
+      console.error("❌ /sts web error:", e);
       openAImessages = defaultResponse;
     }
 
-    const response = await lipSync({ messages: openAImessages.messages });
+    const messagesForLipSync =
+      Array.isArray(openAImessages?.messages) && openAImessages.messages.length
+        ? openAImessages.messages
+        : Array.isArray(defaultResponse?.messages)
+        ? defaultResponse.messages
+        : [];
 
-    // ✅ DODAJ ID-eve OVDE (posle lipSync)
+    if (!messagesForLipSync.length) {
+      return res.status(500).send({ error: "No messages for lipSync" });
+    }
+
+    const response = await lipSync({ messages: messagesForLipSync });
+
     const messages = response.map((m) => ({
       id: crypto.randomUUID(),
       ...m,
@@ -115,7 +257,7 @@ app.post("/sts", async (req, res) => {
   }
 });
 
-// START SERVER (na kraju!)
+// START SERVER
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server is running on port ${port}`);

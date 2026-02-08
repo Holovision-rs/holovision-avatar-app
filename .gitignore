@@ -1,37 +1,25 @@
-# Node modules
+# Node
 node_modules/
-**/node_modules/
 
-# Build output
-dist/
-build/
-**/dist/
-**/build/
+# Env
+.env*
 
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 *.log
 
 # OS
 .DS_Store
 
-# IDE / Editor folders
+# IDE
 .vscode/
 .idea/
 
-# Env (CRITICAL)
-.env
-.env.*
-**/.env
-**/.env.*
+# Build
+dist/
+build/
 
-# Optional caches
+# Runtime generated
+backend/audios/
+backend/tmp/
 .cache/
 coverage/
-
-# Generated audio files
-backend/audios/
-backend/audios/*.mp3
-backend/audios/*.wav
