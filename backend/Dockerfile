@@ -11,11 +11,11 @@ WORKDIR /app
 
 # Copy only dependency manifests first (best cache)
 COPY package*.json ./
-# If you use yarn:
+# If you use yarn, uncomment:
 # COPY yarn.lock ./
 
-# Install prod deps only
-RUN npm ci --omit=dev
+# ✅ Use npm install (works without package-lock.json)
+RUN npm install --omit=dev
 
 
 # ----------------------------------------
@@ -23,17 +23,13 @@ RUN npm ci --omit=dev
 # ----------------------------------------
 FROM node:22-bookworm-slim AS runtime
 
-# System deps (ffmpeg + tools for rhubarb install)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg curl unzip ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copy app source
 COPY . .
 
 # Install Rhubarb (Linux) - robust binary discovery
