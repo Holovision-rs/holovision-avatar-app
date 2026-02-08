@@ -43,7 +43,7 @@ export function Avatar(props) {
   const [animation, setAnimation] = useState(
     animations.find((a) => a.name === "Idle") ? "Idle" : animations[0].name
   );
-  const [facialExpression, setFacialExpression] = useState("");
+  const [facialExpression, setFacialExpression] = useState("default");
   const [lipsync, setLipsync] = useState(null);
   const [blink, setBlink] = useState(false);
   const [setupMode, setSetupMode] = useState(false);
@@ -54,13 +54,21 @@ export function Avatar(props) {
   // ✅ Playback session refs
   const sessionIdRef = useRef(0);
   const sourcesRef = useRef([]); // [{src, startAt, endAt, msg}]
-  const startedAtRef = useRef(null); // start time of first segment (ctx time)
-
-  const activeIndexRef = useRef(0); // which segment currently "active" for lipsync/face
+  const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
   // ✅ viseme keys (da facialExpression ne gazi viseme)
   const VISEME_KEYS = useRef(new Set(Object.values(visemesMapping))).current;
+
+  // ✅ PRO: ne diraj nijedan mouth/jaw morph iz facialExpressions (sprečava "kez" i konflikt)
+  const isMouthOrJawKey = useCallback(
+    (key) => {
+      const k = String(key || "").toLowerCase();
+      if (VISEME_KEYS.has(key)) return true;
+      return k.includes("mouth") || k.includes("jaw");
+    },
+    [VISEME_KEYS]
+  );
 
   const stopAll = useCallback(() => {
     try {
@@ -72,7 +80,6 @@ export function Avatar(props) {
       });
     } catch {}
     sourcesRef.current = [];
-    startedAtRef.current = null;
     activeIndexRef.current = 0;
     setActiveIndex(0);
   }, []);
@@ -88,7 +95,18 @@ export function Avatar(props) {
     });
   }, []);
 
-  // ✅ start a full batch gapless
+  // ✅ helper: choose safe talking animation
+  const pickSpeakingAnimation = useCallback(
+    (requested) => {
+      const name = requested || "TalkingOne";
+      // ako backend pošalje Idle dok audio traje → deluje kao da "stane u sred teksta"
+      if (name === "Idle") return animations.find((a) => a.name === "TalkingOne") ? "TalkingOne" : name;
+      return name;
+    },
+    [animations]
+  );
+
+  // ✅ start a full batch gapless (decode all -> schedule)
   const playBatchGapless = useCallback(
     async (batch) => {
       if (!batch?.length) return;
@@ -107,7 +125,6 @@ export function Avatar(props) {
 
       stopAll();
 
-      // decode all first (stabilno i bez seckanja)
       let buffers = [];
       try {
         buffers = await Promise.all(batch.map((m) => decodeAudio(ctx, m.audio)));
@@ -117,12 +134,9 @@ export function Avatar(props) {
         onBatchPlayed?.("decode_failed");
         return;
       }
-
       if (mySession !== sessionIdRef.current) return;
 
-      const now = ctx.currentTime;
-      const firstWhen = now + 0.02; // mali offset za sigurnost
-      startedAtRef.current = firstWhen;
+      const firstWhen = ctx.currentTime + 0.03;
 
       const scheduled = [];
       let t = firstWhen;
@@ -137,38 +151,46 @@ export function Avatar(props) {
         const startAt = t;
         const endAt = t + buf.duration;
 
-        // onended samo na poslednjem segmentu
         if (i === buffers.length - 1) {
           src.onended = () => {
             if (mySession !== sessionIdRef.current) return;
+
+            // ✅ PRO: posle batch-a vrati neutral + Idle (da ne ostane “kez”)
+            setTimeout(() => {
+              // ako je u međuvremenu stigao novi batch, ne diraj
+              if (mySession !== sessionIdRef.current) return;
+              setFacialExpression("default");
+              setLipsync(null);
+              setAnimation("Idle");
+            }, 120);
+
             onBatchPlayed?.("batch_onended");
           };
         }
 
         scheduled.push({ src, startAt, endAt, msg, duration: buf.duration });
-
-        t = endAt; // gapless
+        t = endAt;
       });
 
-      // schedule start
-      scheduled.forEach((s) => {
+      // schedule start (gapless)
+      for (const s of scheduled) {
         try {
           s.src.start(s.startAt);
         } catch (e) {
           console.warn("❌ start failed", e);
         }
-      });
+      }
 
       sourcesRef.current = scheduled;
 
-      // ✅ IMPORTANT FIX:
-      // Force apply FIRST message immediately (jer activeIndex je već 0 pa effect ne okine)
+      // ✅ PRO FIX: odmah primeni PRVU poruku (jer activeIndex već 0 pa effect ne okine)
       activeIndexRef.current = 0;
       setActiveIndex(0);
-      const firstMsg = scheduled?.[0]?.msg;
-      setAnimation(firstMsg?.animation || "Idle");
-      setFacialExpression(firstMsg?.facialExpression || "");
-      setLipsync(firstMsg?.lipsync || null);
+
+      const firstMsg = scheduled?.[0]?.msg || {};
+      setAnimation(pickSpeakingAnimation(firstMsg.animation));
+      setFacialExpression(firstMsg.facialExpression || "default");
+      setLipsync(firstMsg.lipsync || null);
 
       // marker za “start”
       onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
@@ -180,18 +202,18 @@ export function Avatar(props) {
       onBatchPlayed,
       playbackCtxRef,
       stopAll,
+      pickSpeakingAnimation,
     ]
   );
 
   // ✅ When new batch arrives → play it
   useEffect(() => {
-    // cancel previous session
     sessionIdRef.current++;
     stopAll();
 
     if (!playBatch?.length) {
       setAnimation("Idle");
-      setFacialExpression("");
+      setFacialExpression("default");
       setLipsync(null);
       return;
     }
@@ -204,22 +226,20 @@ export function Avatar(props) {
     };
   }, [playBatchId, playBatch, playBatchGapless, stopAll]);
 
-  // ✅ determine which segment is currently active, update expression/lipsync
+  // ✅ determine which segment is currently active (ctx.currentTime based)
   useFrame(() => {
-    if (!sourcesRef.current.length) return;
+    const list = sourcesRef.current;
+    if (!list.length) return;
 
     const ctx = playbackCtxRef?.current;
-    if (!ctx || startedAtRef.current == null) return;
+    if (!ctx) return;
 
     const t = ctx.currentTime;
 
-    // find active segment
     let idx = activeIndexRef.current;
 
-    // move forward only (cheap)
-    while (idx < sourcesRef.current.length - 1 && t >= sourcesRef.current[idx].endAt) {
-      idx++;
-    }
+    // move forward only
+    while (idx < list.length - 1 && t >= list[idx].endAt) idx++;
 
     if (idx !== activeIndexRef.current) {
       activeIndexRef.current = idx;
@@ -227,17 +247,17 @@ export function Avatar(props) {
     }
   });
 
-  // when activeIndex changes, apply message animation/face/lipsync
+  // ✅ when activeIndex changes, apply message animation/face/lipsync
   useEffect(() => {
     const seg = sourcesRef.current?.[activeIndex];
     if (!seg?.msg) return;
 
     const msg = seg.msg;
 
-    setAnimation(msg.animation || "Idle");
-    setFacialExpression(msg.facialExpression || "");
+    setAnimation(pickSpeakingAnimation(msg.animation));
+    setFacialExpression(msg.facialExpression || "default");
     setLipsync(msg.lipsync || null);
-  }, [activeIndex]);
+  }, [activeIndex, pickSpeakingAnimation]);
 
   // 🎞️ Animacije
   useEffect(() => {
@@ -245,11 +265,11 @@ export function Avatar(props) {
 
     actions[animation]
       .reset()
-      .fadeIn(mixer?.stats?.actions?.inUse === 0 ? 0 : 0.5)
+      .fadeIn(mixer?.stats?.actions?.inUse === 0 ? 0 : 0.25) // brže prebacivanje (manje “stajanja”)
       .play();
 
     return () => {
-      actions[animation]?.fadeOut(0.5);
+      actions[animation]?.fadeOut(0.25);
     };
   }, [animation, actions, mixer]);
 
@@ -263,8 +283,8 @@ export function Avatar(props) {
         setTimeout(() => {
           setBlink(false);
           nextBlink();
-        }, 200);
-      }, THREE.MathUtils.randInt(1000, 5000));
+        }, 140);
+      }, THREE.MathUtils.randInt(1200, 5200));
     };
 
     nextBlink();
@@ -290,23 +310,28 @@ export function Avatar(props) {
     [scene]
   );
 
-  // 🧠 Lip sync + mimika (po aktivnom segmentu)
-  useFrame(() => {
-    // 1) facial expression (ali NE diraj viseme)
-    if (!setupMode) {
-      morphTargets.forEach((key) => {
-        if (VISEME_KEYS.has(key)) return; // ✅ ne gazimo viseme facial expression-om
+  // ✅ PRO: fallback “jaw” kada cues nema (da usta ne deluju mrtvo)
+  const fallbackJawPhaseRef = useRef(0);
 
-        const mapping = facialExpressions[facialExpression];
-        if (key !== "eyeBlinkLeft" && key !== "eyeBlinkRight") {
-          lerpMorphTarget(key, mapping?.[key] || 0, 0.1);
-        }
+  // 🧠 Face + Lip sync (single frame loop)
+  useFrame((_, delta) => {
+    // 0) delta clamp (stabilnije)
+    const dt = Math.min(0.033, Math.max(0.001, delta));
+
+    // 1) facial expression (ALI NE DIRAJ mouth/jaw + ne diraj blink)
+    if (!setupMode) {
+      const mapping = facialExpressions[facialExpression] || facialExpressions["default"] || {};
+      morphTargets.forEach((key) => {
+        if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") return;
+        if (isMouthOrJawKey(key)) return; // ✅ PRO: facialExpression ne dira usta
+
+        lerpMorphTarget(key, mapping?.[key] || 0, 0.12);
       });
     }
 
     // 2) blink
-    lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.5);
-    lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.5);
+    lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.55);
+    lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.55);
 
     // 3) visemes
     if (setupMode || !lipsync) return;
@@ -315,26 +340,36 @@ export function Avatar(props) {
     const seg = sourcesRef.current?.[activeIndexRef.current];
     if (!ctx || !seg) return;
 
-    // audio time within current segment
     const localTime = Math.max(0, ctx.currentTime - seg.startAt);
 
     const applied = [];
+    let anyCue = false;
 
     lipsync.mouthCues?.forEach((cue) => {
       if (localTime >= cue.start && localTime <= cue.end) {
         const target = visemesMapping[cue.value];
         if (!target) return;
+        anyCue = true;
         applied.push(target);
 
-        // ✅ pojačaj reakciju usta
-        lerpMorphTarget(target, 1, 0.35);
+        // ✅ PRO: jači “attack”
+        lerpMorphTarget(target, 1, 0.45);
       }
     });
 
-    // ✅ brži reset (da deluje življe)
+    // reset visemes brže (da bude “snappier”)
     Object.values(visemesMapping).forEach((key) => {
-      if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.15);
+      if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.22);
     });
+
+    // ✅ fallback (kad cues nisu gusti / prazni): blagi jawOpen puls
+    // (ne utiče na viseme targete; radi samo kad nema cue u tom frame-u)
+    if (!anyCue) {
+      fallbackJawPhaseRef.current += dt * 8.0;
+      const pulse = 0.08 + 0.06 * Math.abs(Math.sin(fallbackJawPhaseRef.current));
+      // radi samo ako model ima jawOpen
+      lerpMorphTarget("jawOpen", pulse, 0.18);
+    }
   });
 
   // 🎛️ Leva

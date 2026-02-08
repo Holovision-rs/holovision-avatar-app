@@ -43,13 +43,27 @@ export const SpeechProvider = ({ children }) => {
   const keepAliveGainRef = useRef(null);
   const keepAliveActiveRef = useRef(false);
 
-  // ✅ NEW: batch playback state
+  // ✅ batch playback state
   const [playBatch, setPlayBatch] = useState(null); // array of messages or null
   const [playBatchId, setPlayBatchId] = useState(0); // increments each time we set a new batch
+
+  // ✅ OPTIONAL: UI lock / mic lock while avatar is talking
+  const [isAvatarTalking, setIsAvatarTalking] = useState(false);
+  const isAvatarTalkingRef = useRef(false);
+
+  // ✅ control timers for "start not detected" + "playback safety"
+  const pendingPlaybackRef = useRef(false);
+  const playBlockedFallbackTimerRef = useRef(null);
+  const playbackSafetyTimerRef = useRef(null);
 
   const updateMicState = (enabled) => {
     setMicEnabled(enabled);
     micEnabledRef.current = enabled;
+  };
+
+  const setTalking = (v) => {
+    setIsAvatarTalking(v);
+    isAvatarTalkingRef.current = v;
   };
 
   const clearMicSafetyTimer = () => {
@@ -62,12 +76,43 @@ export const SpeechProvider = ({ children }) => {
   const armMicSafetyUnlock = () => {
     clearMicSafetyTimer();
     micSafetyTimerRef.current = setTimeout(() => {
-      if (!recordingRef.current && !micEnabledRef.current) {
+      if (!recordingRef.current && !micEnabledRef.current && !isAvatarTalkingRef.current) {
         console.warn("⚠️ Safety unlock mic (mobile audio end not detected)");
         updateMicState(true);
       }
     }, MIC_SAFETY_UNLOCK_MS);
   };
+
+  const clearPlayBlockedFallback = () => {
+    if (playBlockedFallbackTimerRef.current) {
+      clearTimeout(playBlockedFallbackTimerRef.current);
+      playBlockedFallbackTimerRef.current = null;
+    }
+  };
+
+  const clearPlaybackSafety = () => {
+    if (playbackSafetyTimerRef.current) {
+      clearTimeout(playbackSafetyTimerRef.current);
+      playbackSafetyTimerRef.current = null;
+    }
+  };
+
+  const armPlayBlockedFallback = useCallback(() => {
+    clearPlayBlockedFallback();
+    playBlockedFallbackTimerRef.current = setTimeout(() => {
+      if (pendingPlaybackRef.current && !recordingRef.current) {
+        console.warn("⚠️ playback NOT started → unlock mic/UI", { reason: "play_not_started_fallback" });
+        pendingPlaybackRef.current = false;
+
+        // ne diramo playBatch (ostaje) — samo otključamo user-a da ne visi UI
+        setTalking(false);
+        updateMicState(true);
+        clearMicSafetyTimer();
+        clearPlaybackSafety();
+        stopKeepAlive();
+      }
+    }, 8000);
+  }, []);
 
   const pickMimeType = () => {
     try {
@@ -178,20 +223,42 @@ export const SpeechProvider = ({ children }) => {
     keepAliveActiveRef.current = false;
   }, []);
 
-  // ✅ Avatar calls when full batch done
-  const onBatchPlayed = useCallback((reason = "batch_end") => {
-    console.log("✅ Batch finished → unlock mic", { reason });
-
-    setPlayBatch(null); // clear
-    updateMicState(true);
-    clearMicSafetyTimer();
-    stopKeepAlive();
-  }, [stopKeepAlive]);
-
-  // ✅ Avatar optional (start marker), not required for logic
+  // ✅ Avatar calls when playback ACTUALLY starts (control signal)
   const onAvatarPlaybackStart = useCallback((durationSec) => {
     console.log("▶️ Avatar playback started", { durationSec });
+
+    // playback je krenuo → gasi "not started" fallback
+    pendingPlaybackRef.current = false;
+    clearPlayBlockedFallback();
+
+    // postavi normalan safety timeout: duration + buffer
+    clearPlaybackSafety();
+    const ms = Math.max(1800, Math.floor((Number(durationSec) || 0) * 1000) + 1800);
+
+    playbackSafetyTimerRef.current = setTimeout(() => {
+      console.warn("⚠️ Playback safety timeout → force batch end");
+      onBatchPlayed("playback_safety_timeout");
+    }, ms);
   }, []);
+
+  // ✅ Avatar calls when full batch done (control signal)
+  const onBatchPlayed = useCallback(
+    (reason = "batch_end") => {
+      console.log("✅ Batch finished → unlock mic/UI", { reason });
+
+      pendingPlaybackRef.current = false;
+      clearPlayBlockedFallback();
+      clearPlaybackSafety();
+
+      setPlayBatch(null);
+      setTalking(false);
+
+      updateMicState(true);
+      clearMicSafetyTimer();
+      stopKeepAlive();
+    },
+    [stopKeepAlive]
+  );
 
   const initiateRecording = () => {
     audioChunksRef.current = [];
@@ -220,27 +287,32 @@ export const SpeechProvider = ({ children }) => {
         const newMessages = data?.messages || [];
 
         console.log("🟦 STS messages length:", newMessages.length);
-        console.log(
-          "🟦 STS message ids:",
-          newMessages.map((m) => m?.id)
-        );
+        console.log("🟦 STS message ids:", newMessages.map((m) => m?.id));
 
         if (!newMessages.length) {
           console.warn("⚠️ Backend returned no messages → unlocking mic");
+          setTalking(false);
           updateMicState(true);
           clearMicSafetyTimer();
           stopKeepAlive();
           return;
         }
 
-        // ✅ start a new batch playback run
+        // ✅ LOCK UI + mic, start "pending playback"
+        setTalking(true);
         updateMicState(false);
+        clearMicSafetyTimer();
         armMicSafetyUnlock();
 
+        pendingPlaybackRef.current = true;
+        armPlayBlockedFallback();
+
+        // ✅ start a new batch playback run
         setPlayBatch(newMessages);
         setPlayBatchId((x) => x + 1);
       } catch (error) {
         console.error("❌ Audio send error:", error);
+        setTalking(false);
         updateMicState(true);
         clearMicSafetyTimer();
         stopKeepAlive();
@@ -290,6 +362,8 @@ export const SpeechProvider = ({ children }) => {
   const stopListening = () => {
     stopAutoStopOnSilence();
     clearMicSafetyTimer();
+    clearPlayBlockedFallback();
+    clearPlaybackSafety();
     stopKeepAlive();
 
     try {
@@ -391,9 +465,11 @@ export const SpeechProvider = ({ children }) => {
       micEnabled: micEnabledRef.current,
       loading,
       hasBatch: !!playBatch,
+      isAvatarTalking: isAvatarTalkingRef.current,
     });
 
-    if (!micEnabledRef.current || loading || playBatch) {
+    // ✅ dok avatar priča / batch je aktivan → ne snimamo
+    if (!micEnabledRef.current || loading || playBatch || isAvatarTalkingRef.current) {
       console.log("🚫 Can't start recording (mic disabled / loading / playing).");
       return;
     }
@@ -487,18 +563,24 @@ export const SpeechProvider = ({ children }) => {
 
       if (!newMessages.length) {
         console.warn("⚠️ TTS returned no messages → unlocking mic");
+        setTalking(false);
         updateMicState(true);
         stopKeepAlive();
         return;
       }
 
+      setTalking(true);
       updateMicState(false);
       armMicSafetyUnlock();
+
+      pendingPlaybackRef.current = true;
+      armPlayBlockedFallback();
 
       setPlayBatch(newMessages);
       setPlayBatchId((x) => x + 1);
     } catch (error) {
       console.error("❌ TTS error:", error);
+      setTalking(false);
       updateMicState(true);
       stopKeepAlive();
     } finally {
@@ -510,6 +592,8 @@ export const SpeechProvider = ({ children }) => {
     return () => {
       stopAutoStopOnSilence();
       clearMicSafetyTimer();
+      clearPlayBlockedFallback();
+      clearPlaybackSafety();
       stopKeepAlive();
       try {
         streamRef.current?.getTracks()?.forEach((t) => t.stop());
@@ -530,6 +614,10 @@ export const SpeechProvider = ({ children }) => {
         micEnabled,
         micEnabledRef,
 
+        // ✅ optional: koristiš u UI da disable button / pokažeš stanje
+        isAvatarTalking,
+        isAvatarTalkingRef,
+
         analyserNode,
         setAnalyserNode,
         startListening,
@@ -544,7 +632,7 @@ export const SpeechProvider = ({ children }) => {
         playBatchId,
         onBatchPlayed,
 
-        // optional marker
+        // ✅ control signal: start marker
         onAvatarPlaybackStart,
       }}
     >
