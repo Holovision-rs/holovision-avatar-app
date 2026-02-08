@@ -26,7 +26,7 @@ process.on("unhandledRejection", (err) => {
 
 const app = express();
 
-// ✅ osiguraj folder za audio output (rhubarb/ffmpeg output)
+// ✅ osiguraj folder za audio output
 fs.mkdirSync("audios", { recursive: true });
 
 // Body parser
@@ -107,7 +107,7 @@ const normalize = (s = "") =>
 const HARD_INTENTS = [
   {
     id: "identity_name",
-    triggers: ["kako se zoves", "kako se zoveš", "ime", "your name", "what is your name"],
+    triggers: ["kako se zoves", "kako se zoveš", "your name", "what is your name"],
     reply: {
       messages: [
         {
@@ -216,7 +216,7 @@ const withTimeout = (promise, ms = 10000) =>
     ),
   ]);
 
-const BASE_SYSTEM = `Ti si ${GUARD.name}, profesionalni AI avatar za ${GUARD.brand}. 
+const BASE_SYSTEM = `Ti si ${GUARD.name}, profesionalni AI avatar za ${GUARD.brand}.
 Nikada ne reci da si ChatGPT ili OpenAI. Odgovaraj kratko i jasno.`;
 
 const answerFastNoWeb = async (userMessage) => {
@@ -268,17 +268,14 @@ const answerWeb = async (userMessage) => {
 const answerUniversal = async (userMessage) => {
   console.log("🧠 question:", userMessage);
 
-  // 1) identity/hard intents uvek prioritet (instant)
   const hard = matchHardIntent(userMessage);
   if (hard) return hard;
 
-  // 2) ako ne treba web → fast odmah
   if (!shouldUseWeb(userMessage)) {
     console.log("⚡ FAST (no web)");
     return await answerFastNoWeb(userMessage);
   }
 
-  // 3) web max 10s → fallback
   console.log(`🌐 WEB (max ${GUARD.maxWebMs}ms)...`);
   try {
     return await withTimeout(answerWeb(userMessage), GUARD.maxWebMs);
@@ -312,9 +309,11 @@ app.post("/tts", async (req, res, next) => {
         ? openAImessages.messages
         : defaultResponse?.messages || [];
 
+    const jobId = crypto.randomUUID();
+
     let response;
     try {
-      response = await lipSync({ messages: msgs });
+      response = await lipSync({ messages: msgs, jobId });
     } catch (err) {
       console.error("🔥 /tts LIPSYNC CRASH:", err);
       return res.status(500).json({ error: "LipSync failed" });
@@ -361,9 +360,11 @@ app.post("/sts", async (req, res, next) => {
         ? openAImessages.messages
         : defaultResponse?.messages || [];
 
+    const jobId = crypto.randomUUID();
+
     let response;
     try {
-      response = await lipSync({ messages: msgs });
+      response = await lipSync({ messages: msgs, jobId });
     } catch (err) {
       console.error("🔥 /sts LIPSYNC CRASH:", err);
       return res.status(500).json({ error: "LipSync failed" });
