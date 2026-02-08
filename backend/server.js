@@ -1,3 +1,6 @@
+console.log("OPENAI:", !!process.env.OPENAI_API_KEY);
+console.log("MONGO:", !!process.env.MONGO_URI);
+console.log("ELEVEN:", !!process.env.ELEVEN_LABS_API_KEY);
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import cors from "cors";
@@ -18,7 +21,8 @@ import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 const allowedOrigins = [
-  "https://holovision-avatar-app-1.onrender.com",
+  "https://holovision-avatar-app-1.onrender.com", // ✅ frontend
+  "https://holovision-avatar-app-2.onrender.com", // ✅ backend (nije obavezno ali ok)
   "http://localhost:5173",
 ];
 
@@ -33,18 +37,28 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 // CORS
+
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+    origin: (origin, callback) => {
+      // dozvoli server-to-server, curl, postman (nema Origin header)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // (opciono) dozvoli sve tvoje onrender subdomene:
+      // if (origin.endsWith(".onrender.com")) return callback(null, true);
+
+      return callback(null, false); // ❗ nemoj bacati Error, samo odbij
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// ✅ preflight za sve rute
+app.options("*", cors());
 
 // --- helpers ---
 const extractJson = (raw = "") => {
