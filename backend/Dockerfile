@@ -19,13 +19,16 @@ RUN npm install --omit=dev
 # ✅ Kopiraj ostatak backend-a
 COPY . .
 
-# ✅ Instaliraj Rhubarb (Linux)
-RUN mkdir -p .bin \
- && curl -L -o /tmp/rhubarb.zip https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip \
- && unzip -o /tmp/rhubarb.zip -d /tmp/rhubarb \
- && cp /tmp/rhubarb/rhubarb .bin/rhubarb \
- && chmod +x .bin/rhubarb \
- && rm -rf /tmp/rhubarb*
+# ✅ Instaliraj Rhubarb (Linux) - robust (find binary)
+RUN set -eux; \
+    mkdir -p .bin; \
+    curl -L -o /tmp/rhubarb.zip https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip; \
+    unzip -o /tmp/rhubarb.zip -d /tmp/rhubarb; \
+    RHUBARB_BIN="$(find /tmp/rhubarb -type f -name rhubarb -perm -u+x | head -n 1)"; \
+    echo "Found rhubarb at: ${RHUBARB_BIN}"; \
+    cp "${RHUBARB_BIN}" .bin/rhubarb; \
+    chmod +x .bin/rhubarb; \
+    rm -rf /tmp/rhubarb /tmp/rhubarb.zip
 
 ENV NODE_ENV=production
 
