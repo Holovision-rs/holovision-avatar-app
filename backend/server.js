@@ -42,27 +42,27 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.get("/healthz", (req, res) => res.status(200).send("ok"));
 // CORS
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // dozvoli server-to-server, curl, postman (nema Origin header)
-      if (!origin) return callback(null, true);
+const allowedOrigins = new Set([
+  "https://holovision-avatar-app-1.onrender.com",
+  "http://localhost:5173",
+]);
 
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-      // (opciono) dozvoli sve tvoje onrender subdomene:
-      // if (origin.endsWith(".onrender.com")) return callback(null, true);
+  if (!origin) return next();
 
-      return callback(null, false); // ❗ nemoj bacati Error, samo odbij
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+  if (allowedOrigins.has(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  }
 
-// ✅ preflight za sve rute
-app.options("*", cors());
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 // --- helpers ---
 const extractJson = (raw = "") => {
@@ -164,6 +164,7 @@ const answerWithWebOnly = async (userMessage) => {
     ],
   };
 };
+
 
 // MongoDB konekcija
 mongoose
