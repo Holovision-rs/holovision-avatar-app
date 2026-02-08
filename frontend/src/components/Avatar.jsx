@@ -14,7 +14,11 @@ import visemesMapping from "../constants/visemesMapping";
 import morphTargets from "../constants/morphTargets";
 
 // base64 -> ArrayBuffer
-const base64ToArrayBuffer = (base64) => {
+const base64ToArrayBuffer = (input) => {
+  if (!input) return new ArrayBuffer(0);
+  // ✅ podrži i data URL i čist base64
+  const base64 = input.includes("base64,") ? input.split("base64,")[1] : input;
+
   const binary = atob(base64);
   const len = binary.length;
   const bytes = new Uint8Array(len);
@@ -291,6 +295,15 @@ export function Avatar(props) {
     return () => clearTimeout(blinkTimeout);
   }, []);
 
+  useEffect(() => {
+    const head = nodes?.Wolf3D_Head;
+    if (head?.morphTargetDictionary) {
+      console.log("✅ Head morph targets:", Object.keys(head.morphTargetDictionary));
+    }
+    console.log("✅ Animation clips:", animations?.map(a => a.name));
+    console.log("✅ Actions:", actions ? Object.keys(actions) : []);
+  }, [nodes, animations, actions]);
+  
   // Helper: morph lerp
   const lerpMorphTarget = useCallback(
     (target, value, speed = 0.1) => {
