@@ -32,6 +32,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+RUN mkdir -p audios
+
 # Install Rhubarb (Linux) - robust binary discovery
 RUN set -eux; \
     mkdir -p .bin; \

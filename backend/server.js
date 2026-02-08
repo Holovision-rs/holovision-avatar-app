@@ -20,6 +20,9 @@ import { convertAudioToText } from "./modules/whisper.mjs";
 // ROUTES
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import fs from "fs";
+
+fs.mkdirSync("audios", { recursive: true });
 
 const allowedOrigins = [
   "https://holovision-avatar-app-1.onrender.com", // ✅ frontend
@@ -235,9 +238,33 @@ app.post("/tts", async (req, res) => {
 // ROUTE: STS (WEB ONLY)
 app.post("/sts", async (req, res) => {
   try {
-    const base64Audio = req.body.audio;
+    let base64Audio = req.body?.audio;
+
+    // ✅ 1) validacija
+    if (!base64Audio || typeof base64Audio !== "string") {
+      return res.status(400).send({ error: "Missing audio (base64)" });
+    }
+
+    // ✅ 2) ako neko pošalje data URL, očisti prefix
+    if (base64Audio.startsWith("data:")) {
+      base64Audio = base64Audio.split("base64,")[1] || "";
+    }
+
+    // ✅ 3) decode
     const audioData = Buffer.from(base64Audio, "base64");
+
+    if (!audioData.length) {
+      return res.status(400).send({ error: "Decoded audio is empty" });
+    }
+
+    // (opciono) debug prve bajtove da vidiš da li je webm
+    console.log("audio bytes:", Array.from(audioData.subarray(0, 4)));
+
     const userMessage = await convertAudioToText({ audioData });
+
+    if (!userMessage || !userMessage.trim()) {
+      return res.status(500).send({ error: "STT failed (empty transcript)" });
+    }
 
     let openAImessages;
     try {
