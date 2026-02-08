@@ -9,6 +9,7 @@ import express from "express";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import openai from "./openaiClient.js";
+import { voice } from "./modules/elevenlabs.mjs";
 
 // MODULES
 import { parser } from "./modules/openAI.mjs";
