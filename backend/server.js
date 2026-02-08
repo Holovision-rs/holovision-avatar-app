@@ -3,7 +3,6 @@ import express from "express";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import openai from "./openaiClient.js";
-import { voice } from "./modules/elevenLabs.mjs";
 import { lipSync } from "./modules/lip-sync.mjs";
 import { sendDefaultMessages, defaultResponse } from "./modules/defaultMessages.mjs";
 import { convertAudioToText } from "./modules/whisper.mjs";
@@ -74,12 +73,47 @@ mongoose
 app.use("/api/admin", adminRoutes);
 app.use("/api", userRoutes);
 
-// Voices
-const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
+// 👇 OVDE IDE
 app.get("/voices", async (req, res) => {
-  res.send(await voice.getVoices(elevenLabsApiKey));
-});
+  try {
+    const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 
+    if (!elevenLabsApiKey) {
+      return res.status(400).json({
+        error: "Missing ELEVEN_LABS_API_KEY",
+      });
+    }
+
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 5000); // ⚡ timeout
+
+    const r = await fetch("https://api.elevenlabs.io/v1/voices", {
+      headers: {
+        "xi-api-key": elevenLabsApiKey,
+      },
+      signal: controller.signal,
+    });
+
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      return res.status(r.status).json({
+        error: "ElevenLabs voices failed",
+        details: t,
+      });
+    }
+
+    const data = await r.json();
+    res.json(data);
+
+  } catch (e) {
+    console.error("🔥 Voices route error:", e);
+
+    res.status(500).json({
+      error: "Voices error",
+      message: e?.message || String(e),
+    });
+  }
+});
 // ======================
 // AVATAR GUARDIAN LAYER
 // ======================
