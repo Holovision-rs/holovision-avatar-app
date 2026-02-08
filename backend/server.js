@@ -24,12 +24,6 @@ import fs from "fs";
 
 fs.mkdirSync("audios", { recursive: true });
 
-const allowedOrigins = [
-  "https://holovision-avatar-app-1.onrender.com", // ✅ frontend
-  "https://holovision-avatar-app-2.onrender.com", // ✅ backend (nije obavezno ali ok)
-  "http://localhost:5173",
-];
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
