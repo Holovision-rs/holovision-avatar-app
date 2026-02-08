@@ -11,11 +11,9 @@ WORKDIR /app
 
 # Copy only dependency manifests first (best cache)
 COPY package*.json ./
-# If you use yarn, uncomment:
-# COPY yarn.lock ./
 
-# ✅ Use npm install (works without package-lock.json)
-RUN npm install --omit=dev
+# ✅ Prod deps only (faster, less noise)
+RUN npm install --omit=dev --no-audit --no-fund
 
 
 # ----------------------------------------
@@ -29,23 +27,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Bring deps + app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN mkdir -p audios
+# ✅ Required runtime folders
+RUN mkdir -p audios tmp .bin
 
-# Install Rhubarb (Linux) - robust binary discovery
-# ✅ Instaliraj Rhubarb (Linux) + res folder (PocketSphinx models)
+# ✅ Rhubarb + res (PocketSphinx models) - ROBUST
 RUN set -eux; \
-    mkdir -p .bin; \
-    curl -L -o /tmp/rhubarb.zip https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip; \
-    unzip -o /tmp/rhubarb.zip -d /tmp/rhubarb; \
-    RHUBARB_DIR="$(find /tmp/rhubarb -type d -name 'Rhubarb-Lip-Sync-*-Linux' | head -n 1)"; \
-    echo "Rhubarb dir: ${RHUBARB_DIR}"; \
-    cp "${RHUBARB_DIR}/rhubarb" .bin/rhubarb; \
-    chmod +x .bin/rhubarb; \
-    cp -R "${RHUBARB_DIR}/res" .bin/res; \
-    rm -rf /tmp/rhubarb /tmp/rhubarb.zip
+  curl -L -o /tmp/rhubarb.zip https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip; \
+  unzip -o /tmp/rhubarb.zip -d /tmp/rhubarb; \
+  RHUBARB_BIN="$(find /tmp/rhubarb -type f -name rhubarb -perm -u+x | head -n 1)"; \
+  RHUBARB_ROOT="$(dirname "$RHUBARB_BIN")"; \
+  echo "Rhubarb bin: $RHUBARB_BIN"; \
+  echo "Rhubarb root: $RHUBARB_ROOT"; \
+  cp "$RHUBARB_BIN" .bin/rhubarb; \
+  chmod +x .bin/rhubarb; \
+  cp -R "$RHUBARB_ROOT/res" .bin/res; \
+  test -f .bin/res/sphinx/acoustic-model/mdef; \
+  rm -rf /tmp/rhubarb /tmp/rhubarb.zip
 
 ENV NODE_ENV=production
 ENV PORT=3000
