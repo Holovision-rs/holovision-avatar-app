@@ -35,15 +35,21 @@ COPY . .
 RUN mkdir -p audios
 
 # Install Rhubarb (Linux) - robust binary discovery
+# ✅ Instaliraj Rhubarb (Linux) + RES folder (PocketSphinx)
 RUN set -eux; \
     mkdir -p .bin; \
-    curl -L -o /tmp/rhubarb.zip "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip"; \
+    curl -L -o /tmp/rhubarb.zip https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip; \
     unzip -o /tmp/rhubarb.zip -d /tmp/rhubarb; \
     RHUBARB_BIN="$(find /tmp/rhubarb -type f -name rhubarb -perm -u+x | head -n 1)"; \
+    RHUBARB_DIR="$(dirname "$RHUBARB_BIN")"; \
     echo "Found rhubarb at: ${RHUBARB_BIN}"; \
-    test -n "${RHUBARB_BIN}"; \
-    cp "${RHUBARB_BIN}" .bin/rhubarb; \
-    chmod +x .bin/rhubarb; \
+    echo "Rhubarb dir: ${RHUBARB_DIR}"; \
+    cp "${RHUBARB_BIN}" /app/.bin/rhubarb; \
+    chmod +x /app/.bin/rhubarb; \
+    # ✅ ovo je ključno: kopiraj res/ pored binarija
+    cp -R "${RHUBARB_DIR}/res" /app/.bin/res; \
+    ls -la /app/.bin; \
+    ls -la /app/.bin/res/sphinx || true; \
     rm -rf /tmp/rhubarb /tmp/rhubarb.zip
 
 ENV NODE_ENV=production
