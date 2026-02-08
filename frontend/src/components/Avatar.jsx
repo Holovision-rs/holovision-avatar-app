@@ -59,6 +59,9 @@ export function Avatar(props) {
   const activeIndexRef = useRef(0); // which segment currently "active" for lipsync/face
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // ✅ viseme keys (da facialExpression ne gazi viseme)
+  const VISEME_KEYS = useRef(new Set(Object.values(visemesMapping))).current;
+
   const stopAll = useCallback(() => {
     try {
       sourcesRef.current.forEach((s) => {
@@ -158,10 +161,26 @@ export function Avatar(props) {
 
       sourcesRef.current = scheduled;
 
+      // ✅ IMPORTANT FIX:
+      // Force apply FIRST message immediately (jer activeIndex je već 0 pa effect ne okine)
+      activeIndexRef.current = 0;
+      setActiveIndex(0);
+      const firstMsg = scheduled?.[0]?.msg;
+      setAnimation(firstMsg?.animation || "Idle");
+      setFacialExpression(firstMsg?.facialExpression || "");
+      setLipsync(firstMsg?.lipsync || null);
+
       // marker za “start”
       onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
     },
-    [decodeAudio, ensurePlaybackContext, onAvatarPlaybackStart, onBatchPlayed, playbackCtxRef, stopAll]
+    [
+      decodeAudio,
+      ensurePlaybackContext,
+      onAvatarPlaybackStart,
+      onBatchPlayed,
+      playbackCtxRef,
+      stopAll,
+    ]
   );
 
   // ✅ When new batch arrives → play it
@@ -177,7 +196,6 @@ export function Avatar(props) {
       return;
     }
 
-    // start playing the whole batch
     playBatchGapless(playBatch);
 
     return () => {
@@ -274,8 +292,11 @@ export function Avatar(props) {
 
   // 🧠 Lip sync + mimika (po aktivnom segmentu)
   useFrame(() => {
+    // 1) facial expression (ali NE diraj viseme)
     if (!setupMode) {
       morphTargets.forEach((key) => {
+        if (VISEME_KEYS.has(key)) return; // ✅ ne gazimo viseme facial expression-om
+
         const mapping = facialExpressions[facialExpression];
         if (key !== "eyeBlinkLeft" && key !== "eyeBlinkRight") {
           lerpMorphTarget(key, mapping?.[key] || 0, 0.1);
@@ -283,9 +304,11 @@ export function Avatar(props) {
       });
     }
 
+    // 2) blink
     lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.5);
 
+    // 3) visemes
     if (setupMode || !lipsync) return;
 
     const ctx = playbackCtxRef?.current;
@@ -300,13 +323,17 @@ export function Avatar(props) {
     lipsync.mouthCues?.forEach((cue) => {
       if (localTime >= cue.start && localTime <= cue.end) {
         const target = visemesMapping[cue.value];
+        if (!target) return;
         applied.push(target);
-        lerpMorphTarget(target, 1, 0.2);
+
+        // ✅ pojačaj reakciju usta
+        lerpMorphTarget(target, 1, 0.35);
       }
     });
 
+    // ✅ brži reset (da deluje življe)
     Object.values(visemesMapping).forEach((key) => {
-      if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.1);
+      if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.15);
     });
   });
 
@@ -342,6 +369,7 @@ export function Avatar(props) {
   return (
     <group {...props} dispose={null} ref={group} position={[0, -0.5, 0]}>
       <primitive object={nodes.Hips} />
+
       <skinnedMesh
         name="EyeLeft"
         geometry={nodes.EyeLeft.geometry}
@@ -374,12 +402,37 @@ export function Avatar(props) {
         morphTargetDictionary={nodes.Wolf3D_Teeth.morphTargetDictionary}
         morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences}
       />
-      <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Bottom.geometry} material={materials.Wolf3D_Outfit_Bottom} skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Footwear.geometry} material={materials.Wolf3D_Outfit_Footwear} skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton} />
-      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Top.geometry} material={materials.Wolf3D_Outfit_Top} skeleton={nodes.Wolf3D_Outfit_Top.skeleton} />
+
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Glasses.geometry}
+        material={materials.Wolf3D_Glasses}
+        skeleton={nodes.Wolf3D_Glasses.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Headwear.geometry}
+        material={materials.Wolf3D_Headwear}
+        skeleton={nodes.Wolf3D_Headwear.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Body.geometry}
+        material={materials.Wolf3D_Body}
+        skeleton={nodes.Wolf3D_Body.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Bottom.geometry}
+        material={materials.Wolf3D_Outfit_Bottom}
+        skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Footwear.geometry}
+        material={materials.Wolf3D_Outfit_Footwear}
+        skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Outfit_Top.geometry}
+        material={materials.Wolf3D_Outfit_Top}
+        skeleton={nodes.Wolf3D_Outfit_Top.skeleton}
+      />
     </group>
   );
 }
