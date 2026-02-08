@@ -40,8 +40,8 @@ export async function convertTextToSpeech({ text, fileName }) {
         model_id: modelId,
         voice_settings: {
           stability: 0.5,
-          similarity_boost: 0.7,
           style: 0.7,
+          similarity_boost: 0.7,
           use_speaker_boost: true,
         },
       }),
