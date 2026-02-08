@@ -1,13 +1,13 @@
 const visemesMapping = {
-  A: "viseme_PP",
-  B: "viseme_kk",
+  A: "viseme_aa",  // ⭐ NATURAL BASE
+  B: "viseme_PP",
   C: "viseme_I",
-  D: "viseme_AA",
-  E: "viseme_O",
-  F: "viseme_U",
-  G: "viseme_FF",
+  D: "viseme_aa",
+  E: "viseme_E",
+  F: "viseme_FF",
+  G: "viseme_kk",
   H: "viseme_TH",
-  X: "viseme_PP",
+  X: "viseme_sil",
 };
 
 export default visemesMapping;
