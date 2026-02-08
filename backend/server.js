@@ -1,41 +1,40 @@
-console.log("OPENAI:", !!process.env.OPENAI_API_KEY);
-console.log("MONGO:", !!process.env.MONGO_URI);
-console.log("ELEVEN:", !!process.env.ELEVEN_LABS_API_KEY);
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import openai from "./openaiClient.js";
 import { voice } from "./modules/elevenLabs.mjs";
-
-// MODULES
-import { parser } from "./modules/openAI.mjs";
 import { lipSync } from "./modules/lip-sync.mjs";
 import { sendDefaultMessages, defaultResponse } from "./modules/defaultMessages.mjs";
 import { convertAudioToText } from "./modules/whisper.mjs";
-
-// ROUTES
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import fs from "fs";
 
-fs.mkdirSync("audios", { recursive: true });
+dotenv.config();
+
+console.log("OPENAI:", !!process.env.OPENAI_API_KEY);
+console.log("MONGO:", !!process.env.MONGO_URI);
+console.log("ELEVEN:", !!process.env.ELEVEN_LABS_API_KEY);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenv.config();
 const app = express();
+
+// ✅ osiguraj folder za audio output
+fs.mkdirSync("audios", { recursive: true });
 
 // Body parser
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.get("/healthz", (req, res) => res.status(200).send("ok"));
-// CORS
 
+// Health
+app.get("/healthz", (req, res) => res.status(200).send("ok"));
+
+// ✅ CORS (manual, stabilno)
 const allowedOrigins = new Set([
   "https://holovision-avatar-app-1.onrender.com",
   "http://localhost:5173",
@@ -44,99 +43,48 @@ const allowedOrigins = new Set([
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  if (!origin) return next();
-
-  if (allowedOrigins.has(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  // Preflight
+  if (req.method === "OPTIONS") {
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    }
+    return res.sendStatus(204);
   }
 
-  if (req.method === "OPTIONS") return res.sendStatus(204);
+  // Normalni requesti
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  }
+
   next();
 });
 
-// --- helpers ---
-const extractJson = (raw = "") => {
-  let s = raw.trim();
+// MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-  // ukloni ```json ... ``` ili ``` ... ```
-  if (s.startsWith("```")) {
-    s = s.replace(/^```[a-zA-Z]*\n?/, "");
-    s = s.replace(/```$/, "");
-    s = s.trim();
-  }
+// API rute
+app.use("/api/admin", adminRoutes);
+app.use("/api", userRoutes);
 
-  // uzmi samo deo od prve { do poslednje }
-  const first = s.indexOf("{");
-  const last = s.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) {
-    s = s.slice(first, last + 1);
-  }
+// Voices
+const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 
-  return s;
-};
+app.get("/voices", async (req, res) => {
+  res.send(await voice.getVoices(elevenLabsApiKey));
+});
 
-const safeJsonParse = (s) => {
-  // pokušaj normalno
-  try {
-    return JSON.parse(s);
-  } catch {}
-
-  // popravi raw newline/tab u stringovima
-  let out = "";
-  let inString = false;
-  let escape = false;
-
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-
-    if (!inString) {
-      if (ch === '"') inString = true;
-      out += ch;
-      continue;
-    }
-
-    if (escape) {
-      out += ch;
-      escape = false;
-      continue;
-    }
-
-    if (ch === "\\") {
-      out += ch;
-      escape = true;
-      continue;
-    }
-
-    if (ch === '"') {
-      inString = false;
-      out += ch;
-      continue;
-    }
-
-    if (ch === "\n") {
-      out += "\\n";
-      continue;
-    }
-    if (ch === "\r") {
-      out += "\\r";
-      continue;
-    }
-    if (ch === "\t") {
-      out += "\\t";
-      continue;
-    }
-
-    out += ch;
-  }
-
-  return JSON.parse(out);
-};
-
-// --- WEB ONLY ANSWER (FOR TESTING) ---
+// --- WEB ONLY ANSWER (simple) ---
 const answerWithWebOnly = async (userMessage) => {
   console.log("🌐 [WEB ONLY] userMessage:", userMessage);
 
@@ -159,115 +107,56 @@ const answerWithWebOnly = async (userMessage) => {
   };
 };
 
-
-// MongoDB konekcija
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
-
-// API rute
-app.use("/api/admin", adminRoutes);
-app.use("/api", userRoutes);
-
-// ElevenLabs API Key
-const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
-
-// ROUTE: Dobavi glasove
-app.get("/voices", async (req, res) => {
-  res.send(await voice.getVoices(elevenLabsApiKey));
-});
-
-// ROUTE: TTS (WEB ONLY)
+// TTS
 app.post("/tts", async (req, res) => {
   const userMessage = req.body.message;
 
   const defaultMessages = await sendDefaultMessages({ userMessage });
-  if (defaultMessages) {
-    res.send({ messages: defaultMessages });
-    return;
-  }
+  if (defaultMessages) return res.send({ messages: defaultMessages });
 
-  let openAImessages;
+  let openAImessages = defaultResponse;
   try {
     openAImessages = await answerWithWebOnly(userMessage);
   } catch (e) {
     console.error("❌ /tts web error:", e);
-    openAImessages = defaultResponse;
   }
 
-  const messagesForLipSync =
-    Array.isArray(openAImessages?.messages) && openAImessages.messages.length
-      ? openAImessages.messages
-      : Array.isArray(defaultResponse?.messages)
-      ? defaultResponse.messages
-      : [];
-
-  if (!messagesForLipSync.length) {
-    return res.status(500).send({ error: "No messages for lipSync" });
-  }
-
-  const response = await lipSync({ messages: messagesForLipSync });
+  const response = await lipSync({ messages: openAImessages.messages || defaultResponse.messages });
   res.send({ messages: response });
 });
 
-// ROUTE: STS (WEB ONLY)
+// STS
 app.post("/sts", async (req, res) => {
   try {
     let base64Audio = req.body?.audio;
 
-    // ✅ 1) validacija
     if (!base64Audio || typeof base64Audio !== "string") {
       return res.status(400).send({ error: "Missing audio (base64)" });
     }
 
-    // ✅ 2) ako neko pošalje data URL, očisti prefix
+    // Ako nekad dođe data URL
     if (base64Audio.startsWith("data:")) {
       base64Audio = base64Audio.split("base64,")[1] || "";
     }
 
-    // ✅ 3) decode
     const audioData = Buffer.from(base64Audio, "base64");
+    if (!audioData.length) return res.status(400).send({ error: "Decoded audio is empty" });
 
-    if (!audioData.length) {
-      return res.status(400).send({ error: "Decoded audio is empty" });
-    }
-
-    // (opciono) debug prve bajtove da vidiš da li je webm
     console.log("audio bytes:", Array.from(audioData.subarray(0, 4)));
 
     const userMessage = await convertAudioToText({ audioData });
+    if (!userMessage?.trim()) return res.status(500).send({ error: "STT failed (empty transcript)" });
 
-    if (!userMessage || !userMessage.trim()) {
-      return res.status(500).send({ error: "STT failed (empty transcript)" });
-    }
-
-    let openAImessages;
+    let openAImessages = defaultResponse;
     try {
       openAImessages = await answerWithWebOnly(userMessage);
     } catch (e) {
       console.error("❌ /sts web error:", e);
-      openAImessages = defaultResponse;
     }
 
-    const messagesForLipSync =
-      Array.isArray(openAImessages?.messages) && openAImessages.messages.length
-        ? openAImessages.messages
-        : Array.isArray(defaultResponse?.messages)
-        ? defaultResponse.messages
-        : [];
+    const response = await lipSync({ messages: openAImessages.messages || defaultResponse.messages });
 
-    if (!messagesForLipSync.length) {
-      return res.status(500).send({ error: "No messages for lipSync" });
-    }
-
-    const response = await lipSync({ messages: messagesForLipSync });
-
-    const messages = response.map((m) => ({
-      id: crypto.randomUUID(),
-      ...m,
-    }));
-
+    const messages = response.map((m) => ({ id: crypto.randomUUID(), ...m }));
     res.send({ messages });
   } catch (error) {
     console.error("Error in /sts:", error);
@@ -275,7 +164,7 @@ app.post("/sts", async (req, res) => {
   }
 });
 
-// START SERVER
+// START
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`🚀 Server is running on port ${port}`);
