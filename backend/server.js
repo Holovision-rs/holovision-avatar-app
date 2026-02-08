@@ -144,44 +144,25 @@ const safeJsonParse = (s) => {
 
 // --- WEB ONLY ANSWER (FOR TESTING) ---
 const answerWithWebOnly = async (userMessage) => {
-  const formatInstructions = parser.getFormatInstructions();
-
   console.log("🌐 [WEB ONLY] userMessage:", userMessage);
 
   const r = await openai.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-4o-mini",
     tools: [{ type: "web_search" }],
-    input: [
-      {
-        role: "system",
-        content:
-          "Return ONLY STRICT minified JSON (single line). No markdown fences. No commentary. No leading/trailing text. Do NOT include raw newlines inside strings; use \\n.",
-      },
-      {
-        role: "user",
-        content: `Question: ${userMessage}\n\n${formatInstructions}`,
-      },
-    ],
+    input: userMessage,
   });
 
-  const raw = (r.output_text || "").trim();
-  console.log("🌐 [WEB ONLY] raw:", raw.slice(0, 200));
+  const text = (r.output_text || "").trim();
 
-  const cleaned = extractJson(raw);
-  console.log("🌐 [WEB ONLY] cleaned:", cleaned.slice(0, 200));
-
-  try {
-    const parsed = safeJsonParse(cleaned);
-
-    if (parsed?.messages?.length) return parsed;
-    if (Array.isArray(parsed)) return { messages: parsed };
-
-    throw new Error("Parsed JSON but missing messages");
-  } catch (e) {
-    console.error("❌ [WEB ONLY] JSON parse failed:", e);
-    console.error("❌ [WEB ONLY] cleaned was:", cleaned);
-    return defaultResponse;
-  }
+  return {
+    messages: [
+      {
+        text: text || "Ne mogu trenutno da pronađem odgovor.",
+        facialExpression: "default",
+        animation: "Idle",
+      },
+    ],
+  };
 };
 
 // MongoDB konekcija
