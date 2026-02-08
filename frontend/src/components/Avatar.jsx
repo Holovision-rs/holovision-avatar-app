@@ -22,15 +22,13 @@ const base64ToArrayBuffer = (base64) => {
   return bytes.buffer;
 };
 
-const makeMsgKey = (msg) =>
-  msg?.id || msg?.audio?.slice?.(0, 24) || JSON.stringify(msg || {}).slice(0, 48);
-
 export function Avatar(props) {
   const { token } = useAuth();
 
   const {
-    message,
-    onMessagePlayed,
+    playBatch,
+    playBatchId,
+    onBatchPlayed,
     onAvatarPlaybackStart,
     ensurePlaybackContext,
     playbackCtxRef,
@@ -53,75 +51,50 @@ export function Avatar(props) {
   useSessionTimer(true, token);
   useSubscriptionCheck();
 
-  // ✅ WebAudio refs
-  const sourceRef = useRef(null);
-  const startedAtRef = useRef(null);
+  // ✅ Playback session refs
+  const sessionIdRef = useRef(0);
+  const sourcesRef = useRef([]); // [{src, startAt, endAt, msg}]
+  const startedAtRef = useRef(null); // start time of first segment (ctx time)
 
-  // guards
-  const endedRef = useRef(false);
-  const manualStopRef = useRef(false);
-  const playJobIdRef = useRef(0);        // cancel async decode/play
-  const endedJobIdRef = useRef(0);       // ✅ spreči da “stari job” okine dequeue
-  const handledKeyRef = useRef(null);    // ✅ spreči dupli dequeue iste poruke
+  const activeIndexRef = useRef(0); // which segment currently "active" for lipsync/face
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const safeOnMessagePlayed = useCallback(
-    (key, jobId) => {
-      // 1) ako je već završeno, ne ponavljaj
-      if (endedRef.current) return;
-
-      // 2) ako je ovo stari job, ignoriši
-      if (jobId !== endedJobIdRef.current) return;
-
-      // 3) ako je ista poruka već handled, ignoriši
-      if (handledKeyRef.current === key) return;
-
-      handledKeyRef.current = key;
-      endedRef.current = true;
-
-      onMessagePlayed?.();
-    },
-    [onMessagePlayed]
-  );
-
-  const stopCurrentAudio = useCallback(() => {
-    manualStopRef.current = true;
-
+  const stopAll = useCallback(() => {
     try {
-      if (sourceRef.current) {
-        sourceRef.current.onended = null;
-        sourceRef.current.stop(0);
-      }
+      sourcesRef.current.forEach((s) => {
+        try {
+          s.src.onended = null;
+          s.src.stop(0);
+        } catch {}
+      });
     } catch {}
-
-    sourceRef.current = null;
+    sourcesRef.current = [];
     startedAtRef.current = null;
-
-    setTimeout(() => {
-      manualStopRef.current = false;
-    }, 0);
+    activeIndexRef.current = 0;
+    setActiveIndex(0);
   }, []);
 
-  const playWebAudioFromMessage = useCallback(
-    async (msg) => {
-      if (!msg?.audio) return;
+  const decodeAudio = useCallback(async (ctx, base64) => {
+    const arrayBuffer = base64ToArrayBuffer(base64);
+    return await new Promise((resolve, reject) => {
+      ctx.decodeAudioData(
+        arrayBuffer.slice(0),
+        (buf) => resolve(buf),
+        (err) => reject(err)
+      );
+    });
+  }, []);
 
-      const key = makeMsgKey(msg);
+  // ✅ start a full batch gapless
+  const playBatchGapless = useCallback(
+    async (batch) => {
+      if (!batch?.length) return;
 
-      // ✅ novi job (otkazuje sve prethodne async decode/play)
-      const myJobId = ++playJobIdRef.current;
-      endedJobIdRef.current = myJobId;
+      const mySession = ++sessionIdRef.current;
 
-      // reset local guards za novu poruku
-      endedRef.current = false;
-      handledKeyRef.current = null;
-
-      // obezbedi ctx
       let ctx = playbackCtxRef?.current;
       if (!ctx) ctx = await ensurePlaybackContext?.();
-      if (!ctx) {
-        console.warn("❌ No AudioContext available for playback");
-        return;
-      }
+      if (!ctx) return;
 
       if (ctx.state === "suspended") {
         try {
@@ -129,95 +102,124 @@ export function Avatar(props) {
         } catch {}
       }
 
-      // stop prethodno (pre decode-a da ne preklapa)
-      stopCurrentAudio();
+      stopAll();
 
-      // decode
-      const arrayBuffer = base64ToArrayBuffer(msg.audio);
-
-      let audioBuffer = null;
+      // decode all first (stabilno i bez seckanja)
+      let buffers = [];
       try {
-        audioBuffer = await new Promise((resolve, reject) => {
-          ctx.decodeAudioData(
-            arrayBuffer.slice(0),
-            (buf) => resolve(buf),
-            (err) => reject(err)
-          );
-        });
+        buffers = await Promise.all(batch.map((m) => decodeAudio(ctx, m.audio)));
       } catch (e) {
-        if (myJobId !== playJobIdRef.current) return;
-        console.warn("❌ decodeAudioData failed", e);
-        // ako decode fail -> da ne zaglavi queue
-        safeOnMessagePlayed(key, myJobId);
+        if (mySession !== sessionIdRef.current) return;
+        console.warn("❌ decode failed", e);
+        onBatchPlayed?.("decode_failed");
         return;
       }
 
-      // ✅ ako je stigla nova poruka dok smo dekodirali → ne startuj staro
-      if (myJobId !== playJobIdRef.current) return;
+      if (mySession !== sessionIdRef.current) return;
 
-      const src = ctx.createBufferSource();
-      src.buffer = audioBuffer;
-      src.connect(ctx.destination);
+      const now = ctx.currentTime;
+      const firstWhen = now + 0.02; // mali offset za sigurnost
+      startedAtRef.current = firstWhen;
 
-      src.onended = () => {
-        if (manualStopRef.current) return;
-        safeOnMessagePlayed(key, myJobId);
-      };
+      const scheduled = [];
+      let t = firstWhen;
 
-      sourceRef.current = src;
+      buffers.forEach((buf, i) => {
+        const msg = batch[i];
 
-      const when = ctx.currentTime + 0.005;
-      startedAtRef.current = when;
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
 
-      try {
-        src.start(when);
+        const startAt = t;
+        const endAt = t + buf.duration;
 
-        // ✅ NEW: javi provider-u da je playback stvarno krenuo + trajanje
-        // (samo ako je i dalje aktuelan job)
-        if (myJobId === playJobIdRef.current) {
-          onAvatarPlaybackStart?.(Number(audioBuffer?.duration || 0));
+        // onended samo na poslednjem segmentu
+        if (i === buffers.length - 1) {
+          src.onended = () => {
+            if (mySession !== sessionIdRef.current) return;
+            onBatchPlayed?.("batch_onended");
+          };
         }
-      } catch (e) {
-        console.warn("❌ WebAudio start failed", e);
-        safeOnMessagePlayed(key, myJobId);
-      }
+
+        scheduled.push({ src, startAt, endAt, msg, duration: buf.duration });
+
+        t = endAt; // gapless
+      });
+
+      // schedule start
+      scheduled.forEach((s) => {
+        try {
+          s.src.start(s.startAt);
+        } catch (e) {
+          console.warn("❌ start failed", e);
+        }
+      });
+
+      sourcesRef.current = scheduled;
+
+      // marker za “start”
+      onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
     },
-    [
-      ensurePlaybackContext,
-      playbackCtxRef,
-      onAvatarPlaybackStart,
-      safeOnMessagePlayed,
-      stopCurrentAudio,
-    ]
+    [decodeAudio, ensurePlaybackContext, onAvatarPlaybackStart, onBatchPlayed, playbackCtxRef, stopAll]
   );
 
-  // ⏯️ Kad dođe poruka: set anim/facial/lipsync i pusti WebAudio
+  // ✅ When new batch arrives → play it
   useEffect(() => {
-    // ✅ otkaži prethodne async poslove + stop audio
-    playJobIdRef.current++;
-    stopCurrentAudio();
+    // cancel previous session
+    sessionIdRef.current++;
+    stopAll();
 
-    endedRef.current = false;
-    handledKeyRef.current = null;
-
-    if (!message) {
+    if (!playBatch?.length) {
       setAnimation("Idle");
       setFacialExpression("");
       setLipsync(null);
       return;
     }
 
-    setAnimation(message.animation || "Idle");
-    setFacialExpression(message.facialExpression || "");
-    setLipsync(message.lipsync || null);
-
-    playWebAudioFromMessage(message);
+    // start playing the whole batch
+    playBatchGapless(playBatch);
 
     return () => {
-      playJobIdRef.current++;
-      stopCurrentAudio();
+      sessionIdRef.current++;
+      stopAll();
     };
-  }, [message, playWebAudioFromMessage, stopCurrentAudio]);
+  }, [playBatchId, playBatch, playBatchGapless, stopAll]);
+
+  // ✅ determine which segment is currently active, update expression/lipsync
+  useFrame(() => {
+    if (!sourcesRef.current.length) return;
+
+    const ctx = playbackCtxRef?.current;
+    if (!ctx || startedAtRef.current == null) return;
+
+    const t = ctx.currentTime;
+
+    // find active segment
+    let idx = activeIndexRef.current;
+
+    // move forward only (cheap)
+    while (idx < sourcesRef.current.length - 1 && t >= sourcesRef.current[idx].endAt) {
+      idx++;
+    }
+
+    if (idx !== activeIndexRef.current) {
+      activeIndexRef.current = idx;
+      setActiveIndex(idx);
+    }
+  });
+
+  // when activeIndex changes, apply message animation/face/lipsync
+  useEffect(() => {
+    const seg = sourcesRef.current?.[activeIndex];
+    if (!seg?.msg) return;
+
+    const msg = seg.msg;
+
+    setAnimation(msg.animation || "Idle");
+    setFacialExpression(msg.facialExpression || "");
+    setLipsync(msg.lipsync || null);
+  }, [activeIndex]);
 
   // 🎞️ Animacije
   useEffect(() => {
@@ -270,7 +272,7 @@ export function Avatar(props) {
     [scene]
   );
 
-  // 🧠 Lip sync + mimika
+  // 🧠 Lip sync + mimika (po aktivnom segmentu)
   useFrame(() => {
     if (!setupMode) {
       morphTargets.forEach((key) => {
@@ -284,18 +286,19 @@ export function Avatar(props) {
     lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.5);
 
-    if (setupMode || !message || !lipsync) return;
+    if (setupMode || !lipsync) return;
 
     const ctx = playbackCtxRef?.current;
-    const startedAt = startedAtRef.current;
-    if (!ctx || startedAt == null) return;
+    const seg = sourcesRef.current?.[activeIndexRef.current];
+    if (!ctx || !seg) return;
 
-    const currentAudioTime = Math.max(0, ctx.currentTime - startedAt);
+    // audio time within current segment
+    const localTime = Math.max(0, ctx.currentTime - seg.startAt);
 
     const applied = [];
 
     lipsync.mouthCues?.forEach((cue) => {
-      if (currentAudioTime >= cue.start && currentAudioTime <= cue.end) {
+      if (localTime >= cue.start && localTime <= cue.end) {
         const target = visemesMapping[cue.value];
         applied.push(target);
         lerpMorphTarget(target, 1, 0.2);
@@ -339,7 +342,6 @@ export function Avatar(props) {
   return (
     <group {...props} dispose={null} ref={group} position={[0, -0.5, 0]}>
       <primitive object={nodes.Hips} />
-
       <skinnedMesh
         name="EyeLeft"
         geometry={nodes.EyeLeft.geometry}
@@ -372,7 +374,6 @@ export function Avatar(props) {
         morphTargetDictionary={nodes.Wolf3D_Teeth.morphTargetDictionary}
         morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences}
       />
-
       <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
       <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
