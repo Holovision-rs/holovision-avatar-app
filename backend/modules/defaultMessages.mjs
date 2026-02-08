@@ -6,9 +6,10 @@ const openAIApiKey = process.env.OPENAI_API_KEY;
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 
 async function sendDefaultMessages({ userMessage }) {
-  let messages;
+
+  // INTRO
   if (!userMessage) {
-    messages = [
+    return [
       {
         text: "Hey there... How was your day?",
         audio: await audioFileToBase64({ fileName: "audios/intro_0.wav" }),
@@ -24,10 +25,11 @@ async function sendDefaultMessages({ userMessage }) {
         animation: "TalkingTwo",
       },
     ];
-    return messages;
   }
+
+  // API KEY ERROR
   if (!elevenLabsApiKey || !openAIApiKey) {
-    messages = [
+    return [
       {
         text: "Please my friend, don't forget to add your API keys!",
         audio: await audioFileToBase64({ fileName: "audios/api_0.wav" }),
@@ -43,16 +45,21 @@ async function sendDefaultMessages({ userMessage }) {
         animation: "Angry",
       },
     ];
-    return messages;
   }
+
+  // 🔥 KLJUČNO
+  return null;
 }
 
-const defaultResponse = [
-  {
-    text: "I'm sorry, there seems to be an error with my brain, or I didn't understand. Could you please repeat your question?",
-    facialExpression: "sad",
-    animation: "Idle",
-  },
-];
+// 🔥 MUST BE OBJECT (server očekuje .messages)
+const defaultResponse = {
+  messages: [
+    {
+      text: "I'm sorry, there seems to be an error with my brain, or I didn't understand. Could you please repeat your question?",
+      facialExpression: "sad",
+      animation: "Idle",
+    },
+  ],
+};
 
 export { sendDefaultMessages, defaultResponse };
