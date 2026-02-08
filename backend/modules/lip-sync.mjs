@@ -88,7 +88,7 @@ export const lipSync = async ({ messages, jobId }) => {
       await getPhonemes({ inputWav: wavPath, outputJson: jsonPath });
 
       const lip = await readJsonTranscript({ fileName: jsonPath });
-
+      console.log("🧾 mouthCues sample:", lip?.mouthCues?.slice(0, 10));
       // ✅ obavezno mora da ima mouthCues
       if (!lip?.mouthCues || !Array.isArray(lip.mouthCues) || lip.mouthCues.length === 0) {
         throw new Error("Invalid lipsync JSON (missing mouthCues)");
