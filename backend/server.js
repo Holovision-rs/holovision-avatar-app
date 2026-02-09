@@ -207,7 +207,7 @@ app.get("/voices", async (req, res) => {
 const GUARD = {
   name: "Torin",
   brand: "HOLOVISION",
-  maxWebMs: 10000,
+  maxWebMs: 15000,
   // minimalno (ti si već rešavao u sanitize)
   bannedPhrases: ["openai", "chatgpt", "gpt"],
 };
@@ -302,7 +302,7 @@ const sanitizeAssistantText = (text = "") => {
   return text || "";
 };
 
-const withTimeout = (promise, ms = 10000) =>
+const withTimeout = (promise, ms = 15000) =>
   Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT_${ms}ms`)), ms))]);
 
 const systemForLang = (lang) => {
