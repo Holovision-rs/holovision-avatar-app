@@ -26,6 +26,14 @@ const base64ToArrayBuffer = (input) => {
   return bytes.buffer;
 };
 
+// ✅ polling helper (async lipsync)
+async function fetchLipsync(jobId, index, signal) {
+  const base = import.meta.env.VITE_BACKEND_URL;
+  const r = await fetch(`${base}/lipsync/${jobId}/${index}`, { signal });
+  if (!r.ok) return null; // 404 = pending/missing/expired
+  return await r.json();  // { status: "pending"|"ready"|"error"|"missing", lipsync, error }
+}
+
 export function Avatar(props) {
   const { token } = useAuth();
 
@@ -104,7 +112,8 @@ export function Avatar(props) {
     (requested) => {
       const name = requested || "TalkingOne";
       // ako backend pošalje Idle dok audio traje → deluje kao da "stane u sred teksta"
-      if (name === "Idle") return animations.find((a) => a.name === "TalkingOne") ? "TalkingOne" : name;
+      if (name === "Idle")
+        return animations.find((a) => a.name === "TalkingOne") ? "TalkingOne" : name;
       return name;
     },
     [animations]
@@ -161,7 +170,6 @@ export function Avatar(props) {
 
             // ✅ PRO: posle batch-a vrati neutral + Idle (da ne ostane “kez”)
             setTimeout(() => {
-              // ako je u međuvremenu stigao novi batch, ne diraj
               if (mySession !== sessionIdRef.current) return;
               setFacialExpression("default");
               setLipsync(null);
@@ -230,6 +238,71 @@ export function Avatar(props) {
     };
   }, [playBatchId, playBatch, playBatchGapless, stopAll]);
 
+  // ✅ ASYNC lipsync polling (za poruke koje stižu bez lipsync-a)
+  useEffect(() => {
+    if (!playBatch?.length) return;
+
+    const mySession = sessionIdRef.current; // guard
+    let cancelled = false;
+    const controllers = [];
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    playBatch.forEach((m, i) => {
+      // već ima lipsync
+      if (m?.lipsync?.mouthCues?.length) return;
+
+      // nema meta
+      if (!m?.lipsyncJobId) return;
+      if (m.lipsyncIndex === undefined || m.lipsyncIndex === null) return;
+
+      const jobId = m.lipsyncJobId;
+      const index = m.lipsyncIndex;
+
+      const controller = new AbortController();
+      controllers.push(controller);
+
+      const poll = async () => {
+        for (let n = 0; n < 60; n++) { // 15s max
+          if (cancelled) return;
+          if (sessionIdRef.current !== mySession) return;
+
+          let data = null;
+          try {
+            data = await fetchLipsync(jobId, index, controller.signal);
+          } catch {
+            // ignore transient
+          }
+
+          // očekujemo: { status: "ready", lipsync: { mouthCues: [...] } }
+          if (data?.status === "ready" && data?.lipsync?.mouthCues?.length) {
+            // ✅ ubaci u scheduled seg poruku (da useFrame vidi)
+            const seg = sourcesRef.current?.[index];
+            if (seg?.msg) seg.msg.lipsync = data.lipsync;
+
+            // ✅ ako je trenutno aktivna poruka, odmah osveži state
+            if (activeIndexRef.current === index) setLipsync(data.lipsync);
+
+            return;
+          }
+
+          if (data?.status === "error" || data?.status === "missing") {
+            return; // prekini za ovu poruku
+          }
+
+          await sleep(250);
+        }
+      };
+
+      poll();
+    });
+
+    return () => {
+      cancelled = true;
+      controllers.forEach((c) => c.abort());
+    };
+  }, [playBatchId, playBatch]);
+
   // ✅ determine which segment is currently active (ctx.currentTime based)
   useFrame(() => {
     const list = sourcesRef.current;
@@ -269,7 +342,7 @@ export function Avatar(props) {
 
     actions[animation]
       .reset()
-      .fadeIn(mixer?.stats?.actions?.inUse === 0 ? 0 : 0.25) // brže prebacivanje (manje “stajanja”)
+      .fadeIn(mixer?.stats?.actions?.inUse === 0 ? 0 : 0.25)
       .play();
 
     return () => {
@@ -300,10 +373,10 @@ export function Avatar(props) {
     if (head?.morphTargetDictionary) {
       console.log("✅ Head morph targets:", Object.keys(head.morphTargetDictionary));
     }
-    console.log("✅ Animation clips:", animations?.map(a => a.name));
+    console.log("✅ Animation clips:", animations?.map((a) => a.name));
     console.log("✅ Actions:", actions ? Object.keys(actions) : []);
   }, [nodes, animations, actions]);
-  
+
   // Helper: morph lerp
   const lerpMorphTarget = useCallback(
     (target, value, speed = 0.1) => {
@@ -328,15 +401,15 @@ export function Avatar(props) {
 
   // 🧠 Face + Lip sync (single frame loop)
   useFrame((_, delta) => {
-    // 0) delta clamp (stabilnije)
     const dt = Math.min(0.033, Math.max(0.001, delta));
 
     // 1) facial expression (ALI NE DIRAJ mouth/jaw + ne diraj blink)
     if (!setupMode) {
-      const mapping = facialExpressions[facialExpression] || facialExpressions["default"] || {};
+      const mapping =
+        facialExpressions[facialExpression] || facialExpressions["default"] || {};
       morphTargets.forEach((key) => {
         if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") return;
-        if (isMouthOrJawKey(key)) return; // ✅ PRO: facialExpression ne dira usta
+        if (isMouthOrJawKey(key)) return;
 
         lerpMorphTarget(key, mapping?.[key] || 0, 0.12);
       });
@@ -364,23 +437,18 @@ export function Avatar(props) {
         if (!target) return;
         anyCue = true;
         applied.push(target);
-
-        // ✅ PRO: jači “attack”
         lerpMorphTarget(target, 1, 0.45);
       }
     });
 
-    // reset visemes brže (da bude “snappier”)
     Object.values(visemesMapping).forEach((key) => {
       if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.22);
     });
 
-    // ✅ fallback (kad cues nisu gusti / prazni): blagi jawOpen puls
-    // (ne utiče na viseme targete; radi samo kad nema cue u tom frame-u)
+    // fallback jawOpen kad nema cue
     if (!anyCue) {
       fallbackJawPhaseRef.current += dt * 8.0;
       const pulse = 0.08 + 0.06 * Math.abs(Math.sin(fallbackJawPhaseRef.current));
-      // radi samo ako model ima jawOpen
       lerpMorphTarget("jawOpen", pulse, 0.18);
     }
   });
