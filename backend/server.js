@@ -336,12 +336,29 @@ const answerWeb = async (userMessage, lang) => {
 
   const text = sanitizeAssistantText((r.output_text || "").trim());
 
+  // ✅ DETEKCIJA — da li je web tool stvarno korišćen
+  const usedWeb = Array.isArray(r.output) &&
+    r.output.some(
+      (o) =>
+        o?.type === "tool_call" ||
+        o?.type === "web_search" ||
+        o?.name === "web_search"
+    );
+
+  const fallback =
+    lang === "en"
+      ? "I can’t find that right now."
+      : "Ne mogu trenutno da pronađem odgovor.";
+
   return {
     messages: [
       {
-        text: text || (lang === "en" ? "I can’t find that right now." : "Ne mogu trenutno da pronađem odgovor."),
+        text: text || fallback,
         facialExpression: "default",
         animation: "Idle",
+
+        // ✅ RATE samo ako je WEB stvarno korišćen
+        ...(usedWeb ? { ttsRate: 0.82 } : {}),
       },
     ],
   };
