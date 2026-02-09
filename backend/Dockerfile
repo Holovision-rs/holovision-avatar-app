@@ -22,7 +22,7 @@ RUN npm install --omit=dev --no-audit --no-fund
 FROM node:22-bookworm-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg curl unzip ca-certificates \
+    ffmpeg sox libsox-fmt-all curl unzip ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

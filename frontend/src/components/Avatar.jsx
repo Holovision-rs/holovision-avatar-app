@@ -170,6 +170,7 @@ export function Avatar(props) {
   }, []);
 
 // ✅ start a full batch gapless
+// ✅ start a full batch gapless
 const playBatchGapless = useCallback(
   async (batch) => {
     if (!batch?.length) return;
@@ -181,9 +182,7 @@ const playBatchGapless = useCallback(
     if (!ctx) return;
 
     if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {}
+      try { await ctx.resume(); } catch {}
     }
 
     stopAll();
@@ -212,10 +211,10 @@ const playBatchGapless = useCallback(
 
       // ✅ ANALYSER (brže usta)
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;                // bilo 1024
-      analyser.smoothingTimeConstant = 0.35; // bilo 0.8
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.35;
 
-      // ✅ GAIN (OVDE!)
+      // ✅ GAIN
       const gain = ctx.createGain();
       gain.gain.value = 1.0;
 
@@ -224,8 +223,16 @@ const playBatchGapless = useCallback(
       analyser.connect(gain);
       gain.connect(ctx.destination);
 
+      // ✅ TTS rate po poruci (default 1.0)
+      const rateRaw = Number(msg?.ttsRate ?? 1.0);
+      const rate = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 1.0;
+      src.playbackRate.value = rate;
+
       const startAt = t;
-      const endAt = t + buf.duration;
+
+      // ✅ trajanje se menja kad menjaš playbackRate
+      const dur = buf.duration / rate;
+      const endAt = t + dur;
 
       if (i === buffers.length - 1) {
         src.onended = () => {
@@ -243,11 +250,21 @@ const playBatchGapless = useCallback(
         };
       }
 
-      // ✅ UBACI gain u scheduled (da ga imaš ako zatreba kasnije)
-      scheduled.push({ src, analyser, gain, startAt, endAt, msg, duration: buf.duration });
+      scheduled.push({
+        src,
+        analyser,
+        gain,
+        startAt,
+        endAt,
+        msg,
+        rate,
+        duration: dur,
+      });
+
       t = endAt;
     });
 
+    // ✅ schedule start (gapless)
     for (const s of scheduled) {
       try {
         s.src.start(s.startAt);
@@ -258,6 +275,7 @@ const playBatchGapless = useCallback(
 
     sourcesRef.current = scheduled;
 
+    // ✅ PRO FIX: odmah primeni PRVU poruku
     activeIndexRef.current = 0;
     setActiveIndex(0);
 
@@ -272,7 +290,7 @@ const playBatchGapless = useCallback(
     setFacialExpression(firstMsg.facialExpression || "default");
     setLipsync(firstMsg.lipsync || null);
 
-    onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
+    onAvatarPlaybackStart?.(scheduled.reduce((sum, s) => sum + (s.duration || 0), 0));
   },
   [
     decodeAudio,
