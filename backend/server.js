@@ -358,7 +358,7 @@ const answerWeb = async (userMessage, lang) => {
         animation: "Idle",
 
         // ✅ RATE samo ako je WEB stvarno korišćen
-        ...(usedWeb ? { ttsRate: 0.82 } : {}),
+        ...(usedWeb ? { ttsRate: 0.40} : {}),
       },
     ],
   };
