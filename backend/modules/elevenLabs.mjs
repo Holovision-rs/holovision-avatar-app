@@ -6,20 +6,20 @@ const elevenKey = process.env.ELEVEN_LABS_API_KEY;
 const voiceId = process.env.ELEVEN_LABS_VOICE_ID;
 const modelId = process.env.ELEVEN_LABS_MODEL_ID || "eleven_multilingual_v2";
 
-// ✅ STREAM endpoint + PCM (najbrže) -> mi pravimo WAV
-const OUTPUT_FORMAT = "pcm_16000"; // 16kHz PCM (Rhubarb friendly)
+// ✅ STREAM endpoint + PCM -> mi pravimo WAV
+const OUTPUT_FORMAT = "pcm_16000";
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
 const BITS_PER_SAMPLE = 16;
 
 // (opciono) limit da TTS ne razvlači
-const MAX_CHARS = 450;
+const MAX_CHARS = 350;
 
 function makeWavFromPCM(pcmBuf, sampleRate = SAMPLE_RATE, channels = CHANNELS, bitsPerSample = BITS_PER_SAMPLE) {
   if (!Buffer.isBuffer(pcmBuf)) pcmBuf = Buffer.from(pcmBuf);
 
-  // PCM16 -> mora biti paran broj bajtova
-  if (bitsPerSample === 16 && pcmBuf.length % 2 !== 0) {
+  // ✅ PCM16 mora biti paran broj bajtova
+  if (bitsPerSample === 16 && (pcmBuf.length % 2) !== 0) {
     pcmBuf = pcmBuf.subarray(0, pcmBuf.length - 1);
   }
 
@@ -29,7 +29,7 @@ function makeWavFromPCM(pcmBuf, sampleRate = SAMPLE_RATE, channels = CHANNELS, b
 
   const header = Buffer.alloc(44);
   header.write("RIFF", 0, 4, "ascii");
-  header.writeUInt32LE(36 + dataSize, 4); // file size - 8
+  header.writeUInt32LE(36 + dataSize, 4);
   header.write("WAVE", 8, 4, "ascii");
 
   header.write("fmt ", 12, 4, "ascii");
@@ -53,12 +53,10 @@ export async function convertTextToSpeech({ text, fileName }) {
 
   const safeText = (text || "").trim().slice(0, MAX_CHARS);
 
-  // ✅ STREAM endpoint
   const url =
     `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream` +
     `?output_format=${encodeURIComponent(OUTPUT_FORMAT)}`;
 
-  // ✅ timeout da Eleven ne blokira server
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
 
@@ -69,13 +67,12 @@ export async function convertTextToSpeech({ text, fileName }) {
       headers: {
         "xi-api-key": elevenKey,
         "Content-Type": "application/json",
-        // PCM je raw bytes, ne WAV:
         Accept: "application/octet-stream",
       },
       body: JSON.stringify({
         text: safeText,
         model_id: modelId,
-        optimize_streaming_latency: 3, // ✅ radi na /stream
+        optimize_streaming_latency: 3,
         voice_settings: {
           stability: 0.5,
           style: 0.7,
@@ -86,8 +83,7 @@ export async function convertTextToSpeech({ text, fileName }) {
       signal: controller.signal,
     });
   } catch (err) {
-    const isAbort = err?.name === "AbortError" || err?.code === "ABORT_ERR";
-    if (isAbort) throw new Error("ElevenLabs timeout (12s)");
+    if (err?.name === "AbortError") throw new Error("ElevenLabs timeout (12s)");
     throw err;
   } finally {
     clearTimeout(timeout);
@@ -98,22 +94,19 @@ export async function convertTextToSpeech({ text, fileName }) {
     throw new Error(`ElevenLabs TTS failed: ${res.status} ${t}`);
   }
 
-  // ✅ raw PCM
   const pcm = Buffer.from(await res.arrayBuffer());
 
-  // sanity: ako slučajno vrati JSON/tekst, videćeš odmah
-  if (pcm.length < 16) {
+  // ✅ sanity: ako je greška/tekst, uhvati odmah
+  if (pcm.length < 64) {
     const maybeText = pcm.toString("utf8").slice(0, 200);
     throw new Error(`ElevenLabs returned too small payload: ${maybeText}`);
   }
 
-  // ✅ PCM -> WAV (bez ffmpeg)
   const wav = makeWavFromPCM(pcm);
 
-  // sanity: WAV header "RIFF"
+  // ✅ sanity: WAV header
   if (wav.toString("ascii", 0, 4) !== "RIFF") {
-    const maybeText = wav.toString("utf8").slice(0, 200);
-    throw new Error(`Failed to build WAV: ${maybeText}`);
+    throw new Error("Failed to build WAV (missing RIFF header)");
   }
 
   await fs.writeFile(fileName, wav);
