@@ -169,116 +169,122 @@ export function Avatar(props) {
     return rmsRef.current;
   }, []);
 
-  // ✅ start a full batch gapless
-  const playBatchGapless = useCallback(
-    async (batch) => {
-      if (!batch?.length) return;
+// ✅ start a full batch gapless
+const playBatchGapless = useCallback(
+  async (batch) => {
+    if (!batch?.length) return;
 
-      const mySession = ++sessionIdRef.current;
+    const mySession = ++sessionIdRef.current;
 
-      let ctx = playbackCtxRef?.current;
-      if (!ctx) ctx = await ensurePlaybackContext?.();
-      if (!ctx) return;
+    let ctx = playbackCtxRef?.current;
+    if (!ctx) ctx = await ensurePlaybackContext?.();
+    if (!ctx) return;
 
-      if (ctx.state === "suspended") {
-        try {
-          await ctx.resume();
-        } catch {}
-      }
-
-      stopAll();
-
-      let buffers = [];
+    if (ctx.state === "suspended") {
       try {
-        buffers = await Promise.all(batch.map((m) => decodeAudio(ctx, m.audio)));
-      } catch (e) {
-        if (mySession !== sessionIdRef.current) return;
-        console.warn("❌ decode failed", e);
-        onBatchPlayed?.("decode_failed");
-        return;
-      }
+        await ctx.resume();
+      } catch {}
+    }
+
+    stopAll();
+
+    let buffers = [];
+    try {
+      buffers = await Promise.all(batch.map((m) => decodeAudio(ctx, m.audio)));
+    } catch (e) {
       if (mySession !== sessionIdRef.current) return;
+      console.warn("❌ decode failed", e);
+      onBatchPlayed?.("decode_failed");
+      return;
+    }
+    if (mySession !== sessionIdRef.current) return;
 
-      const firstWhen = ctx.currentTime + 0.03;
+    const firstWhen = ctx.currentTime + 0.03;
 
-      const scheduled = [];
-      let t = firstWhen;
+    const scheduled = [];
+    let t = firstWhen;
 
-      buffers.forEach((buf, i) => {
-        const msg = batch[i];
+    buffers.forEach((buf, i) => {
+      const msg = batch[i];
 
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
 
-        // ✅ ANALYSER chain
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 1024;
-        analyser.smoothingTimeConstant = 0.8;
+      // ✅ ANALYSER (brže usta)
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;                // bilo 1024
+      analyser.smoothingTimeConstant = 0.35; // bilo 0.8
 
-        src.connect(analyser);
-        analyser.connect(ctx.destination);
+      // ✅ GAIN (OVDE!)
+      const gain = ctx.createGain();
+      gain.gain.value = 1.0;
 
-        const startAt = t;
-        const endAt = t + buf.duration;
+      // ✅ chain: src -> analyser -> gain -> destination
+      src.connect(analyser);
+      analyser.connect(gain);
+      gain.connect(ctx.destination);
 
-        if (i === buffers.length - 1) {
-          src.onended = () => {
+      const startAt = t;
+      const endAt = t + buf.duration;
+
+      if (i === buffers.length - 1) {
+        src.onended = () => {
+          if (mySession !== sessionIdRef.current) return;
+
+          setTimeout(() => {
             if (mySession !== sessionIdRef.current) return;
+            setFacialExpression("default");
+            setLipsync(null);
+            setAnimation("Idle");
+            rmsRef.current = 0;
+          }, 120);
 
-            setTimeout(() => {
-              if (mySession !== sessionIdRef.current) return;
-              setFacialExpression("default");
-              setLipsync(null);
-              setAnimation("Idle");
-              rmsRef.current = 0;
-            }, 120);
-
-            onBatchPlayed?.("batch_onended");
-          };
-        }
-
-        scheduled.push({ src, analyser, startAt, endAt, msg, duration: buf.duration });
-        t = endAt;
-      });
-
-      for (const s of scheduled) {
-        try {
-          s.src.start(s.startAt);
-        } catch (e) {
-          console.warn("❌ start failed", e);
-        }
+          onBatchPlayed?.("batch_onended");
+        };
       }
 
-      sourcesRef.current = scheduled;
+      // ✅ UBACI gain u scheduled (da ga imaš ako zatreba kasnije)
+      scheduled.push({ src, analyser, gain, startAt, endAt, msg, duration: buf.duration });
+      t = endAt;
+    });
 
-      activeIndexRef.current = 0;
-      setActiveIndex(0);
+    for (const s of scheduled) {
+      try {
+        s.src.start(s.startAt);
+      } catch (e) {
+        console.warn("❌ start failed", e);
+      }
+    }
 
-      // reset talkCycle
-      talkCycleRef.current.lastSwitch = playbackCtxRef.current?.currentTime || 0;
-      talkCycleRef.current.current = pickNextTalkAnim();
+    sourcesRef.current = scheduled;
 
-      const firstMsg = scheduled?.[0]?.msg || {};
-      const desired = pickSpeakingAnimation(firstMsg.animation);
+    activeIndexRef.current = 0;
+    setActiveIndex(0);
 
-      setAnimation(desired || talkCycleRef.current.current || "TalkingOne");
-      setFacialExpression(firstMsg.facialExpression || "default");
-      setLipsync(firstMsg.lipsync || null);
+    // reset talkCycle
+    talkCycleRef.current.lastSwitch = playbackCtxRef.current?.currentTime || 0;
+    talkCycleRef.current.current = pickNextTalkAnim();
 
-      onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
-    },
-    [
-      decodeAudio,
-      ensurePlaybackContext,
-      onAvatarPlaybackStart,
-      onBatchPlayed,
-      playbackCtxRef,
-      stopAll,
-      pickSpeakingAnimation,
-      pickNextTalkAnim,
-    ]
-  );
+    const firstMsg = scheduled?.[0]?.msg || {};
+    const desired = pickSpeakingAnimation(firstMsg.animation);
 
+    setAnimation(desired || talkCycleRef.current.current || "TalkingOne");
+    setFacialExpression(firstMsg.facialExpression || "default");
+    setLipsync(firstMsg.lipsync || null);
+
+    onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
+  },
+  [
+    decodeAudio,
+    ensurePlaybackContext,
+    onAvatarPlaybackStart,
+    onBatchPlayed,
+    playbackCtxRef,
+    stopAll,
+    pickSpeakingAnimation,
+    pickNextTalkAnim,
+  ]
+);
   // ✅ When new batch arrives
   useEffect(() => {
     sessionIdRef.current++;

@@ -55,8 +55,11 @@ export const lipSync = async ({ messages, jobId, hooks }) => {
 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
-          await convertTextToSpeech({ text: message.text, fileName: wavPath });
-          return;
+            await convertTextToSpeech({
+              text: message.text,
+              fileName: wavPath,
+              ttsRate: typeof message.ttsRate === "number" ? message.ttsRate : 1.0,
+            });          return;
         } catch (error) {
           const status = error?.response?.status || error?.status;
           if (status === 429 && attempt < MAX_RETRIES - 1) {
