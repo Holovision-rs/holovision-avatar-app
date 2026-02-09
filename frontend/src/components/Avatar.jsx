@@ -71,7 +71,7 @@ export function Avatar(props) {
   // ✅ viseme keys (da facialExpression ne gazi viseme)
   const VISEME_KEYS = useRef(new Set(Object.values(visemesMapping))).current;
 
-  // ✅ PRO: ne diraj nijedan mouth/jaw morph iz facialExpressions (sprečava konflikt)
+  // ✅ ne diraj mouth/jaw morph iz facialExpressions (sprečava konflikt)
   const isMouthOrJawKey = useCallback(
     (key) => {
       const k = String(key || "").toLowerCase();
@@ -80,6 +80,13 @@ export function Avatar(props) {
     },
     [VISEME_KEYS]
   );
+
+  // ✅ fallback oscillator refs (NISI IMAO OVO)
+  const fallbackJawPhaseRef = useRef(0);
+  const asymRef = useRef({
+    left: 0.9 + Math.random() * 0.2,
+    right: 0.9 + Math.random() * 0.2,
+  });
 
   const stopAll = useCallback(() => {
     try {
@@ -118,7 +125,7 @@ export function Avatar(props) {
     [animations]
   );
 
-  // ✅ TALK cycle: menja animaciju dok audio traje (da ne vrti jednu)
+  // ✅ TALK cycle: menja animaciju dok audio traje
   const talkCycleRef = useRef({ lastSwitch: 0, current: "TalkingOne" });
 
   const TALK_ANIMS = useRef(
@@ -130,7 +137,6 @@ export function Avatar(props) {
   const pickNextTalkAnim = useCallback(() => {
     if (!TALK_ANIMS.length) return "TalkingOne";
     const current = talkCycleRef.current.current;
-    // izbegni da ponovi istu 2x zaredom
     const options = TALK_ANIMS.length > 1 ? TALK_ANIMS.filter((a) => a !== current) : TALK_ANIMS;
     const next = options[Math.floor(Math.random() * options.length)];
     talkCycleRef.current.current = next;
@@ -145,10 +151,10 @@ export function Avatar(props) {
     const analyser = seg?.analyser;
     if (!analyser) return rmsRef.current;
 
-    const arr = analyserDataRef.current;
-    if (arr.length !== analyser.fftSize) {
+    if (analyserDataRef.current.length !== analyser.fftSize) {
       analyserDataRef.current = new Uint8Array(analyser.fftSize);
     }
+
     const data = analyserDataRef.current;
     analyser.getByteTimeDomainData(data);
 
@@ -157,12 +163,13 @@ export function Avatar(props) {
       const v = (data[i] - 128) / 128;
       sum += v * v;
     }
+
     const rms = Math.sqrt(sum / data.length); // ~0..0.2
     rmsRef.current = THREE.MathUtils.lerp(rmsRef.current, rms, 0.25);
     return rmsRef.current;
   }, []);
 
-  // ✅ start a full batch gapless (decode all -> schedule)
+  // ✅ start a full batch gapless
   const playBatchGapless = useCallback(
     async (batch) => {
       if (!batch?.length) return;
@@ -203,7 +210,7 @@ export function Avatar(props) {
         const src = ctx.createBufferSource();
         src.buffer = buf;
 
-        // ✅ ANALYSER chain (RMS fallback)
+        // ✅ ANALYSER chain
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 1024;
         analyser.smoothingTimeConstant = 0.8;
@@ -234,7 +241,6 @@ export function Avatar(props) {
         t = endAt;
       });
 
-      // schedule start (gapless)
       for (const s of scheduled) {
         try {
           s.src.start(s.startAt);
@@ -245,21 +251,20 @@ export function Avatar(props) {
 
       sourcesRef.current = scheduled;
 
-      // ✅ PRO FIX: odmah primeni PRVU poruku
       activeIndexRef.current = 0;
       setActiveIndex(0);
 
-      // reset talkCycle odmah na start
+      // reset talkCycle
       talkCycleRef.current.lastSwitch = playbackCtxRef.current?.currentTime || 0;
       talkCycleRef.current.current = pickNextTalkAnim();
 
       const firstMsg = scheduled?.[0]?.msg || {};
       const desired = pickSpeakingAnimation(firstMsg.animation);
+
       setAnimation(desired || talkCycleRef.current.current || "TalkingOne");
       setFacialExpression(firstMsg.facialExpression || "default");
       setLipsync(firstMsg.lipsync || null);
 
-      // marker za “start”
       onAvatarPlaybackStart?.(buffers.reduce((sum, b) => sum + b.duration, 0));
     },
     [
@@ -274,7 +279,7 @@ export function Avatar(props) {
     ]
   );
 
-  // ✅ When new batch arrives → play it
+  // ✅ When new batch arrives
   useEffect(() => {
     sessionIdRef.current++;
     stopAll();
@@ -295,19 +300,17 @@ export function Avatar(props) {
     };
   }, [playBatchId, playBatch, playBatchGapless, stopAll]);
 
-  // ✅ ASYNC lipsync polling (za poruke koje stižu bez lipsync-a)
+  // ✅ ASYNC lipsync polling
   useEffect(() => {
     if (!playBatch?.length) return;
 
-    const mySession = sessionIdRef.current; // guard
+    const mySession = sessionIdRef.current;
     let cancelled = false;
     const controllers = [];
-
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     playBatch.forEach((m) => {
       if (m?.lipsync?.mouthCues?.length) return;
-
       if (!m?.lipsyncJobId) return;
       if (m.lipsyncIndex === undefined || m.lipsyncIndex === null) return;
 
@@ -325,21 +328,16 @@ export function Avatar(props) {
           let data = null;
           try {
             data = await fetchLipsync(jobId, index, controller.signal);
-          } catch {
-            // ignore transient
-          }
+          } catch {}
 
           if (data?.status === "ready" && data?.lipsync?.mouthCues?.length) {
-            // ✅ ubaci lipsync u msg koji je SCHEDULED na istoj poziciji
             const seg = sourcesRef.current?.[index];
             if (seg?.msg) seg.msg.lipsync = data.lipsync;
-
             if (activeIndexRef.current === index) setLipsync(data.lipsync);
             return;
           }
 
           if (data?.status === "error" || data?.status === "missing") return;
-
           await sleep(250);
         }
       };
@@ -353,7 +351,7 @@ export function Avatar(props) {
     };
   }, [playBatchId, playBatch]);
 
-  // ✅ determine which segment is currently active + talk-cycle
+  // ✅ determine active segment + talk-cycle
   useFrame(() => {
     const list = sourcesRef.current;
     if (!list.length) return;
@@ -370,12 +368,10 @@ export function Avatar(props) {
       activeIndexRef.current = idx;
       setActiveIndex(idx);
 
-      // reset talk switch kad pređe na novu poruku
       talkCycleRef.current.lastSwitch = t;
       talkCycleRef.current.current = pickNextTalkAnim();
     }
 
-    // talk-cycle samo dok audio traje i samo ako backend NIJE eksplicitno poslao animaciju
     const seg = list[activeIndexRef.current];
     const msg = seg?.msg || {};
     const hasExplicitAnim = !!msg.animation && msg.animation !== "Idle";
@@ -399,12 +395,12 @@ export function Avatar(props) {
     const desired = pickSpeakingAnimation(msg.animation);
     const hasExplicitAnim = !!msg.animation && msg.animation !== "Idle";
 
-    setAnimation(hasExplicitAnim ? desired : (desired || talkCycleRef.current.current || "TalkingOne"));
+    setAnimation(hasExplicitAnim ? desired : desired || talkCycleRef.current.current || "TalkingOne");
     setFacialExpression(msg.facialExpression || "default");
     setLipsync(msg.lipsync || null);
   }, [activeIndex, pickSpeakingAnimation]);
 
-  // 🎞️ Animacije
+  // 🎞️ Animations
   useEffect(() => {
     if (!actions?.[animation]) return;
 
@@ -418,7 +414,7 @@ export function Avatar(props) {
     };
   }, [animation, actions, mixer]);
 
-  // 👀 Treptanje
+  // 👀 Blink
   useEffect(() => {
     let blinkTimeout;
 
@@ -435,15 +431,6 @@ export function Avatar(props) {
     nextBlink();
     return () => clearTimeout(blinkTimeout);
   }, []);
-
-  useEffect(() => {
-    const head = nodes?.Wolf3D_Head;
-    if (head?.morphTargetDictionary) {
-      console.log("✅ Head morph targets:", Object.keys(head.morphTargetDictionary));
-    }
-    console.log("✅ Animation clips:", animations?.map((a) => a.name));
-    console.log("✅ Actions:", actions ? Object.keys(actions) : []);
-  }, [nodes, animations, actions]);
 
   // Helper: morph lerp
   const lerpMorphTarget = useCallback(
@@ -464,14 +451,13 @@ export function Avatar(props) {
     [scene]
   );
 
-  // 🧠 Face + Lip sync + RMS fallback
+  // 🧠 Face + Lipsync + RMS fallback
   useFrame((_, delta) => {
     const dt = Math.min(0.033, Math.max(0.001, delta));
 
-    // 1) facial expression (ALI NE DIRAJ mouth/jaw + ne diraj blink)
+    // facial expressions (bez mouth/jaw)
     if (!setupMode) {
-      const mapping =
-        facialExpressions[facialExpression] || facialExpressions["default"] || {};
+      const mapping = facialExpressions[facialExpression] || facialExpressions["default"] || {};
       morphTargets.forEach((key) => {
         if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") return;
         if (isMouthOrJawKey(key)) return;
@@ -479,25 +465,23 @@ export function Avatar(props) {
       });
     }
 
-    // 2) blink
+    // blink
     lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.55);
     lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.55);
 
     if (setupMode) return;
 
-    // seg/time
     const ctx = playbackCtxRef?.current;
     const seg = sourcesRef.current?.[activeIndexRef.current];
     if (!ctx || !seg) return;
 
-    // ✅ RMS fallback uvek radi dok audio traje
+    // ✅ RMS fallback uvek radi (usta rade i bez lipsync)
     const rms = computeRmsFromSeg(seg);
-    const jaw = THREE.MathUtils.clamp(rms * 6.0, 0.02, 0.35);
-    lerpMorphTarget("jawOpen", jaw, 0.35);
-    // opcionalno ako postoji
+    const jawRms = THREE.MathUtils.clamp(rms * 6.0, 0.02, 0.35);
+    lerpMorphTarget("jawOpen", jawRms, 0.35);
     lerpMorphTarget("mouthOpen", THREE.MathUtils.clamp(rms * 5.0, 0, 0.25), 0.25);
 
-    // 3) ako lipsync postoji → viseme “overrides”
+    // lipsync visemes (ako postoje)
     if (!lipsync?.mouthCues?.length) return;
 
     const localTime = Math.max(0, ctx.currentTime - seg.startAt);
@@ -519,11 +503,22 @@ export function Avatar(props) {
       if (!applied.includes(key)) lerpMorphTarget(key, 0, 0.22);
     });
 
-    // ako nema cue u tom frejmu, ostaje RMS jaw (već gore)
+    // ✅ fallback “extra mouth” kad u tom frame-u nema cue (mnogo prirodnije)
     if (!anyCue) {
-      // blagi “život” da ne bude statičan
-      const wobble = 0.02 * Math.abs(Math.sin((ctx.currentTime || 0) * 10.0));
-      lerpMorphTarget("jawOpen", THREE.MathUtils.clamp(jaw + wobble, 0.02, 0.38), 0.18);
+      fallbackJawPhaseRef.current += dt * 11;
+
+      const pulse = Math.abs(Math.sin(fallbackJawPhaseRef.current));
+
+      const jaw = THREE.MathUtils.clamp(pulse * 0.35, 0.02, 0.45);
+      const funnel = THREE.MathUtils.clamp(pulse * 0.25, 0, 0.3);
+      const pucker = THREE.MathUtils.clamp(pulse * 0.18, 0, 0.22);
+      const smile = THREE.MathUtils.clamp(pulse * 0.12, 0, 0.15);
+
+      lerpMorphTarget("jawOpen", jaw, 0.35);
+      lerpMorphTarget("mouthFunnel", funnel, 0.25);
+      lerpMorphTarget("mouthPucker", pucker, 0.22);
+      lerpMorphTarget("mouthSmileLeft", smile * asymRef.current.left, 0.18);
+      lerpMorphTarget("mouthSmileRight", smile * asymRef.current.right, 0.18);
     }
   });
 
@@ -593,36 +588,12 @@ export function Avatar(props) {
         morphTargetInfluences={nodes.Wolf3D_Teeth.morphTargetInfluences}
       />
 
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Glasses.geometry}
-        material={materials.Wolf3D_Glasses}
-        skeleton={nodes.Wolf3D_Glasses.skeleton}
-      />
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Headwear.geometry}
-        material={materials.Wolf3D_Headwear}
-        skeleton={nodes.Wolf3D_Headwear.skeleton}
-      />
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Body.geometry}
-        material={materials.Wolf3D_Body}
-        skeleton={nodes.Wolf3D_Body.skeleton}
-      />
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Outfit_Bottom.geometry}
-        material={materials.Wolf3D_Outfit_Bottom}
-        skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton}
-      />
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Outfit_Footwear.geometry}
-        material={materials.Wolf3D_Outfit_Footwear}
-        skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton}
-      />
-      <skinnedMesh
-        geometry={nodes.Wolf3D_Outfit_Top.geometry}
-        material={materials.Wolf3D_Outfit_Top}
-        skeleton={nodes.Wolf3D_Outfit_Top.skeleton}
-      />
+      <skinnedMesh geometry={nodes.Wolf3D_Glasses.geometry} material={materials.Wolf3D_Glasses} skeleton={nodes.Wolf3D_Glasses.skeleton} />
+      <skinnedMesh geometry={nodes.Wolf3D_Headwear.geometry} material={materials.Wolf3D_Headwear} skeleton={nodes.Wolf3D_Headwear.skeleton} />
+      <skinnedMesh geometry={nodes.Wolf3D_Body.geometry} material={materials.Wolf3D_Body} skeleton={nodes.Wolf3D_Body.skeleton} />
+      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Bottom.geometry} material={materials.Wolf3D_Outfit_Bottom} skeleton={nodes.Wolf3D_Outfit_Bottom.skeleton} />
+      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Footwear.geometry} material={materials.Wolf3D_Outfit_Footwear} skeleton={nodes.Wolf3D_Outfit_Footwear.skeleton} />
+      <skinnedMesh geometry={nodes.Wolf3D_Outfit_Top.geometry} material={materials.Wolf3D_Outfit_Top} skeleton={nodes.Wolf3D_Outfit_Top.skeleton} />
     </group>
   );
 }
