@@ -7,24 +7,42 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const getPhonemes = async ({ inputWav, outputJson }) => {
-  const time = Date.now();
-  console.log(`🎙️ Rhubarb start: ${inputWav}`);
+// ✅ Render / Linux: koristi /tmp (RAM / brže)
+// Ako si već prosledio outputJson kao /tmp/... onda će ostati tako.
+const withTmpIfRelative = (p) => {
+  if (!p) return p;
+  if (p.startsWith("/") || p.includes(":\\") || p.includes(":/")) return p; // već apsolutno (linux/win)
+  return path.join(os.tmpdir(), p);
+};
 
-  if (!fs.existsSync("audios")) fs.mkdirSync("audios", { recursive: true });
+export const getPhonemes = async ({ inputWav, outputJson }) => {
+  const t0 = Date.now();
+
+  // ✅ prebaci u /tmp ako su relative putanje
+  const inWav = withTmpIfRelative(inputWav);
+  const outJson = withTmpIfRelative(outputJson);
+
+  console.log(`🎙️ Rhubarb start: ${inWav}`);
 
   const isWin = os.platform() === "win32";
   const rhubarbBin = isWin ? "rhubarb.exe" : "rhubarb";
   const rhubarbPath = path.join(__dirname, "..", ".bin", rhubarbBin);
 
   if (!fs.existsSync(rhubarbPath)) throw new Error(`Rhubarb NOT FOUND: ${rhubarbPath}`);
-  if (!fs.existsSync(inputWav)) throw new Error(`Input WAV NOT FOUND: ${inputWav}`);
+  if (!fs.existsSync(inWav)) throw new Error(`Input WAV NOT FOUND: ${inWav}`);
 
-  await execCommand({
-    command: `"${rhubarbPath}" -f json -o "${outputJson}" "${inputWav}" -r phonetic`,
-  });
+  // ✅ threads (opciono) - zavisi od CPU
+  const threads = Math.min(4, Math.max(1, os.cpus()?.length || 1));
 
-  if (!fs.existsSync(outputJson)) throw new Error(`JSON not created: ${outputJson}`);
+  // ✅ BRŽI recognizer
+  // phonetic je spor, pocketSphinx je mnogo brži (za TTS je skroz ok)
+  const cmd =
+    `"${rhubarbPath}" -f json -o "${outJson}" "${inWav}" ` +
+    `-r pocketSphinx --threads ${threads}`;
 
-  console.log(`🗣️ Rhubarb done in ${Date.now() - time}ms -> ${outputJson}`);
+  await execCommand({ command: cmd });
+
+  if (!fs.existsSync(outJson)) throw new Error(`JSON not created: ${outJson}`);
+
+  console.log(`🗣️ Rhubarb done in ${Date.now() - t0}ms -> ${outJson}`);
 };
