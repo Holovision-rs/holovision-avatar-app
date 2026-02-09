@@ -21,6 +21,9 @@ process.on("unhandledRejection", (err) => console.error("🔥 UNHANDLED REJECTIO
 
 const app = express();
 
+// (opciono) ako Render proxy pravi probleme
+app.set("trust proxy", 1);
+
 // ✅ osiguraj folder (ako ga i dalje negde koristiš)
 fs.mkdirSync("audios", { recursive: true });
 
@@ -72,10 +75,7 @@ app.use((req, res, next) => {
 // ======================
 // LIPSYNC STORE (in-memory)
 // ======================
-// key: `${jobId}:${index}`
-// value: { status: "pending"|"ready"|"error", lipsync: object|null, error: string|null, updatedAt: number }
 const lipsyncStore = new Map();
-
 const storeKey = (jobId, index) => `${jobId}:${index}`;
 
 const setLipsyncPending = (jobId, index) => {
@@ -107,28 +107,24 @@ const setLipsyncError = (jobId, index, e) => {
 
 // ✅ cleanup store (na 10 min)
 const LIPSYNC_TTL_MS = 10 * 60 * 1000;
-setInterval(() => {
+const tCleanup = setInterval(() => {
   const now = Date.now();
   for (const [k, v] of lipsyncStore.entries()) {
-    if (!v?.updatedAt || now - v.updatedAt > LIPSYNC_TTL_MS) {
-      lipsyncStore.delete(k);
-    }
+    if (!v?.updatedAt || now - v.updatedAt > LIPSYNC_TTL_MS) lipsyncStore.delete(k);
   }
-}, 60 * 1000).unref?.();
+}, 60 * 1000);
+tCleanup.unref?.();
 
 // ✅ polling endpoint
 app.get("/lipsync/:jobId/:index", (req, res) => {
   const { jobId, index } = req.params;
-  const k = storeKey(jobId, Number(index));
-  const v = lipsyncStore.get(k);
+  const v = lipsyncStore.get(storeKey(jobId, Number(index)));
 
-  if (!v) {
-    // nije startovano ili je obrisano iz memorije
-    return res.status(404).json({ status: "missing" });
-  }
+  if (!v) return res.status(404).json({ status: "missing", ready: false });
 
   res.json({
     status: v.status,
+    ready: v.status === "ready",
     lipsync: v.lipsync,
     error: v.error,
     updatedAt: v.updatedAt,
@@ -218,22 +214,10 @@ const GUARD = {
   name: "Torin",
   brand: "HOLOVISION",
   maxWebMs: 10000,
-  bannedPhrases: [
-    "i am chatgpt",
-    "i’m chatgpt",
-    "i am an ai developed by openai",
-    "as an ai developed by openai",
-    "openai",
-    "chatgpt",
-    "gpt",
-  ],
+  bannedPhrases: ["openai", "chatgpt", "gpt"],
 };
 
-const normalize = (s = "") =>
-  (s || "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+const normalize = (s = "") => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
 const HARD_INTENTS = [
   {
@@ -279,32 +263,6 @@ Više informacija: holovision.rs`,
       ],
     },
   },
-  {
-    id: "identity_chatgpt",
-    triggers: ["da li si chatgpt", "jesi chatgpt", "are you chatgpt", "are you openai", "da li si openai"],
-    reply: {
-      messages: [
-        {
-          text: `Ne. Ja sam ${GUARD.name}, AI avatar ${GUARD.brand}-a.`,
-          facialExpression: "smile",
-          animation: "TalkingThree",
-        },
-      ],
-    },
-  },
-  {
-    id: "identity_creator",
-    triggers: ["ko te je napravio", "ko te napravio", "who made you", "who created you"],
-    reply: {
-      messages: [
-        {
-          text: `${GUARD.brand} tim me je razvio kao AI virtualnog asistenta.`,
-          facialExpression: "smile",
-          animation: "TalkingTwo",
-        },
-      ],
-    },
-  },
 ];
 
 const matchHardIntent = (q = "") => {
@@ -318,23 +276,15 @@ const matchHardIntent = (q = "") => {
   return null;
 };
 
-const WEB_KEYWORDS = [
-  "danas","trenutno","sad","najnovije","vesti","cena","kurs","2025","2026","link",
-  "gde mogu","koliko kosta","koliko košta","price","today","now","latest","news","rate",
-];
-
-const shouldUseWeb = (q = "") => {
-  const s = normalize(q);
-  return WEB_KEYWORDS.some((k) => s.includes(normalize(k)));
-};
+const WEB_KEYWORDS = ["danas","trenutno","sad","najnovije","vesti","cena","kurs","link","price","today","now","latest","news","rate"];
+const shouldUseWeb = (q = "") => WEB_KEYWORDS.some((k) => normalize(q).includes(normalize(k)));
 
 const sanitizeAssistantText = (text = "") => {
-  const t = text || "";
-  const lower = t.toLowerCase();
+  const lower = (text || "").toLowerCase();
   if (GUARD.bannedPhrases.some((p) => lower.includes(p))) {
     return `Ja sam ${GUARD.name}, AI avatar ${GUARD.brand}-a. Kako mogu da pomognem?`;
   }
-  return t;
+  return text || "";
 };
 
 const withTimeout = (promise, ms = 10000) =>
@@ -346,12 +296,10 @@ const withTimeout = (promise, ms = 10000) =>
 const systemForLang = (lang) => {
   if (lang === "en") {
     return `You are ${GUARD.name}, a professional AI avatar for ${GUARD.brand}.
-Answer ONLY in English. Keep it short and clear (1-2 sentences).
-Never say you are ChatGPT or OpenAI.`;
+Answer ONLY in English. Keep it short and clear (1-2 sentences).`;
   }
   return `Ti si ${GUARD.name}, profesionalni AI avatar za ${GUARD.brand}.
-Odgovaraj ISKLJUČIVO na srpskom. Kratko i jasno (1-2 rečenice).
-Nikada ne reci da si ChatGPT ili OpenAI.`;
+Odgovaraj ISKLJUČIVO na srpskom. Kratko i jasno (1-2 rečenice).`;
 };
 
 const answerFastNoWeb = async (userMessage, lang) => {
@@ -446,21 +394,15 @@ app.post("/tts", async (req, res, next) => {
 
     const jobId = crypto.randomUUID();
 
-    let response;
-    try {
-      response = await lipSync({
-        messages: msgs,
-        jobId,
-        hooks: {
-          onPending: (jid, idx) => setLipsyncPending(jid, idx),
-          onReady: (jid, idx, lip) => setLipsyncReady(jid, idx, lip),
-          onError: (jid, idx, e) => setLipsyncError(jid, idx, e),
-        },
-      });
-    } catch (err) {
-      console.error("🔥 /tts LIPSYNC CRASH:", err);
-      return res.status(500).json({ error: "LipSync failed" });
-    }
+    const response = await lipSync({
+      messages: msgs,
+      jobId,
+      hooks: {
+        onPending: (jid, idx) => setLipsyncPending(jid, idx),
+        onReady: (jid, idx, lip) => setLipsyncReady(jid, idx, lip),
+        onError: (jid, idx, e) => setLipsyncError(jid, idx, e),
+      },
+    });
 
     res.send({ messages: response });
   } catch (err) {
@@ -492,6 +434,7 @@ app.post("/sts", async (req, res, next) => {
     if (!userMessage?.trim() || isBadTranscript(userMessage)) {
       const jobId = crypto.randomUUID();
       const fallback = notUnderstood(lang);
+
       const out = await lipSync({
         messages: fallback.messages,
         jobId,
@@ -501,6 +444,7 @@ app.post("/sts", async (req, res, next) => {
           onError: (jid, idx, e) => setLipsyncError(jid, idx, e),
         },
       });
+
       return res.send({ messages: out.map((m) => ({ id: crypto.randomUUID(), ...m })) });
     }
 
@@ -518,21 +462,15 @@ app.post("/sts", async (req, res, next) => {
 
     const jobId = crypto.randomUUID();
 
-    let response;
-    try {
-      response = await lipSync({
-        messages: msgs,
-        jobId,
-        hooks: {
-          onPending: (jid, idx) => setLipsyncPending(jid, idx),
-          onReady: (jid, idx, lip) => setLipsyncReady(jid, idx, lip),
-          onError: (jid, idx, e) => setLipsyncError(jid, idx, e),
-        },
-      });
-    } catch (err) {
-      console.error("🔥 /sts LIPSYNC CRASH:", err);
-      return res.status(500).json({ error: "LipSync failed" });
-    }
+    const response = await lipSync({
+      messages: msgs,
+      jobId,
+      hooks: {
+        onPending: (jid, idx) => setLipsyncPending(jid, idx),
+        onReady: (jid, idx, lip) => setLipsyncReady(jid, idx, lip),
+        onError: (jid, idx, e) => setLipsyncError(jid, idx, e),
+      },
+    });
 
     const messages = response.map((m) => ({ id: crypto.randomUUID(), ...m }));
     res.send({ messages });
