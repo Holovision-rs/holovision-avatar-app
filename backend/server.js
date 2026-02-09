@@ -45,20 +45,38 @@ const allowedOrigins = new Set([
 
 const applyCorsHeaders = (req, res) => {
   const origin = req.headers.origin;
+
   if (origin && allowedOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
+
+    // ako koristiš Authorization header ili cookies
     res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+
+    // ✅ dodaj šta ti realno šalješ (Authorization za admin)
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With"
+    );
+
+    // ✅ KLJUČNO: dodaj PATCH
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    );
+
+    // (opciono) ubrzava preflight keširanjem
+    res.setHeader("Access-Control-Max-Age", "600");
   }
 };
 
 app.use((req, res, next) => {
+  // preflight
   if (req.method === "OPTIONS") {
     applyCorsHeaders(req, res);
     return res.sendStatus(204);
   }
+
   applyCorsHeaders(req, res);
   next();
 });
