@@ -1,12 +1,30 @@
 import { exec } from "child_process";
 import { promises as fs } from "fs";
 
-const execCommand = ({ command }) => {
+const execCommand = ({ command, timeoutMs = 15000 }) => {
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) reject(error);
+
+    const child = exec(command, {
+      timeout: timeoutMs,
+
+      // 🔥 VEOMA BITNO
+      // Rhubarb zna da izbaci dosta logova
+      // default je 1MB -> može da crashuje
+      maxBuffer: 10 * 1024 * 1024,
+    }, (error, stdout, stderr) => {
+
+      // TIMEOUT
+      if (error?.killed || error?.signal === "SIGTERM") {
+        return reject(new Error(`Process timeout after ${timeoutMs}ms`));
+      }
+
+      if (error) {
+        return reject(error);
+      }
+
       resolve(stdout);
     });
+
   });
 };
 

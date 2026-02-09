@@ -40,7 +40,7 @@ export const getPhonemes = async ({ inputWav, outputJson }) => {
     `"${rhubarbPath}" -f json -o "${outJson}" "${inWav}" ` +
     `-r pocketSphinx --threads ${threads}`;
 
-  await execCommand({ command: cmd });
+   await execCommand({ command: cmd, timeoutMs: 15000 });
 
   if (!fs.existsSync(outJson)) throw new Error(`JSON not created: ${outJson}`);
 
