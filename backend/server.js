@@ -195,8 +195,80 @@ const HARD_INTENTS = [
       messages: [
         {
           text: `Ja sam ${GUARD.name} — AI virtualni asistent ${GUARD.brand}-a. Tu sam da pomognem oko informacija, objašnjenja i zadataka.`,
+          facialExpression: "smile",
+          animation: "TalkingTwo",
+        },
+      ],
+    },
+  },
+  {
+    id: "brand_holovision_micro",
+    triggers: [
+      "šta je holovision",
+      "sta je holovision",
+      "what is holovision",
+      "tell me about holovision",
+      "ko je holovision",
+    ],
+    reply: {
+      messages: [
+        {
+          text: `HOLOVISION je pionir nove generacije hologramske komunikacije.
+
+  Kreiramo realistične 3D holograme i digitalne avatare koji pretvaraju svaku prezentaciju u nezaboravno iskustvo.
+
+  Saznajte više na holovision.rs`,
+          facialExpression: "smile",
+          animation: "TalkingOne",
+        },
+      ],
+    },
+  },
+  {
+    id: "brand_holovision_standard",
+    triggers: [
+      "čime se bavite",
+      "cime se bavite",
+      "šta radite",
+      "sta radite",
+      "what do you do",
+      "services",
+      "usluge",
+    ],
+    reply: {
+      messages: [
+        {
+          text: `HOLOVISION razvija napredna hologramska rešenja za marketing, događaje i savremene prodajne prostore.
+
+  Naša tehnologija omogućava brendovima da privuku pažnju, povećaju angažovanje i ostave snažan vizuelni utisak.
+
+  Posetite holovision.rs i otkrijte kako budućnost komunikacije izgleda danas.`,
           facialExpression: "default",
-          animation: "Idle",
+          animation: "TalkingTwo",
+        },
+      ],
+    },
+  },
+  {
+    id: "brand_holovision_deep",
+    triggers: [
+      "gde mogu da kupim",
+      "kontakt",
+      "how can we work together",
+      "price",
+      "saradnja",
+      "ponuda",
+    ],
+    reply: {
+      messages: [
+        {
+          text: `HOLOVISION pruža kompletna hologramska rešenja — od ideje i 3D produkcije do implementacije i podrške.
+
+  Naš tim pomaže kompanijama da se izdvoje kroz inovativna vizuelna iskustva koja publika pamti.
+
+  Kontaktirajte nas putem sajta holovision.rs i započnimo kreiranje vaše hologramske prezentacije.`,
+          facialExpression: "smile",
+          animation: "TalkingThree",
         },
       ],
     },
@@ -208,8 +280,8 @@ const HARD_INTENTS = [
       messages: [
         {
           text: `Ne. Ja sam ${GUARD.name}, AI avatar ${GUARD.brand}-a.`,
-          facialExpression: "default",
-          animation: "Idle",
+          facialExpression: "smile",
+          animation: "TalkingThree",
         },
       ],
     },
@@ -278,7 +350,7 @@ const sanitizeAssistantText = (text = "") => {
 };
 
 // --- TIMEOUT helper (max 10s) ---
-const withTimeout = (promise, ms = 13000) =>
+const withTimeout = (promise, ms = 10000) =>
   Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT_${ms}ms`)), ms)),
