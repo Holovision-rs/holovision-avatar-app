@@ -1,3 +1,5 @@
+// server.js (UPDATED - smart web decision + robust hard intents + ttsRate only if web really used)
+
 import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
@@ -49,16 +51,8 @@ const applyCorsHeaders = (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With"
-    );
-    // ✅ KLJUČNO: PATCH
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-    );
-    // (opciono) cache preflight
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Max-Age", "600");
   }
 };
@@ -214,10 +208,12 @@ const GUARD = {
   name: "Torin",
   brand: "HOLOVISION",
   maxWebMs: 10000,
+  // minimalno (ti si već rešavao u sanitize)
   bannedPhrases: ["openai", "chatgpt", "gpt"],
 };
 
 const normalize = (s = "") => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const words = (s) => normalize(s).split(/\s+/).filter(Boolean);
 
 const HARD_INTENTS = [
   {
@@ -248,7 +244,13 @@ const HARD_INTENTS = [
   },
   {
     id: "brand_holovision_micro",
-    triggers: ["šta je holovision", "sta je holovision", "what is holovision", "tell me about holovision", "ko je holovision"],
+    triggers: [
+      "šta je holovision",
+      "sta je holovision",
+      "what is holovision",
+      "tell me about holovision",
+      "ko je holovision",
+    ],
     reply: {
       messages: [
         {
@@ -265,19 +267,32 @@ Više informacija: holovision.rs`,
   },
 ];
 
+const isFuzzyMatch = (query, trigger) => {
+  const q = normalize(query);
+  const t = normalize(trigger);
+
+  // 1) brzi slučaj: substring (najpouzdanije)
+  if (q.includes(t)) return true;
+
+  // 2) fuzzy po rečima (da uhvati "kako se zoves ti", "ko si bre" itd.)
+  const qWords = words(q);
+  const tWords = words(t);
+
+  if (!tWords.length) return false;
+
+  const hits = tWords.filter((w) => qWords.includes(w)).length;
+  return hits / tWords.length >= 0.6;
+};
+
 const matchHardIntent = (q = "") => {
-  const s = normalize(q);
   for (const intent of HARD_INTENTS) {
-    if (intent.triggers.some((t) => s.includes(normalize(t)))) {
+    if (intent.triggers.some((t) => isFuzzyMatch(q, t))) {
       console.log("🛡️ HARD_INTENT:", intent.id);
       return intent.reply;
     }
   }
   return null;
 };
-
-const WEB_KEYWORDS = ["danas","trenutno","sad","najnovije","vesti","cena","kurs","link","price","today","now","latest","news","rate"];
-const shouldUseWeb = (q = "") => WEB_KEYWORDS.some((k) => normalize(q).includes(normalize(k)));
 
 const sanitizeAssistantText = (text = "") => {
   const lower = (text || "").toLowerCase();
@@ -288,18 +303,17 @@ const sanitizeAssistantText = (text = "") => {
 };
 
 const withTimeout = (promise, ms = 10000) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT_${ms}ms`)), ms)),
-  ]);
+  Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`TIMEOUT_${ms}ms`)), ms))]);
 
 const systemForLang = (lang) => {
   if (lang === "en") {
     return `You are ${GUARD.name}, a professional AI avatar for ${GUARD.brand}.
-Answer ONLY in English. Keep it short and clear (1-2 sentences).`;
+Answer ONLY in English. Keep it short and clear (1-2 sentences).
+Never mention OpenAI/ChatGPT/GPT.`;
   }
   return `Ti si ${GUARD.name}, profesionalni AI avatar za ${GUARD.brand}.
-Odgovaraj ISKLJUČIVO na srpskom. Kratko i jasno (1-2 rečenice).`;
+Odgovaraj ISKLJUČIVO na srpskom. Kratko i jasno (1-2 rečenice).
+Nikada ne pominji OpenAI/ChatGPT/GPT.`;
 };
 
 const answerFastNoWeb = async (userMessage, lang) => {
@@ -316,7 +330,11 @@ const answerFastNoWeb = async (userMessage, lang) => {
   return {
     messages: [
       {
-        text: text || (lang === "en" ? "I can’t answer that right now." : "Ne mogu trenutno da pronađem odgovor."),
+        text:
+          text ||
+          (lang === "en"
+            ? "I can’t answer that right now."
+            : "Ne mogu trenutno da pronađem odgovor."),
         facialExpression: "default",
         animation: "Idle",
       },
@@ -324,31 +342,44 @@ const answerFastNoWeb = async (userMessage, lang) => {
   };
 };
 
-const answerWeb = async (userMessage, lang) => {
+// ✅ SMART WEB: tool je dostupan, ali model SAM odlučuje da li će ga pozvati
+const answerWebSmart = async (userMessage, lang) => {
   const r = await openai.responses.create({
     model: process.env.OPENAI_MODEL || "gpt-4o-mini",
     tools: [{ type: "web_search" }],
     input: [
-      { role: "system", content: systemForLang(lang) + " Use the web only when necessary." },
+      {
+        role: "system",
+        content:
+          systemForLang(lang) +
+          "\n\nPRAVILO:\n" +
+          "- Web pretragu koristi SAMO ako pitanje zahteva aktuelne podatke (cene, vesti, dostupnost, linkovi, kurs, datumi).\n" +
+          "- Ako možeš da odgovoriš iz opšteg znanja, NE koristi web.\n" +
+          "- Odgovori kratko (1-2 rečenice).",
+      },
       { role: "user", content: userMessage },
     ],
   });
 
   const text = sanitizeAssistantText((r.output_text || "").trim());
 
-  // ✅ DETEKCIJA — da li je web tool stvarno korišćen
-  const usedWeb = Array.isArray(r.output) &&
-    r.output.some(
-      (o) =>
-        o?.type === "tool_call" ||
-        o?.type === "web_search" ||
-        o?.name === "web_search"
-    );
+  // ✅ DETEKCIJA da li je web tool STVARNO pozvan
+  const usedWeb =
+    Array.isArray(r.output) &&
+    r.output.some((o) => {
+      // najčešći format
+      if (o?.type === "tool_call" && (o?.tool_name === "web_search" || o?.name === "web_search"))
+        return true;
+
+      // fallback formati (zavisi od SDK verzije)
+      if (o?.type === "web_search") return true;
+      if (o?.name === "web_search") return true;
+
+      return false;
+    });
 
   const fallback =
-    lang === "en"
-      ? "I can’t find that right now."
-      : "Ne mogu trenutno da pronađem odgovor.";
+    lang === "en" ? "I can’t find that right now." : "Ne mogu trenutno da pronađem odgovor.";
 
   return {
     messages: [
@@ -357,8 +388,8 @@ const answerWeb = async (userMessage, lang) => {
         facialExpression: "default",
         animation: "Idle",
 
-        // ✅ RATE samo ako je WEB stvarno korišćen
-        ...(usedWeb ? { ttsRate: 0.40} : {}),
+        // ✅ samo ako je web stvarno korišćen → uspori
+        ...(usedWeb ? { ttsRate: 0.5 } : {}),
       },
     ],
   };
@@ -368,19 +399,16 @@ const answerUniversal = async (userMessage) => {
   console.log("🧠 question:", userMessage);
 
   const lang = detectLang(userMessage);
+
+  // ✅ Hard intents uvek imaju prioritet
   const hard = matchHardIntent(userMessage);
   if (hard) return hard;
 
-  if (!shouldUseWeb(userMessage)) {
-    console.log("⚡ FAST (no web)");
-    return await answerFastNoWeb(userMessage, lang);
-  }
-
-  console.log(`🌐 WEB (max ${GUARD.maxWebMs}ms)...`);
+  // ✅ Model sam odlučuje da li koristi web (tool je dostupan, ali nije obavezan)
   try {
-    return await withTimeout(answerWeb(userMessage, lang), GUARD.maxWebMs);
+    return await withTimeout(answerWebSmart(userMessage, lang), GUARD.maxWebMs);
   } catch (e) {
-    console.warn("🌐 Web timeout/fail -> FAST fallback:", e?.message || e);
+    console.warn("🌐 smart-web timeout/fail -> FAST fallback:", e?.message || e);
     return await answerFastNoWeb(userMessage, lang);
   }
 };
